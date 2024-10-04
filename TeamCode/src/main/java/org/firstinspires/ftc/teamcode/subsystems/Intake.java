@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
@@ -12,13 +11,18 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 
 @Config
 public class Intake extends Subsystem {
-    public static double P = 0.0005, I = 0.0002, D = 0, F = 0.1;
+    public static double[] armsPID = {0.0026, 0.0002, 0.00002, 0.005};
     NGMotor motor;
+    NGMotor slides;
+    public static double[] slidesPID = {0.0026, 0.0002, 0.00002, 0.005};
+
     RobotConstants robotConstants;
     NGServo claw;
     NGServo wrist;
     HardwareMap hardwareMap;
     Telemetry telemetry;
+    private boolean claw_open = false;
+    private boolean wrist_open =false;
     private boolean power_four_bar_enabled = false;
     private double target_angle = 0;
 
@@ -32,7 +36,9 @@ public class Intake extends Subsystem {
         this.telemetry = telemetry;
         robotConstants = new RobotConstants();
         motor = new NGMotor(hardwareMap, telemetry, robotConstants.intakeMotor);
-        motor.setPIDF(P,I,D,F);
+        motor.setPIDF(armsPID[0], armsPID[1], armsPID[2], armsPID[3]);
+        slides = new NGMotor(hardwareMap, telemetry, robotConstants.slidesMotor);
+        slides.setPIDF(slidesPID[0], slidesPID[1], slidesPID[2], slidesPID[3]);
         claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
         wrist=  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
     }
@@ -51,21 +57,55 @@ public class Intake extends Subsystem {
     public void moveClaw(double clawPosition){
         claw.setPosition(clawPosition);
     }
-    public void setPower(double power){ motor.setPower(power); }
-    public void setAbsPower(double power){ motor.setAbsPower(power);}
+    public void moveSlides(int targetPosition){
+        slides.move_async(targetPosition);
+    }
+    public void setRotationPower(double power){ motor.setPower(power); }
+    public void setAbsRotationPower(double power){ motor.setAbsPower(power);}
+    public void setSlidePower(double power){
+        slides.setPower(power);
+    }
+    public void setAbsSlidePower(double power){
+        slides.setAbsPower(power);
+    }
     public void openClaw() {
-        claw.setPosition(robotConstants.claw_open);
+        claw.setPosition(robotConstants.claw_open);claw_open = true;
+    }
+    public void setClawPWM(boolean on){
+        if(on){
+            claw.enableServo();
+            return;
+        }
+        claw.disableServo();
+    }
+    public void setWristPWM(boolean on){
+        if(on){
+            wrist.enableServo();
+            return;
+        }
+        wrist.disableServo();
+    }
+    public boolean WristPWMOn(){
+        return wrist.isPWMEnabled();
+    }
+    public boolean ClawPWMOn(){
+        return claw.isPWMEnabled();
     }
     public void closeClaw() {
-        claw.setPosition(robotConstants.claw_closed);
+        claw.setPosition(robotConstants.claw_closed); claw_open=false;
     }
     public void foldWrist(){
-        wrist.setPosition(robotConstants.wrist_folded);
+        wrist.setPosition(robotConstants.wrist_folded); wrist_open=false;
     }
     public void extendWrist(){
-        wrist.setPosition(robotConstants.wrist_extended);
+        wrist.setPosition(robotConstants.wrist_extended); wrist_open=true;
     }
-
+    public boolean isClawOpen(){
+        return claw_open;
+    }
+    public boolean isWristOpen(){
+        return wrist_open;
+    }
     public double calculateWristPosition(){
         double arm_angle = (double) (motor.getCurrentPosition() - arm_at_0_ticks) / (arm_at_45_ticks - arm_at_0_ticks) * 45.0;
         arm_angle = 90 - arm_angle;
@@ -77,28 +117,30 @@ public class Intake extends Subsystem {
     public void update() {
         motor.update();
         if(motor.getCurrentPosition() > feedforward_turning_point){
-            motor.setPIDF(P, I,D , -F);
+            motor.setPIDF(armsPID[0], armsPID[1], armsPID[2], -armsPID[3]);
         }else{
-            motor.setPIDF(P, I,D , F);
+            motor.setPIDF(armsPID[0], armsPID[1], armsPID[2], armsPID[3]);
 
         }
         if(power_four_bar_enabled){
             moveWrist(calculateWristPosition());
         }
+        slides.update();
     }
 
     @Override
     public void telemetry() {
-        telemetry.addData("Claw Position", claw.getPosition());
-        telemetry.addData("Wrist Position", claw.getPosition());
+        claw.telemetry();
+        wrist.telemetry();
+        slides.telemetry();
         motor.telemetry();
     }
 
     @Override
     public void init() {
         motor.init();
-        claw.setPosition(robotConstants.claw_closed);
-        wrist.setPosition(robotConstants.wrist_folded);
-
+        slides.init();
+        openClaw();
+        foldWrist();
     }
 }

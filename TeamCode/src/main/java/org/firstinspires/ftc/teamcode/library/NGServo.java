@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoController;
 import com.qualcomm.robotcore.hardware.ServoControllerEx;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -11,8 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.concurrent.TimeUnit;
 
 public class NGServo extends Subsystem{
-    ServoControllerEx servoController;
-    Servo servo;
+    ServoImplEx servo;
     Telemetry telemetry;
     private double targetPosition = 0;
     private double lastTime = 0;
@@ -25,11 +25,14 @@ public class NGServo extends Subsystem{
 
 
     public NGServo(HardwareMap hardwareMap, Telemetry telemetry, String name){
-        servo = hardwareMap.get(Servo.class, name);
+        servo = hardwareMap.get(ServoImplEx.class, name);
         this.telemetry = telemetry;
         this.name = name;
-        servoController = (ServoControllerEx) hardwareMap.get(ServoController.class, name);
+//        servoController = (ServoControllerEx) servo;
         timer = new ElapsedTime();
+    }
+    public boolean isPWMEnabled(){
+        return PWMEnabled;
     }
     public void setInit_pos(double position){
         init_pos = position;
@@ -38,17 +41,19 @@ public class NGServo extends Subsystem{
         this.timer = timer;
     }
     public void disableServo(){
-        servoController.pwmDisable();
+        servo.setPwmDisable();
         PWMEnabled = false;
     }
     public void enableServo(){
-        servoController.pwmEnable();
+        servo.setPwmEnable();
         PWMEnabled = true;
     }
     public void setPosition(double position){
-        servo.setPosition(position);
-        speed = 0;
-        targetPosition = position;
+        if(PWMEnabled) {
+            servo.setPosition(position);
+            speed = 0;
+            targetPosition = position;
+        }
     }
     public void setPosition(double position, double speed){
         targetPosition = position;
@@ -59,6 +64,9 @@ public class NGServo extends Subsystem{
     }
     @Override
     public void update() {
+        if(!PWMEnabled){
+            return;
+        }
         if(speed == 0){
             return;
         }
