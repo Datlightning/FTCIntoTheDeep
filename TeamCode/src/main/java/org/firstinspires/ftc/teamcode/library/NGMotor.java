@@ -139,12 +139,7 @@ public class NGMotor extends Subsystem {
 
     }
 
-    public void setPower(double power) {
-        if(!exceedingConstraints(power)) {
-            pid_motor.setPower(power + holding_power);
-        }else{
-            pid_motor.setPower(holding_power);
-        }
+    public void setManualPower(double power){
         if(power != 0){
             manual = true;
         }
@@ -153,6 +148,14 @@ public class NGMotor extends Subsystem {
             manual = false;
 
         }
+    }
+    public void setPower(double power) {
+        if(!exceedingConstraints(power)) {
+            pid_motor.setPower(power + holding_power);
+        }else{
+            pid_motor.setPower(holding_power);
+        }
+
     }
     public void setReversedEncoder(boolean reversed){
         this.reversed_encoder = reversed;

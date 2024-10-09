@@ -21,6 +21,7 @@ public class IntakeTesting extends LinearOpMode {
     public static boolean controller =false;
     public static double target_angle = 0;
     public static boolean enable_pid = false;
+
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -30,13 +31,11 @@ public class IntakeTesting extends LinearOpMode {
         while (!isStopRequested() && opModeIsActive()) {
             if(enable_pid) {
                 intake.update();
-            };
+            }else {
 
-            intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
-            intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
-
-
-
+                intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
+                intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
+            }
             intake.moveArm(target_position);
             intake.moveSlides(slide_position);
             if(controller){
