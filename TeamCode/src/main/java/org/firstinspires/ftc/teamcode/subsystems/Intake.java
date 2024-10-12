@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
@@ -11,10 +13,10 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 
 @Config
 public class Intake extends Subsystem {
-    public static double[] armsPID = {0.005, 0, 0, 0};
+    public static PIDFCoefficients armsPID = new PIDFCoefficients(0.002,0.0001,0.00006,0.0005);
     public NGMotor arm;
     public NGMotor slides;
-    public static double[] slidesPID = {0.004, 0, 0, 0};
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.0006, 0.0000385, 0.0005);
 
     RobotConstants robotConstants;
     NGServo claw;
@@ -36,9 +38,9 @@ public class Intake extends Subsystem {
         this.telemetry = telemetry;
         robotConstants = new RobotConstants();
         arm = new NGMotor(hardwareMap, telemetry, robotConstants.intakeMotor);
-        arm.setPIDF(armsPID[0], armsPID[1], armsPID[2], armsPID[3]);
+        arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
         slides = new NGMotor(hardwareMap, telemetry, robotConstants.slidesMotor);
-        slides.setPIDF(slidesPID[0], slidesPID[1], slidesPID[2], slidesPID[3]);
+        slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
         wrist=  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
     }
@@ -118,9 +120,9 @@ public class Intake extends Subsystem {
     public void update() {
         arm.update();
         if(arm.getCurrentPosition() > feedforward_turning_point){
-            arm.setPIDF(armsPID[0], armsPID[1], armsPID[2], -armsPID[3]);
+            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
         }else{
-            arm.setPIDF(armsPID[0], armsPID[1], armsPID[2], armsPID[3]);
+            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 
         }
         if(power_four_bar_enabled){

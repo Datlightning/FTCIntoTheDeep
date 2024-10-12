@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.library;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -24,12 +23,12 @@ public class NGMotor extends Subsystem {
     private boolean reached = false;
     private double minPower = 0;
     private ElapsedTime timer;
-    private double time_passed = 0;
+    private double time_passed = 0, time_stop = 0;
     private int maxHardstop = 10000;
     private String name = "";
     private int minHardstop = 0;
     private double holding_power = 0;
-    private double max_integral = 0;
+    private double max_integral_component = 0.3;
     private double out = 0;
     private double completed_time = 0;
     private double MAX_POWER = 1;
@@ -80,7 +79,7 @@ public class NGMotor extends Subsystem {
     }
 
     public void setMaxIntegral(double max_integral){
-        this.max_integral = max_integral;
+        this.max_integral_component = max_integral;
     }
     public void setDirection(DcMotor.Direction power){
         pid_motor.setDirection(power);
@@ -168,7 +167,7 @@ public class NGMotor extends Subsystem {
 
     }
 
-    public void move_sync(double target, double timeoutS, double MOTOR_POWER) {
+    public void DO_NOT_USEmove_sync(double target, double timeoutS, double MOTOR_POWER) {
         double slidesPosition = getCurrentPosition();
         double Kp = P;
         double Ki = I;
@@ -188,7 +187,8 @@ public class NGMotor extends Subsystem {
             // sum of all error over time
             out = (Kp * error);
             integralSum = integralSum + (error * timer.seconds());
-            if (integralSum <= max_integral){
+
+            if (Ki * integralSum <= max_integral_component){
                 out += (Ki * integralSum) ;
             }
 
@@ -234,7 +234,7 @@ public class NGMotor extends Subsystem {
         // sum of all error over time
         out = (P * error);
         integralSum = integralSum + (error * time_passed);
-        if (integralSum <= max_integral){
+        if (integralSum <= max_integral_component){
             out += (I * integralSum) ;
         }
 
