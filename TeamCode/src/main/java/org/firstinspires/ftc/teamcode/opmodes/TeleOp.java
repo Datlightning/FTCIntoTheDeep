@@ -2,50 +2,59 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 
 
-@TeleOp
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp
 @Config
-public class MecanumEarlyTest extends LinearOpMode {
+public class TeleOp extends LinearOpMode {
     Intake intake;
     MecaTank mecaTank;
     private enum INTAKE_POSITIONS {
         START,
         LOWER_CLAW,
-        REACH,
-        RETRACT,
+        TURN_ARM,
+        EXTEND,
         FOLD,
         CLOSE_AND_FOLD,
         RETRACT_TO_LEAVE,
         RETRACT_TO_LEAVE_2,
         FOLD_IN,
         FOLD_IN_2,
-        REACH_AND_EXTEND,
         DELIVER
     };
-    boolean gamepad1_a_toggle = false;
-    boolean gamepad1_x_toggle = false;
+
     boolean move_next = false;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
     ElapsedTime timer;
+    Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
     double fold_in_delay = 0;
     public void runOpMode(){
         mecaTank = new MecaTank(hardwareMap, telemetry);
         intake = new Intake(hardwareMap, telemetry);
         timer = new ElapsedTime();
+        currentGamepad1 = new Gamepad();
+        currentGamepad2 = new Gamepad();
+        previousGamepad1 = new Gamepad();
+        previousGamepad2 = new Gamepad();
         intake.init();
         mecaTank.init();
 
         waitForStart();
         while(!isStopRequested() && opModeIsActive()){
+            previousGamepad1.copy(currentGamepad1);
+            previousGamepad2.copy(currentGamepad2);
+
+            currentGamepad2.copy(gamepad2);
+            currentGamepad1.copy(gamepad1);
+
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
-            if(move_next || (gamepad1.a && !gamepad1_a_toggle)){
+            if(move_next || (currentGamepad1.a && !previousGamepad1.a)){
                 position = next_position;
                 move_next = false;
                 switch(next_position){
@@ -53,10 +62,6 @@ public class MecanumEarlyTest extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
                     case LOWER_CLAW:
-                        next_position = INTAKE_POSITIONS.REACH;
-                        break;
-                    case REACH:
-                        fold_in_delay = timer.seconds();
                         next_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
                     case CLOSE_AND_FOLD:
@@ -69,9 +74,12 @@ public class MecanumEarlyTest extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.FOLD_IN;
                         break;
                     case FOLD_IN:
-                        next_position = INTAKE_POSITIONS.REACH_AND_EXTEND;
+                        next_position = INTAKE_POSITIONS.TURN_ARM;
                         break;
-                    case REACH_AND_EXTEND:
+                    case TURN_ARM:
+                        next_position = INTAKE_POSITIONS.EXTEND;
+                        break;
+                    case EXTEND:
                         next_position = INTAKE_POSITIONS.DELIVER;
                         break;
                     case DELIVER:
@@ -86,38 +94,36 @@ public class MecanumEarlyTest extends LinearOpMode {
 
 
                 }
-                gamepad1_a_toggle = true;
-            }else if(!gamepad1.a){
-                gamepad1_a_toggle = false;
             }
-            if(!gamepad1_x_toggle && gamepad1.x){
-                gamepad1_x_toggle = true;
 
-                if(position.equals(INTAKE_POSITIONS.REACH)) {
-                    position = INTAKE_POSITIONS.RETRACT;
-                    next_position = INTAKE_POSITIONS.REACH;
+            if(currentGamepad1.left_bumper){
+                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
+                    intake.moveSlidesWithDelay(30);
+                }else {
+                    intake.setSlidePower(0.3);
                 }
-            }else if(!gamepad1.x){
-                gamepad1_x_toggle = false;
+            }else if(currentGamepad1.right_bumper){
+                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
+                    intake.moveArmWithDelay(30);
+                }else {
+                    intake.setSlidePower(-0.3);
+                }
+            }else{
+                intake.setSlidePower(0);
             }
             switch(position) {
                 case START:
-                    intake.moveClaw(0.1);
-                    intake.moveWrist(1);
-                    intake.moveSlides(150);
-                    intake.moveArm(200);
+                    intake.plowClaw();
+                    intake.foldWrist();
+                    intake.moveArm(240);
+                    intake.moveSlides(200);
                     break;
                 case LOWER_CLAW:
-                    intake.moveWrist(0.06);
+                    intake.extendWrist();
                     break;
-                case REACH:
-                    intake.moveSlides(400);
-                    break;
-                case RETRACT:
-                    intake.moveSlides(150);
-                    break;
+
                 case CLOSE_AND_FOLD:
-                    intake.moveClaw(0.3);
+                    intake.closeClaw();
                     if(timer.seconds() - fold_in_delay > 0.3){
                         move_next = true;
                     }
@@ -131,17 +137,19 @@ public class MecanumEarlyTest extends LinearOpMode {
                     break;
                 case FOLD_IN:
                 case FOLD_IN_2:
-                    intake.moveWrist(1);
-                    intake.moveArm(0);
-                    intake.moveClaw(0.27);
+                    intake.foldWrist();
+//                    intake.moveArm(0);
                     break;
-
-                case REACH_AND_EXTEND:
-                    intake.moveArm(1410);
-                    intake.moveSlides(900);
+                case TURN_ARM:
+                    intake.moveArm(1510);
+                    break;
+                case EXTEND:
+                    if(intake.arm.getCurrentPosition() > 700){
+                        intake.moveSlides(900);
+                    }
                     break;
                 case DELIVER:
-                    intake.moveClaw(0);
+                    intake.openClaw();
                     break;
 
 

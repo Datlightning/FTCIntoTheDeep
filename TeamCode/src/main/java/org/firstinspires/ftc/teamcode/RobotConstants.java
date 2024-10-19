@@ -5,9 +5,8 @@ import com.acmerobotics.dashboard.config.Config;
 @Config
 public class RobotConstants {
     //horizontal slides1
-    public static double slide_in = 0.5, slide_out = 0.36;
-    public static double claw_fully_open = 0, claw_closed = 0.27, claw_open=0.1;
-    public static double wrist_folded = 0, wrist_extended=0.4;
+    public static double claw_fully_open = 0.8, claw_closed = 1, claw_open=0.85;
+    public static double wrist_folded = 0.8, wrist_extended=0;
 
     public static String intakeMotor = "intake_motor";//ehub 0
     public static String slidesMotor = "slide_motor";//ehub 1

@@ -11,12 +11,14 @@ import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 
+import java.util.ArrayList;
+
 @Config
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.002,0.0001,0.00006,0.0005);
     public NGMotor arm;
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.0006, 0.0000385, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.0006, 0.0000485, 0.0005);
 
     RobotConstants robotConstants;
     NGServo claw;
@@ -26,12 +28,28 @@ public class Intake extends Subsystem {
     private boolean claw_open = false;
     private boolean wrist_open =false;
     private boolean power_four_bar_enabled = false;
-    private double target_angle = 0;
+    private boolean forward_delay = false;
+    private boolean backward_delay = false;
+
+    private double target_angle = 0;//To the y-axis
+    private double target_height = 0;//To the floor
+    private ArrayList<Integer> slideTargetPositions = new ArrayList<>();
+    private ArrayList<Integer> armTargetPositions = new ArrayList<>();
+
+
 
     public static double feedforward_turning_point = 0;
+
     public static double arm_at_0_ticks = 1400;
     public static double arm_at_45_ticks = 2010;
     public static double wrist_90 = 1;//TODO: make this work with the claw.
+    public static double wrist_0 = 0;
+    public static double slide_ticks_to_inches = 0;
+    public static double slide_starting_length = 0;
+    public static double slide_starting_height = 0;
+    public static double claw_height = 0;
+
+
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
@@ -64,15 +82,11 @@ public class Intake extends Subsystem {
     }
     public void setRotationPower(double power){ arm.setManualPower(power); }
     public void setAbsRotationPower(double power){ arm.setAbsPower(power);}
-    public void setSlidePower(double power){
-        slides.setManualPower(power);
-    }
+    public void setSlidePower(double power){slides.setManualPower(power);}
     public void setAbsSlidePower(double power){
         slides.setAbsPower(power);
     }
-    public void openClaw() {
-        claw.setPosition(robotConstants.claw_open);claw_open = true;
-    }
+    public void openClaw() {claw.setPosition(robotConstants.claw_fully_open);claw_open = true;}
     public void setClawPWM(boolean on){
         if(on){
             claw.enableServo();
@@ -80,7 +94,6 @@ public class Intake extends Subsystem {
         }
         claw.disableServo();
     }
-
     public void setWristPWM(boolean on){
         if(on){
             wrist.enableServo();
@@ -97,6 +110,9 @@ public class Intake extends Subsystem {
     public void closeClaw() {
         claw.setPosition(robotConstants.claw_closed); claw_open=false;
     }
+    public void plowClaw(){
+        claw.setPosition(robotConstants.claw_open); claw_open=true;
+    }
     public void foldWrist(){
         wrist.setPosition(robotConstants.wrist_folded); wrist_open=false;
     }
@@ -109,25 +125,81 @@ public class Intake extends Subsystem {
     public boolean isWristOpen(){
         return wrist_open;
     }
+    public double getArmAngle(){
+        return (double) (arm.getCurrentPosition() - arm_at_0_ticks) / (arm_at_45_ticks - arm_at_0_ticks) * 45.0;
+    }
     public double calculateWristPosition(){
-        double arm_angle = (double) (arm.getCurrentPosition() - arm_at_0_ticks) / (arm_at_45_ticks - arm_at_0_ticks) * 45.0;
-        arm_angle = 90 - arm_angle;
-        double target_position = (90 - arm_angle - target_angle)/90.0 * wrist_90;
-
+        double arm_angle = getArmAngle();
+        double target_position = (90 - arm_angle - target_angle)/90.0 * (wrist_90 - wrist_0) + wrist_0;
+        telemetry.addData("Power Four Bar Target Position", target_position);
         return target_position;
+    }
+    public double calculateSlideLength(int slide_position){
+        return slide_starting_length + slide_position * slide_ticks_to_inches;
+    }
+    public int calculateArmPosition(int slide_position){
+        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
+        int arm_angle_in_ticks = (int) (arm_angle / 45.0 * (arm_at_45_ticks - arm_at_0_ticks));
+        telemetry.addData("Arm Output Angle", arm_angle);
+        telemetry.addData("Arm Output Ticks", arm_angle_in_ticks);
+        return arm_angle_in_ticks;//TODO: Actually update the arms position after confirming it will not explode <3
+    }
+    public void moveSlidesWithDelay(int increment){
+        if(backward_delay){
+            slideTargetPositions.clear();
+            armTargetPositions.clear();
+        }
+        if(slideTargetPositions.isEmpty()) {
+            slideTargetPositions.add(slides.targetPos + increment);
+        } else {
+            int lastPosition = slideTargetPositions.get(slideTargetPositions.size() - 1);
+            slideTargetPositions.add(lastPosition + increment);
+        }
+        int arm_pos = calculateArmPosition(slides.targetPos + increment);
+        armTargetPositions.add(arm_pos);
+        moveArm(arm_pos);
+        forward_delay = true;
+        backward_delay = false;
+    }
+    public void moveArmWithDelay(int increment){
+        if(forward_delay){
+            slideTargetPositions.clear();
+            armTargetPositions.clear();
+        }
+        slideTargetPositions.add(slides.targetPos - increment);
+
+        int arm_pos = calculateArmPosition(slides.targetPos - increment);
+        armTargetPositions.add(arm_pos);
+        moveSlides(slides.targetPos - increment);
+        forward_delay = false;
+        backward_delay = true;
     }
     @Override
     public void update() {
-        arm.update();
         if(arm.getCurrentPosition() > feedforward_turning_point){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
         }else{
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 
         }
+
         if(power_four_bar_enabled){
             moveWrist(calculateWristPosition());
         }
+        if(forward_delay && slideTargetPositions.size() > 0 && arm.getCurrentPosition() >= armTargetPositions.get(0)){
+            armTargetPositions.remove(0);
+            moveSlides(slideTargetPositions.remove(0));
+        }else if(slideTargetPositions.size() == 0){
+            forward_delay = false;
+        }
+        if(backward_delay && armTargetPositions.size() > 0 && slides.getCurrentPosition() <= slideTargetPositions.get(0)){
+            slideTargetPositions.remove(0);
+            moveArm(armTargetPositions.remove(0));
+        }else if(armTargetPositions.size() == 0){
+            backward_delay = false;
+        }
+
+        arm.update();
         slides.update();
     }
 
@@ -143,6 +215,7 @@ public class Intake extends Subsystem {
     public void init() {
         arm.init();
         slides.init();
+        slides.setMax(900);
         openClaw();
         foldWrist();
     }

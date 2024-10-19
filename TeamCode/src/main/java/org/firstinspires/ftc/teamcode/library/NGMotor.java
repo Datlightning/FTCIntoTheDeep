@@ -10,11 +10,10 @@ import java.util.concurrent.TimeUnit;
 
 public class NGMotor extends Subsystem {
     DcMotorEx pid_motor;
-    public double targetPos;
+    public int targetPos = 0;
     public static double P = 0.0005, I = 0.0002, D = 0;
     public static double F = 0;
     double error, lastError;
-    int startPos = Integer.MAX_VALUE;
     boolean direction = true;
     private boolean reversed_encoder = false;
     public boolean manual = false;
@@ -94,7 +93,7 @@ public class NGMotor extends Subsystem {
     }
 
     public boolean isBusy(){
-        return !(reached && timer.time(TimeUnit.SECONDS) - completed_time > 0.125);
+        return !(reached);
     }
     public boolean isCompletedFor(double time){
         return !(reached && timer.time(TimeUnit.SECONDS) - completed_time > time);
@@ -141,17 +140,20 @@ public class NGMotor extends Subsystem {
     public void setManualPower(double power){
         if(power != 0){
             manual = true;
+            setPower(power);
         }
         if(power == 0 && manual){
             targetPos = pid_motor.getCurrentPosition();
             manual = false;
+            setPower(0);
 
         }
     }
     public void setPower(double power) {
         if(!exceedingConstraints(power)) {
             pid_motor.setPower(power + holding_power);
-        }else{
+        }
+        else{
             pid_motor.setPower(holding_power);
         }
 
@@ -210,10 +212,17 @@ public class NGMotor extends Subsystem {
 
     }
 
-    public void move_async(double target) {
+    public void move_async(int target) {
+        if(target > maxHardstop || target < minHardstop){
+            return;
+        }
+        if(targetPos != target){
+            reached = false;
+            integralSum = 0;
+            time_stop = timer.seconds();
+        }
         targetPos = target;
-        reached = false;
-        integralSum = 0;
+
     }
 
 
@@ -230,12 +239,16 @@ public class NGMotor extends Subsystem {
         error = targetPos - getCurrentPosition();
 
         // rate of change of the error
-        time_passed = timer.seconds() - time_passed;
+
+        // rate of change of the error
+        time_passed = timer.seconds() - time_stop;
         // sum of all error over time
         out = (P * error);
         integralSum = integralSum + (error * time_passed);
-        if (integralSum <= max_integral_component){
+        if (I * integralSum <= max_integral_component){
             out += (I * integralSum) ;
+        }else{
+            out += (max_integral_component);
         }
 
 
@@ -244,16 +257,13 @@ public class NGMotor extends Subsystem {
             double derivative = (error - lastError) / time_passed;
             out += D * derivative;
         }
-        out += Math.copySign(F, out) ;
-        out *= (reversed_encoder ? -1 : 1);
-
-        setPower(out* MAX_POWER);
-
-        if(Math.abs(error) < 20 && !reached){
+        if(Math.abs(error) < 5){
             reached = true;
-            completed_time = timer.time(TimeUnit.SECONDS);
         }
+        out += F;
+        pid_motor.setPower(out);
         lastError = error;
+        time_stop = timer.seconds();
 
     }
 

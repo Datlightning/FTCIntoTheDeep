@@ -45,7 +45,6 @@ public class PIDTuning extends LinearOpMode {
                 motor.setPower(power);
                 continue;
             }
-            error = target_position - motor.getCurrentPosition();
             if(past_target != target_position){
                 integralSum = 0;
             }
@@ -71,6 +70,7 @@ public class PIDTuning extends LinearOpMode {
             out += F;
             motor.setPower(out);
             lastError = error;
+            error = target_position - motor.getCurrentPosition();
             telemetry.addData("Current Position", motor.getCurrentPosition());
             telemetry.addData("Output Power", out);
             telemetry.addData("Target Position", target_position);

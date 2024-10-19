@@ -19,8 +19,10 @@ public class IntakeTesting extends LinearOpMode {
     public static int target_position = 0;
     public static int slide_position = 0;
     public static boolean controller =false;
+    public static boolean height_controller = false;
     public static double target_angle = 0;
     public static boolean enable_pid = false;
+    public static int slide_hard_stop = 900;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -36,6 +38,7 @@ public class IntakeTesting extends LinearOpMode {
                 intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
                 intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
             }
+            intake.slides.setMax(slide_hard_stop);
             intake.moveArm(target_position);
             intake.moveSlides(slide_position);
             if(controller){
@@ -46,6 +49,8 @@ public class IntakeTesting extends LinearOpMode {
             }
             intake.moveClaw(claw_position);
 
+
+            intake.calculateArmPosition(intake.slides.getCurrentPosition());
 
 
 
