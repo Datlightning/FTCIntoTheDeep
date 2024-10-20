@@ -21,6 +21,8 @@ public class NGServo extends Subsystem{
     private String name;
     private double init_pos = 0;
     private boolean PWMEnabled = true;
+    private double min = 0;
+    private double max = 1;
 
 
 
@@ -40,6 +42,12 @@ public class NGServo extends Subsystem{
     public void mountTimer(ElapsedTime timer){
         this.timer = timer;
     }
+    public void setMax(double max){
+        this.max = max;
+    }
+    public void setMin(double min){
+        this.min = min;
+    }
     public void disableServo(){
         servo.setPwmDisable();
         PWMEnabled = false;
@@ -48,7 +56,15 @@ public class NGServo extends Subsystem{
         servo.setPwmEnable();
         PWMEnabled = true;
     }
-    public void setPosition(double position){
+    public void setPosition(double position) {
+        if (position > max){
+            position = max;
+            }
+            if(position < min)
+
+            {
+                position = min;
+            }
         if(PWMEnabled) {
             servo.setPosition(position);
             speed = 0;
@@ -56,6 +72,14 @@ public class NGServo extends Subsystem{
         }
     }
     public void setPosition(double position, double speed){
+        if (position > max){
+            position = max;
+        }
+        if(position < min)
+
+        {
+            position = min;
+        }
         targetPosition = position;
         this.speed = speed;
     }

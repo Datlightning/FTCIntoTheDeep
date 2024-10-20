@@ -39,38 +39,52 @@ public class PIDTuning extends LinearOpMode {
         timer = new ElapsedTime();
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
+            // Update time passed early on
+            time_passed = timer.seconds() - time_stop;
             time_stop = timer.seconds();
 
-            if(power != 0){
+// If manual power is applied, skip the PID calculation
+            if (power != 0){
                 motor.setPower(power);
                 continue;
             }
+
+// Reset integral sum if target position has changed
             if(past_target != target_position){
                 integralSum = 0;
             }
             past_target = target_position;
-            // rate of change of the error
-            time_passed = timer.seconds() - time_stop;
-            // sum of all error over time
-            out = (P * error);
-            integralSum = integralSum + (error * time_passed);
+
+// Calculate error first
+            error = target_position - motor.getCurrentPosition();
+
+// Proportional term
+            out = P * error;
+
+// Integral term with windup protection
+            integralSum += error * time_passed;
             if (I * integralSum <= max_integral){
-                out += (I * integralSum) ;
-            }else{
-                out += (max_integral);
+                out += I * integralSum;
+            } else {
+                out += max_integral;
             }
 
-
-
-            if(time_passed != 0) {
+// Derivative term (with time_passed already calculated)
+            if(time_passed > 0) {
                 double derivative = (error - lastError) / time_passed;
                 out += D * derivative;
             }
 
+// Feedforward term
             out += F;
+
+// Set motor power output
             motor.setPower(out);
+
+// Update last error for the next iteration
             lastError = error;
-            error = target_position - motor.getCurrentPosition();
+
+// Telemetry for debugging
             telemetry.addData("Current Position", motor.getCurrentPosition());
             telemetry.addData("Output Power", out);
             telemetry.addData("Target Position", target_position);

@@ -25,10 +25,13 @@ public class TeleOp extends LinearOpMode {
         RETRACT_TO_LEAVE_2,
         FOLD_IN,
         FOLD_IN_2,
-        DELIVER
+        DELIVER,
+        ALLOW_SLIDE_CONTROL,
+        RAISE_ARM
     };
 
     boolean move_next = false;
+    public static double target_height = .125;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
     ElapsedTime timer;
@@ -42,6 +45,9 @@ public class TeleOp extends LinearOpMode {
         currentGamepad2 = new Gamepad();
         previousGamepad1 = new Gamepad();
         previousGamepad2 = new Gamepad();
+
+        intake.setTargetAngle(90);
+
         intake.init();
         mecaTank.init();
 
@@ -53,6 +59,11 @@ public class TeleOp extends LinearOpMode {
             currentGamepad2.copy(gamepad2);
             currentGamepad1.copy(gamepad1);
 
+            intake.setTargetHeight(target_height);
+            if(currentGamepad1.b && !previousGamepad1.b){
+                intake.moveSlides(intake.slides.getCurrentPosition());
+                intake.moveArm(intake.arm.getCurrentPosition());
+            }
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             if(move_next || (currentGamepad1.a && !previousGamepad1.a)){
                 position = next_position;
@@ -65,6 +76,11 @@ public class TeleOp extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
                     case CLOSE_AND_FOLD:
+                        fold_in_delay = timer.seconds();
+                        next_position = INTAKE_POSITIONS.RAISE_ARM;
+                        break;
+                    case RAISE_ARM:
+                        fold_in_delay = timer.seconds();
                         next_position = INTAKE_POSITIONS.FOLD;
                         break;
                     case FOLD:
@@ -93,63 +109,86 @@ public class TeleOp extends LinearOpMode {
                         break;
 
 
+
                 }
             }
 
             if(currentGamepad1.left_bumper){
                 if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-                    intake.moveSlidesWithDelay(30);
+                    intake.moveArmWithDelay(10);
                 }else {
                     intake.setSlidePower(0.3);
                 }
             }else if(currentGamepad1.right_bumper){
                 if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-                    intake.moveArmWithDelay(30);
+                    intake.moveArmWithDelay(-10);
                 }else {
                     intake.setSlidePower(-0.3);
                 }
             }else{
                 intake.setSlidePower(0);
             }
+            if(currentGamepad1.dpad_down){
+                intake.setRotationPower(-0.3);
+            }
+            else if(currentGamepad1.dpad_up){
+                intake.setRotationPower(0.3);
+            }else{
+                intake.setRotationPower(0);
+            }
             switch(position) {
                 case START:
                     intake.plowClaw();
                     intake.foldWrist();
-                    intake.moveArm(240);
-                    intake.moveSlides(200);
+                    intake.moveArm(300);
+                    intake.moveSlides(300);
                     break;
                 case LOWER_CLAW:
                     intake.extendWrist();
+
+                    intake.setFourBar(true);
                     break;
 
                 case CLOSE_AND_FOLD:
                     intake.closeClaw();
-                    if(timer.seconds() - fold_in_delay > 0.3){
+                    if(timer.seconds() - fold_in_delay > 0.4){
+                        move_next = true;
+                    }
+                    break;
+                case RAISE_ARM:
+                    intake.moveArm(600);
+                    intake.setFourBar(false);
+                    if(timer.seconds() - fold_in_delay > 0.4){
                         move_next = true;
                     }
                     break;
                 case FOLD:
-                    intake.moveWrist(0.5);
+                    intake.moveWrist(0.8);
                     break;
                 case RETRACT_TO_LEAVE:
                 case RETRACT_TO_LEAVE_2:
                     intake.moveSlides(0);
+                    position = INTAKE_POSITIONS.ALLOW_SLIDE_CONTROL;
                     break;
                 case FOLD_IN:
                 case FOLD_IN_2:
                     intake.foldWrist();
-//                    intake.moveArm(0);
+                    intake.moveArm(0);
                     break;
                 case TURN_ARM:
-                    intake.moveArm(1510);
+                    intake.moveArm(1460);
                     break;
                 case EXTEND:
                     if(intake.arm.getCurrentPosition() > 700){
                         intake.moveSlides(900);
+                        position = INTAKE_POSITIONS.ALLOW_SLIDE_CONTROL;
+
                     }
                     break;
                 case DELIVER:
                     intake.openClaw();
+                    break;
+                case ALLOW_SLIDE_CONTROL:
                     break;
 
 

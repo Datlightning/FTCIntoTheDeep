@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
@@ -15,10 +16,10 @@ import java.util.ArrayList;
 
 @Config
 public class Intake extends Subsystem {
-    public static PIDFCoefficients armsPID = new PIDFCoefficients(0.002,0.0001,0.00006,0.0005);
+    public static PIDFCoefficients armsPID = new PIDFCoefficients(0.0018,0.00006,0.00000004,0.0008);
     public NGMotor arm;
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.0006, 0.0000485, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.005, 0.0006, 0.00000002, 0.0005);
 
     RobotConstants robotConstants;
     NGServo claw;
@@ -39,15 +40,14 @@ public class Intake extends Subsystem {
 
 
     public static double feedforward_turning_point = 0;
-
-    public static double arm_at_0_ticks = 1400;
-    public static double arm_at_45_ticks = 2010;
-    public static double wrist_90 = 1;//TODO: make this work with the claw.
-    public static double wrist_0 = 0;
-    public static double slide_ticks_to_inches = 0;
-    public static double slide_starting_length = 0;
-    public static double slide_starting_height = 0;
-    public static double claw_height = 0;
+    public static int arm_at_0_ticks = 200;
+    public static int arm_at_90_ticks = 1410;
+    public static double wrist_90 = .27;
+    public static double wrist_180 = 0.66;
+    public static double slide_ticks_to_inches = 0.025;
+    public static double slide_starting_length = 13.25;
+    public static double slide_starting_height = 9;
+    public static double claw_height = 10;
 
 
 
@@ -61,6 +61,19 @@ public class Intake extends Subsystem {
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
         wrist=  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
+    }
+    public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
+        this.hardwareMap = hardwareMap;
+        this.telemetry = telemetry;
+        robotConstants = new RobotConstants();
+        arm = new NGMotor(hardwareMap, telemetry, robotConstants.intakeMotor, timer);
+        arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
+        slides = new NGMotor(hardwareMap, telemetry, robotConstants.slidesMotor, timer);
+        slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
+        claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
+        claw.mountTimer(timer);
+        wrist =  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
+        wrist.mountTimer(timer);
     }
     public void setFourBar(boolean state){
         power_four_bar_enabled = state;
@@ -81,6 +94,7 @@ public class Intake extends Subsystem {
         slides.move_async(targetPosition);
     }
     public void setRotationPower(double power){ arm.setManualPower(power); }
+    public void setTargetHeight(double target_height){ this.target_height = target_height; }
     public void setAbsRotationPower(double power){ arm.setAbsPower(power);}
     public void setSlidePower(double power){slides.setManualPower(power);}
     public void setAbsSlidePower(double power){
@@ -126,11 +140,11 @@ public class Intake extends Subsystem {
         return wrist_open;
     }
     public double getArmAngle(){
-        return (double) (arm.getCurrentPosition() - arm_at_0_ticks) / (arm_at_45_ticks - arm_at_0_ticks) * 45.0;
+        return (double) (arm.getCurrentPosition() - arm_at_0_ticks) / (arm_at_90_ticks - arm_at_0_ticks) * 90.0;
     }
     public double calculateWristPosition(){
         double arm_angle = getArmAngle();
-        double target_position = (90 - arm_angle - target_angle)/90.0 * (wrist_90 - wrist_0) + wrist_0;
+        double target_position = (90 - arm_angle - target_angle)/90.0 * (wrist_180 - wrist_90) + wrist_90;
         telemetry.addData("Power Four Bar Target Position", target_position);
         return target_position;
     }
@@ -139,9 +153,10 @@ public class Intake extends Subsystem {
     }
     public int calculateArmPosition(int slide_position){
         double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
-        int arm_angle_in_ticks = (int) (arm_angle / 45.0 * (arm_at_45_ticks - arm_at_0_ticks));
+        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks;
         telemetry.addData("Arm Output Angle", arm_angle);
         telemetry.addData("Arm Output Ticks", arm_angle_in_ticks);
+        telemetry.addData("Slide Length", calculateSlideLength(slide_position));
         return arm_angle_in_ticks;//TODO: Actually update the arms position after confirming it will not explode <3
     }
     public void moveSlidesWithDelay(int increment){
@@ -149,13 +164,16 @@ public class Intake extends Subsystem {
             slideTargetPositions.clear();
             armTargetPositions.clear();
         }
+        int lastPosition ;
+
         if(slideTargetPositions.isEmpty()) {
             slideTargetPositions.add(slides.targetPos + increment);
+            lastPosition = slides.targetPos;
         } else {
-            int lastPosition = slideTargetPositions.get(slideTargetPositions.size() - 1);
+            lastPosition = slideTargetPositions.get(slideTargetPositions.size() - 1);
             slideTargetPositions.add(lastPosition + increment);
         }
-        int arm_pos = calculateArmPosition(slides.targetPos + increment);
+        int arm_pos = calculateArmPosition(lastPosition + increment);
         armTargetPositions.add(arm_pos);
         moveArm(arm_pos);
         forward_delay = true;
@@ -176,17 +194,17 @@ public class Intake extends Subsystem {
     }
     @Override
     public void update() {
-        if(arm.getCurrentPosition() > feedforward_turning_point){
-            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
-        }else{
-            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
-
-        }
+//        if(arm.getCurrentPosition() > feedforward_turning_point){
+//            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
+//        }else{
+//            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
+//
+//        }
 
         if(power_four_bar_enabled){
             moveWrist(calculateWristPosition());
         }
-        if(forward_delay && slideTargetPositions.size() > 0 && arm.getCurrentPosition() >= armTargetPositions.get(0)){
+        if(forward_delay && slideTargetPositions.size() > 0 && arm.getCurrentPosition() <= armTargetPositions.get(0)){
             armTargetPositions.remove(0);
             moveSlides(slideTargetPositions.remove(0));
         }else if(slideTargetPositions.size() == 0){
@@ -198,7 +216,8 @@ public class Intake extends Subsystem {
         }else if(armTargetPositions.size() == 0){
             backward_delay = false;
         }
-
+        telemetry.addData("armTargetPositions", armTargetPositions.toString());
+        telemetry.addData("slideTargetPositions", slideTargetPositions.toString());
         arm.update();
         slides.update();
     }
@@ -214,6 +233,8 @@ public class Intake extends Subsystem {
     @Override
     public void init() {
         arm.init();
+        wrist.setMin(0.19);
+        wrist.setMax(0.95);
         slides.init();
         slides.setMax(900);
         openClaw();

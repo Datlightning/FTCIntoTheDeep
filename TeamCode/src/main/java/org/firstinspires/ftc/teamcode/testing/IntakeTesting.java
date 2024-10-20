@@ -12,17 +12,19 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 @Config
 public class IntakeTesting extends LinearOpMode {
     Intake intake;
-    public static double claw_position = 0.3;
-    public static double wrist_position = 0.3;
+    public static double claw_position = 0.85;
+    public static double wrist_position = 1;
     public static double rotation_power = 0;
     public static double slide_power = 0;
     public static int target_position = 0;
     public static int slide_position = 0;
     public static boolean controller =false;
-    public static boolean height_controller = false;
     public static double target_angle = 0;
     public static boolean enable_pid = false;
+    public static boolean testing_level = false;
     public static int slide_hard_stop = 900;
+    public static double claw_height = 0.75;
+    public static int increment = 30;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -39,8 +41,11 @@ public class IntakeTesting extends LinearOpMode {
                 intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
             }
             intake.slides.setMax(slide_hard_stop);
-            intake.moveArm(target_position);
-            intake.moveSlides(slide_position);
+            if(!testing_level){
+                intake.moveArm(target_position);
+                intake.moveSlides(slide_position);
+            }
+
             if(controller){
                 intake.setFourBar(true);
                 intake.setTargetAngle(target_angle);
@@ -49,10 +54,18 @@ public class IntakeTesting extends LinearOpMode {
             }
             intake.moveClaw(claw_position);
 
-
+            intake.setTargetHeight(claw_height);
             intake.calculateArmPosition(intake.slides.getCurrentPosition());
 
+            if(gamepad1.left_bumper){
+                    intake.moveArmWithDelay(-increment);
 
+            }else if(gamepad1.right_bumper){
+                    intake.moveArmWithDelay(increment);
+
+            }else{
+                intake.setSlidePower(0);
+            }
 
             intake.telemetry();
             telemetry.update();

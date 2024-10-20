@@ -234,36 +234,39 @@ public class NGMotor extends Subsystem {
         if(manual){
             return;
         }
-        // obtain the encoder position
-        // calculate the error
+        // Obtain the encoder position and calculate the error
         error = targetPos - getCurrentPosition();
 
-        // rate of change of the error
-
-        // rate of change of the error
+// Calculate time passed
         time_passed = timer.seconds() - time_stop;
-        // sum of all error over time
-        out = (P * error);
-        integralSum = integralSum + (error * time_passed);
+        time_stop = timer.seconds();  // Update time_stop early
+
+// Proportional term
+        out = P * error;
+
+// Integral term with windup protection
+        integralSum += error * time_passed;
         if (I * integralSum <= max_integral_component){
-            out += (I * integralSum) ;
-        }else{
-            out += (max_integral_component);
+            out += I * integralSum;
+        } else {
+            out += max_integral_component;
         }
 
-
-
-        if(time_passed != 0) {
+// Derivative term, ensuring time_passed is not zero
+        if(time_passed > 0) {
             double derivative = (error - lastError) / time_passed;
             out += D * derivative;
         }
-        if(Math.abs(error) < 5){
+// Feedforward term
+        out += F;
+// Check if the target has been reached (based on an error threshold)
+        if(Math.abs(error) < 5) {
             reached = true;
         }
-        out += F;
+// Set motor power output
         pid_motor.setPower(out);
+// Update lastError for the next iteration
         lastError = error;
-        time_stop = timer.seconds();
 
     }
 
