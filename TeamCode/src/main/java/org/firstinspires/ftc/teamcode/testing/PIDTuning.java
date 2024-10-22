@@ -21,7 +21,7 @@ public class PIDTuning extends LinearOpMode {
     public static double power = 0;
     public static int target_position = 0;
     private static int past_target = 0;
-    public static double P = 0, I =0, D = 0, F=0;
+    public static double P = 0, I = 0, D = 0, F=0;
     public static String motor_name = "arm_motor";
     ElapsedTime timer;
     double out = 0;
@@ -41,7 +41,6 @@ public class PIDTuning extends LinearOpMode {
         while (!isStopRequested() && opModeIsActive()) {
             // Update time passed early on
             time_passed = timer.seconds() - time_stop;
-            time_stop = timer.seconds();
 
 // If manual power is applied, skip the PID calculation
             if (power != 0){
@@ -83,6 +82,7 @@ public class PIDTuning extends LinearOpMode {
 
 // Update last error for the next iteration
             lastError = error;
+            time_stop = timer.seconds();
 
 // Telemetry for debugging
             telemetry.addData("Current Position", motor.getCurrentPosition());

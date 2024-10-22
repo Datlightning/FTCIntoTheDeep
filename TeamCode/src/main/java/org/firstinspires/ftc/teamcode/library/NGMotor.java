@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class NGMotor extends Subsystem {
     DcMotorEx pid_motor;
     public int targetPos = 0;
+    private int startPos = 0;
     public static double P = 0.0005, I = 0.0002, D = 0;
     public static double F = 0;
     double error, lastError;
@@ -20,9 +21,11 @@ public class NGMotor extends Subsystem {
     private double powerReduction = 1;
     private double conversion = -1;
     private boolean reached = false;
+    private boolean useMotionProfile = false;
     private double minPower = 0;
+    private int distance = 0;
     private ElapsedTime timer;
-    private double time_passed = 0, time_stop = 0;
+    private double time_passed = 0, time_stop = 0, time_started = 0;
     private int maxHardstop = 10000;
     private String name = "";
     private int minHardstop = 0;
@@ -33,8 +36,11 @@ public class NGMotor extends Subsystem {
     private double MAX_POWER = 1;
     private int SLOW_POS = 0;
     private boolean SLOW = false;
+    private int reached_range = 10;
     private double integralSum = 0;
 
+    private double MAX_VEL = 1;
+    private double MAX_ACCEL = 1;
 
 
     Telemetry telemetry;
@@ -65,7 +71,9 @@ public class NGMotor extends Subsystem {
         this.timer = timer;
 
     }
-
+    public void setReachedRange(int range){
+        reached_range = range;
+    }
     public void setPID(double P, double I, double D){
         this.P = P;
         this.I = I;
@@ -91,13 +99,85 @@ public class NGMotor extends Subsystem {
     public void setMax(int max){
         maxHardstop = max;
     }
-
+    public void setMaxVelocity(double speed){
+        MAX_VEL = speed;
+    }
+    public void setMaxAcceleration(double accel){
+        MAX_ACCEL = accel;
+    }
     public boolean isBusy(){
         return !(reached);
     }
     public boolean isCompletedFor(double time){
         return !(reached && timer.time(TimeUnit.SECONDS) - completed_time > time);
 
+    }
+    public static int motionProfile(double maxAcceleration, double maxVelocity, int distance, double elapsedTime) {
+        // Track whether the distance is positive or negative
+        int direction = distance < 0 ? -1 : 1;
+        distance = Math.abs(distance);  // Work with absolute distance
+
+        // Calculate the time it takes to accelerate to max velocity
+        double accelerationDt = maxVelocity / maxAcceleration;
+
+        // If we can't accelerate to max velocity in the given distance, adjust accordingly
+        double halfwayDistance = distance / 2.0;
+        double accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+        if (accelerationDistance > halfwayDistance) {
+            accelerationDt = Math.sqrt(halfwayDistance / (0.5 * maxAcceleration));
+        }
+
+        accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+        // Recalculate max velocity based on the adjusted acceleration time
+        maxVelocity = maxAcceleration * accelerationDt;
+
+        // Deceleration happens at the same rate as acceleration
+        double decelerationDt = accelerationDt;
+
+        // Calculate the distance covered during the cruise (at max velocity)
+        double cruiseDistance = distance - 2 * accelerationDistance;
+        double cruiseDt = cruiseDistance / maxVelocity;
+        double decelerationTime = accelerationDt + cruiseDt;
+
+        // Total time for the motion profile (acceleration + cruise + deceleration)
+        double entireDt = accelerationDt + cruiseDt + decelerationDt;
+
+        // If elapsed time exceeds the total time of the profile, return the full distance
+        if (elapsedTime > entireDt) {
+            return direction * distance;
+        }
+
+        // If we're in the acceleration phase
+        if (elapsedTime < accelerationDt) {
+            // Use the kinematic equation for acceleration: s = 0.5 * a * t^2
+            double position = 0.5 * maxAcceleration * Math.pow(elapsedTime, 2);
+            return direction * (int) Math.round(position);
+        }
+
+        // If we're in the cruising phase (constant velocity)
+        else if (elapsedTime < decelerationTime) {
+            accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+            double cruiseCurrentDt = elapsedTime - accelerationDt;
+
+            // Use the kinematic equation for constant velocity: s = v * t
+            double position = accelerationDistance + maxVelocity * cruiseCurrentDt;
+            return direction * (int) Math.round(position);
+        }
+
+        // If we're in the deceleration phase
+        else {
+            accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+            cruiseDistance = maxVelocity * cruiseDt;
+            double decelerationElapsedTime = elapsedTime - decelerationTime;
+
+            // Use the kinematic equations for deceleration: s = v * t - 0.5 * a * t^2
+            double position = accelerationDistance + cruiseDistance
+                    + maxVelocity * decelerationElapsedTime
+                    - 0.5 * maxAcceleration * Math.pow(decelerationElapsedTime, 2);
+            return direction * (int) Math.round(position);
+        }
     }
     @Override
     public void init(){
@@ -112,7 +192,6 @@ public class NGMotor extends Subsystem {
         telemetry.addData(name + "'s Target Position", targetPos);
         telemetry.addData(name + "'s Max Hardstop", maxHardstop);
         telemetry.addData(name + "'s Min Hardstop", minHardstop);
-        telemetry.addData(name + "'s direction", direction);
         telemetry.addData(name + " Exceeding Constraints", exceedingConstraints());
         telemetry.addData(name + " Busy Status", isBusy());
         telemetry.addData("Out Power", out);
@@ -143,7 +222,7 @@ public class NGMotor extends Subsystem {
             setPower(power);
         }
         if(power == 0 && manual){
-            targetPos = pid_motor.getCurrentPosition();
+            move_async(pid_motor.getCurrentPosition());
             manual = false;
             setPower(0);
 
@@ -157,6 +236,9 @@ public class NGMotor extends Subsystem {
             pid_motor.setPower(holding_power);
         }
 
+    }
+    public void setUseMotionProfile(boolean on){
+        useMotionProfile = on;
     }
     public void setReversedEncoder(boolean reversed){
         this.reversed_encoder = reversed;
@@ -220,6 +302,11 @@ public class NGMotor extends Subsystem {
             reached = false;
             integralSum = 0;
             time_stop = timer.seconds();
+            time_started = timer.seconds();
+            distance = target - getCurrentPosition();
+            startPos = getCurrentPosition();
+
+
         }
         targetPos = target;
 
@@ -234,12 +321,20 @@ public class NGMotor extends Subsystem {
         if(manual){
             return;
         }
+        telemetry.addData(name + " P", P);
+        telemetry.addData(name + " I",I);
+        telemetry.addData(name + " D", D);
+        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
-        error = targetPos - getCurrentPosition();
+        if(useMotionProfile){
+            error = motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+        }else {
+            error = targetPos - getCurrentPosition();
+        }
 
 // Calculate time passed
         time_passed = timer.seconds() - time_stop;
-        time_stop = timer.seconds();  // Update time_stop early
+          // Update time_stop early
 
 // Proportional term
         out = P * error;
@@ -260,14 +355,14 @@ public class NGMotor extends Subsystem {
 // Feedforward term
         out += F;
 // Check if the target has been reached (based on an error threshold)
-        if(Math.abs(error) < 5) {
+        if(Math.abs(error) < 10) {
             reached = true;
         }
 // Set motor power output
         pid_motor.setPower(out);
 // Update lastError for the next iteration
         lastError = error;
-
+        time_stop = timer.seconds();
     }
 
     public void setMaxPower(double power) {

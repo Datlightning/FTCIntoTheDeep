@@ -12,8 +12,8 @@ import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.Misc;
-import org.firstinspires.ftc.teamcode.roadrunner.drive.StandardTrackingWheelLocalizer;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.MecanumDrive;
+import org.firstinspires.ftc.teamcode.roadrunner.drive.TwoWheelTrackingLocalizer;
 
 /**
  * This routine determines the effective forward offset for the lateral tracking wheel.
@@ -47,9 +47,9 @@ public class TrackingWheelForwardOffsetTuner extends LinearOpMode {
 
         MecanumDrive drive = new MecanumDrive(hardwareMap);
 
-        if (!(drive.getLocalizer() instanceof StandardTrackingWheelLocalizer)) {
-            RobotLog.setGlobalErrorMsg("StandardTrackingWheelLocalizer is not being set in the "
-                    + "drive class. Ensure that \"setLocalizer(new StandardTrackingWheelLocalizer"
+        if (!(drive.getLocalizer() instanceof TwoWheelTrackingLocalizer)) {
+            RobotLog.setGlobalErrorMsg("TwoWheelTrackingLocalizer is not being set in the "
+                    + "drive class. Ensure that \"setLocalizer(new TwoWheelTrackingLocalizer"
                     + "(hardwareMap));\" is called in MecanumDrive.java");
         }
 
@@ -83,7 +83,7 @@ public class TrackingWheelForwardOffsetTuner extends LinearOpMode {
                 drive.update();
             }
 
-            double forwardOffset = StandardTrackingWheelLocalizer.FORWARD_OFFSET +
+            double forwardOffset = TwoWheelTrackingLocalizer.FORWARD_OFFSET +
                     drive.getPoseEstimate().getY() / headingAccumulator;
             forwardOffsetStats.add(forwardOffset);
 

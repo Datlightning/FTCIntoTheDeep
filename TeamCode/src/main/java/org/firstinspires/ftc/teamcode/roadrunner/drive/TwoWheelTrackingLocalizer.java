@@ -38,12 +38,15 @@ import java.util.List;
  */
 @Config
 public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
+
+    public static double FORWARD_OFFSET = 0;
+    public static double HORIZONTAL_OFFSET = 0;
     public static double TICKS_PER_REV = 8192;
     public static double WHEEL_RADIUS = 0.6889764; // in
     public static double GEAR_RATIO = 1; // output (wheel) speed / input (encoder) speed
 
-    public static double PARALLEL_X = .7; // X is the up and down direction
-    public static double PARALLEL_Y =  -1; // Y is the strafe direction
+    public static double PARALLEL_X = 1; // X is the up and down direction
+    public static double PARALLEL_Y =  -2; // Y is the strafe direction
 
     public static double PERPENDICULAR_X = 3.4;
     public static double PERPENDICULAR_Y = .5;
@@ -60,19 +63,19 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 
     public TwoWheelTrackingLocalizer(HardwareMap hardwareMap, MecanumDrive drive) {
         super(Arrays.asList(
-                new Pose2d(PARALLEL_X, PARALLEL_Y, 0),
-                new Pose2d(PERPENDICULAR_X, PERPENDICULAR_Y, Math.toRadians(90))
+                new Pose2d(PARALLEL_X, PARALLEL_Y + FORWARD_OFFSET, 0),
+                new Pose2d(PERPENDICULAR_X + HORIZONTAL_OFFSET, PERPENDICULAR_Y , Math.toRadians(90))
         ));
 
 
         this.drive = drive;
         mc = new RobotConstants();
-        parallelEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, mc.fl));
+        parallelEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, mc.bl));
         perpendicularEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, mc.fr));
 
         // TODO: reverse any encoders using Encoder.setDirection(Encoder.Direction.REVERSE)
-        parallelEncoder.setDirection(Encoder.Direction.REVERSE);
-        perpendicularEncoder.setDirection(Encoder.Direction.REVERSE);
+        parallelEncoder.setDirection(Encoder.Direction.FORWARD);
+        perpendicularEncoder.setDirection(Encoder.Direction.FORWARD);
     }
 
     public static double encoderTicksToInches(double ticks) {

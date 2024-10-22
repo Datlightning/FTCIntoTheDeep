@@ -20,11 +20,19 @@ public class IntakeTesting extends LinearOpMode {
     public static int slide_position = 0;
     public static boolean controller =false;
     public static double target_angle = 0;
-    public static boolean enable_pid = false;
     public static boolean testing_level = false;
+    public static boolean delay = false;
+    public static boolean disable_pid_movement = false;
+    public static boolean use_motion_profile_arm = false;
+    public static boolean use_motion_profile_slide = false;
     public static int slide_hard_stop = 900;
     public static double claw_height = 0.75;
     public static int increment = 30;
+    public static double VEL = 3900;
+    public static double ACCEL = 3000;
+    public static double SLIDE_VEL = 10000;
+    public static double SLIDE_ACCEL = 9000;
+
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -33,18 +41,14 @@ public class IntakeTesting extends LinearOpMode {
         intake.init();
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
-            if(enable_pid) {
                 intake.update();
-            }else {
 
                 intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
                 intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
-            }
+
             intake.slides.setMax(slide_hard_stop);
-            if(!testing_level){
-                intake.moveArm(target_position);
-                intake.moveSlides(slide_position);
-            }
+            intake.slides.setUseMotionProfile(use_motion_profile_slide);
+            intake.arm.setUseMotionProfile(use_motion_profile_arm);
 
             if(controller){
                 intake.setFourBar(true);
@@ -57,16 +61,41 @@ public class IntakeTesting extends LinearOpMode {
             intake.setTargetHeight(claw_height);
             intake.calculateArmPosition(intake.slides.getCurrentPosition());
 
-            if(gamepad1.left_bumper){
-                    intake.moveArmWithDelay(-increment);
+            intake.arm.setMaxVelocity(VEL);
+            intake.arm.setMaxAcceleration(ACCEL);
 
-            }else if(gamepad1.right_bumper){
-                    intake.moveArmWithDelay(increment);
+            intake.slides.setMaxVelocity(SLIDE_VEL);
+            intake.slides.setMaxAcceleration(SLIDE_ACCEL);
 
-            }else{
-                intake.setSlidePower(0);
+            if(testing_level){
+                intake.moveArm(intake.calculateArmPosition(intake.slides.getCurrentPosition()));
             }
-
+            if(gamepad1.left_bumper){
+                intake.moveSlides(intake.slides.targetPos + increment);
+            }else if(gamepad1.right_bumper){
+                intake.moveSlides(intake.slides.targetPos - increment);
+            }
+            if(testing_level){
+                intake.moveArm(intake.calculateArmPosition(intake.slides.getCurrentPosition()));
+            }else{
+                if(!disable_pid_movement) {
+                    intake.moveArm(target_position);
+                    intake.moveSlides(slide_position);
+                }
+            }
+            if(gamepad1.left_bumper){
+                if(delay){
+                    intake.moveArmWithDelay(increment);
+                }else {
+                    intake.moveSlides(intake.slides.targetPos + increment);
+                }
+            }else if(gamepad1.right_bumper){
+                if(delay){
+                    intake.moveSlidesWithDelay(-increment);
+                }else {
+                    intake.moveSlides(intake.slides.targetPos - increment);
+                }
+            }
             intake.telemetry();
             telemetry.update();
         }
