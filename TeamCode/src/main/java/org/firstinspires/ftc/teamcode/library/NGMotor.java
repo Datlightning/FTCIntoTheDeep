@@ -305,6 +305,8 @@ public class NGMotor extends Subsystem {
             time_started = timer.seconds();
             distance = target - getCurrentPosition();
             startPos = getCurrentPosition();
+            telemetry.addData("Distnace", distance);
+            telemetry.addData("Target", target);
 
 
         }
