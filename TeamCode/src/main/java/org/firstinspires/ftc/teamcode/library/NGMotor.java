@@ -340,10 +340,10 @@ public class NGMotor extends Subsystem {
         if(manual){
             return;
         }
-        telemetry.addData(name + " P", P);
-        telemetry.addData(name + " I",I);
-        telemetry.addData(name + " D", D);
-        telemetry.addData(name + " F", F);
+//        telemetry.addData(name + " P", P);
+//        telemetry.addData(name + " I",I);
+//        telemetry.addData(name + " D", D);
+//        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
         if(useMotionProfile){
             error = motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();

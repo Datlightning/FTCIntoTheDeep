@@ -29,13 +29,12 @@ public class TeleOp extends LinearOpMode {
         FOLD_IN_2,
         DELIVER,
         ALLOW_SLIDE_CONTROL,
-        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, FULL_RESET, LOWER_CLAW_TO_CLEAR, RAISE_ARM
+        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, LOWER_CLAW_TO_CLEAR, RAISE_ARM
     }
 
     ;
     public static boolean player2 = false;
     boolean move_next = false;
-    boolean move_next2 = false;
     public static double target_height = -1.8;
     public static int offset = 0;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
@@ -185,19 +184,19 @@ public class TeleOp extends LinearOpMode {
                 }
             }
             boolean x = player2 ? (currentGamepad2.x && !previousGamepad2.x) : (currentGamepad1.x && !previousGamepad1.x);
-            if (x || move_next2) {
+            if (x) {
                 position = next_position2;
                 switch (position) {
                     case PICK_UP_FLOOR:
-                            intake.moveArm(0);
-                            next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
-                            break;
+                        intake.moveArm(0);
+                        next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
+                        break;
                     case GRAB_FLOOR:
                         intake.moveClaw(.93);
                         move_next = true;
                         delay = 0.3;
                         current_time = timer.time();
-                        next_position2 = INTAKE_POSITIONS.RAISE_ARM;
+                        next_position = INTAKE_POSITIONS.RAISE_ARM;
                         break;
                     default:
                         intake.moveSlides(0);
@@ -224,19 +223,19 @@ public class TeleOp extends LinearOpMode {
             boolean dpad_down = player2 ? currentGamepad2.dpad_down : currentGamepad1.dpad_down;
             boolean dpad_up = player2 ? currentGamepad2.dpad_up : currentGamepad1.dpad_up;
             if (dpad_down) {
-                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-                    offset -= 10;
-                    intake.moveArm(intake.arm.targetPos - 10);
-                }else {
+//                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
+//                    offset -= 20;
+//                    intake.moveArm(intake.arm.targetPos - 20);
+//                }else {
                     intake.setRotationPower(-0.2);
-                }
+//                }
             } else if (dpad_up) {
-                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-                    offset += 10;
-                    intake.moveArm(intake.arm.targetPos + 10);
-                }else {
+//                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
+//                    offset += 20;
+//                    intake.moveArm(intake.arm.targetPos + 20);
+//                }else {
                     intake.setRotationPower(0.2);
-                }
+//                }
             } else {
                 intake.setRotationPower(0);
             }
