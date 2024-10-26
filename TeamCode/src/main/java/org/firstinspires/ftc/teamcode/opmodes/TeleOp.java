@@ -29,7 +29,7 @@ public class TeleOp extends LinearOpMode {
         FOLD_IN_2,
         DELIVER,
         ALLOW_SLIDE_CONTROL,
-        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, LOWER_CLAW_TO_CLEAR, RAISE_ARM
+        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, LOWER_CLAW_TO_CLEAR, RAISE_CLAW, RAISE_ARM
     }
 
     ;
@@ -102,6 +102,8 @@ public class TeleOp extends LinearOpMode {
                         intake.foldWrist();
                         intake.moveArm(180 + offset);
                         intake.moveSlides(300);
+                        intake.slides.setMax(800);
+
                         next_position = INTAKE_POSITIONS.LOWER_CLAW_TO_CLEAR;
                         break;
                     case LOWER_CLAW_TO_CLEAR:
@@ -122,6 +124,7 @@ public class TeleOp extends LinearOpMode {
                         intake.closeClaw();
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RAISE_ARM;
+                        intake.slides.setMax(1400);
                         break;
                     case RAISE_ARM:
                         current_time = timer.seconds();
@@ -141,30 +144,34 @@ public class TeleOp extends LinearOpMode {
                     case RETRACT_TO_LEAVE:
                         intake.moveSlides(0);
                         intake.moveArm(250);
-                        position = INTAKE_POSITIONS.ALLOW_SLIDE_CONTROL;
                         next_position = INTAKE_POSITIONS.TURN_ARM;
                         break;
                     case TURN_ARM:
                         intake.moveArm(1480);
-                        intake.moveWrist(0.7);
+                        intake.moveWrist(0.5);
                         next_position = INTAKE_POSITIONS.EXTEND;
                         break;
                     case EXTEND:
                         intake.moveSlides(1400);
                         current_time = timer.time();
                         delay = 0.7;
-                        position = INTAKE_POSITIONS.ALLOW_SLIDE_CONTROL;
-                        next_position = INTAKE_POSITIONS.DELIVER;
+                        next_position = INTAKE_POSITIONS.TURN_CLAW;
                         break;
                     case TURN_CLAW:
-                        intake.foldWrist();
+                        intake.moveWrist(0.8);
                         next_position = INTAKE_POSITIONS.DELIVER;
                         break;
                     case DELIVER:
                         intake.openClaw();
-                        intake.moveWrist(0.5);
                         delay = 0.3;
                         current_time = timer.time();
+                        move_next = true;
+                        next_position = INTAKE_POSITIONS.RAISE_CLAW;
+                        break;
+                    case RAISE_CLAW:
+                        current_time = timer.time();
+                        delay = 0.1;
+                        intake.moveWrist(0.5);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RETRACT_TO_LEAVE_2;
                         break;
@@ -203,7 +210,7 @@ public class TeleOp extends LinearOpMode {
                         intake.moveWrist(RobotConstants.floor_pickup_position);
                         intake.moveClaw(0.7);
 
-                        next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
+                        next_position2 = INTAKE_POSITIONS.PICK_UP_FLOOR;
                         break;
 
 
@@ -214,9 +221,9 @@ public class TeleOp extends LinearOpMode {
             boolean left_bumper = player2 ? (currentGamepad2.left_bumper) : (currentGamepad1.left_bumper);
             boolean right_bumper = player2 ? (currentGamepad2.right_bumper) : (currentGamepad1.right_bumper);
             if (left_bumper) {
-                intake.setSlidePower(-0.2);
+                intake.setSlidePower(-0.4);
             } else if (right_bumper) {
-                intake.setSlidePower(0.2);
+                intake.setSlidePower(0.4);
             } else {
                 intake.setSlidePower(0);
             }
@@ -227,14 +234,18 @@ public class TeleOp extends LinearOpMode {
 //                    offset -= 20;
 //                    intake.moveArm(intake.arm.targetPos - 20);
 //                }else {
-                    intake.setRotationPower(-0.2);
+                    intake.setRotationPower(-0.4);
+                    telemetry.addData("Move up", -10);
+                    telemetry.update();
 //                }
             } else if (dpad_up) {
 //                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
 //                    offset += 20;
 //                    intake.moveArm(intake.arm.targetPos + 20);
 //                }else {
-                    intake.setRotationPower(0.2);
+                    intake.setRotationPower(0.4);
+                telemetry.addData("Move up", 10);
+                telemetry.update();
 //                }
             } else {
                 intake.setRotationPower(0);

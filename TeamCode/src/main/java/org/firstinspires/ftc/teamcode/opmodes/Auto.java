@@ -159,9 +159,9 @@ public class Auto extends LinearOpMode {
                 moveFirst = mecanumDrive.trajectorySequenceBuilder(new Pose2d(-38, -63, Math.toRadians(0)))
                         .setReversed(true)
                         .splineToLinearHeading(new Pose2d(-45,-50, Math.toRadians(0)), Math.toRadians(180))
-                        .splineTo(new Vector2d(-52,-52), Math.toRadians(225),
-                                mecanumDrive.getVelocityConstraint(DriveConstants.MAX_VEL * .90, DriveConstants.MAX_ANG_VEL * 0.80, DriveConstants.TRACK_WIDTH),
-                                mecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                        .splineTo(new Vector2d(-53,-53), Math.toRadians(225),
+                                mecanumDrive.getVelocityConstraint(DriveConstants.MAX_VEL * .60, DriveConstants.MAX_ANG_VEL * 0.80, DriveConstants.TRACK_WIDTH),
+                                mecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL * 0.5))
                         .setReversed(false)
                         .addTemporalMarker(() -> intake.moveArm(1420 + intake.getOffset()))
                         .build();
@@ -180,8 +180,8 @@ public class Auto extends LinearOpMode {
                 pickupSecond = mecanumDrive.trajectorySequenceBuilder(deliverSample.end())
                         .addTemporalMarker(() -> intake.moveWrist(RobotConstants.floor_pickup_position))
                         .addTemporalMarker(() -> intake.moveClaw(0.7))
-                        .splineToLinearHeading(new Pose2d(-48,-34, Math.toRadians(90)), Math.toRadians(90))
-                        .addTemporalMarker(() -> intake.closeClaw())
+                        .splineToLinearHeading(new Pose2d(-48,-35, Math.toRadians(90)), Math.toRadians(90))
+                        .UNSTABLE_addTemporalMarkerOffset(-0.2, () -> intake.closeClaw())
                         .waitSeconds(0.3)
                         .addTemporalMarker(() -> intake.moveWrist(0.8))
                         .setReversed(true)
@@ -195,8 +195,8 @@ public class Auto extends LinearOpMode {
                         .setReversed(false)
                         .addTemporalMarker(() -> intake.moveWrist(RobotConstants.floor_pickup_position))
                         .addTemporalMarker(() -> intake.moveClaw(0.7))
-                        .splineToLinearHeading(new Pose2d(-58,-34, Math.toRadians(90)), Math.toRadians(90))
-                        .UNSTABLE_addTemporalMarkerOffset(-0.25, () -> intake.closeClaw())
+                        .splineToLinearHeading(new Pose2d(-56,-35, Math.toRadians(90)), Math.toRadians(90))
+                        .UNSTABLE_addTemporalMarkerOffset(-0.3, () -> intake.closeClaw())
                         .waitSeconds(0.3)
                         .addTemporalMarker(() -> intake.moveWrist(0.8))
                         .setReversed(true)
