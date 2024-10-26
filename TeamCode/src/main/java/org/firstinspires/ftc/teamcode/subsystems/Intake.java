@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -15,23 +18,24 @@ import java.util.ArrayList;
 
 @Config
 public class Intake extends Subsystem {
-    public static PIDFCoefficients armsPID = new PIDFCoefficients(0.0018,0.00006,0.00000004,0.0008);
-    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.002,0.00006,0,0.000025);
+    public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
+    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
     public NGMotor arm;
     public NGMotor slides;
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.005, 0.00001, 0.000003, 0.0005);
+    DigitalChannel magnet_sensor;
 
-    RobotConstants robotConstants;
     NGServo claw;
     NGServo wrist;
     HardwareMap hardwareMap;
     Telemetry telemetry;
+    ElapsedTime timer;
     private boolean claw_open = false;
     private boolean wrist_open =false;
     private boolean power_four_bar_enabled = false;
     private boolean forward_delay = false;
     private boolean backward_delay = false;
-
+    private boolean use_fast_pid = false;
     private double target_angle = 0;//To the y-axis
     private double target_height = 0;//To the floor
     private ArrayList<Integer> slideTargetPositions = new ArrayList<>();
@@ -40,42 +44,76 @@ public class Intake extends Subsystem {
 
 
     public static double feedforward_turning_point = 0;
-    public static int arm_at_0_ticks = 150;
-    public static int arm_at_90_ticks = 1410;
-    public static double wrist_90 = .33;
-    public static double wrist_180 = 0.69;
-    public static double slide_ticks_to_inches = 0.01875;
-    public static double slide_starting_length = 13.25;
+    public static int arm_at_0_ticks = 180;
+    public static int arm_at_90_ticks = 1380;
+    public static double wrist_90 = .2;
+    public static double wrist_180 = 0.56;
+    public static double slide_ticks_to_inches = 0.015;
+    public static double slide_starting_length = 13;
     public static double slide_starting_height = 9;
     public static double slide_width = 3.25;
     public static double claw_height = 10;
+    public static int offset = 0;
+    public static int offset_offset = -57;
 
 
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
-        robotConstants = new RobotConstants();
-        arm = new NGMotor(hardwareMap, telemetry, robotConstants.intakeMotor);
+        arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor);
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
-        slides = new NGMotor(hardwareMap, telemetry, robotConstants.slidesMotor);
+        arm.setDirection(DcMotor.Direction.REVERSE);
+        timer = new ElapsedTime();
+        magnet_sensor = hardwareMap.get(DigitalChannel.class, "magnet_sensor");
+        magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
+        slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
-        wrist=  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
+        claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
+        wrist=  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
         arm.setReachedRange(50);
     }
     public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
-        robotConstants = new RobotConstants();
-        arm = new NGMotor(hardwareMap, telemetry, robotConstants.intakeMotor, timer);
+        magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
+        magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
+        this.timer = timer;
+        arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor, timer);
+        arm.setDirection(DcMotor.Direction.REVERSE);
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
-        slides = new NGMotor(hardwareMap, telemetry, robotConstants.slidesMotor, timer);
+        slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor, timer);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        claw = new NGServo(hardwareMap, telemetry, robotConstants.claw_servo);
+        claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
         claw.mountTimer(timer);
-        wrist =  new NGServo(hardwareMap, telemetry, robotConstants.wrist_servo);
+        wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
         wrist.mountTimer(timer);
+    }
+    private boolean magnet_activated(){
+        return !magnet_sensor.getState();
+    }
+    public void useFastPID(boolean on){
+        use_fast_pid = on;
+    }
+    public void calculateOffset(){
+        arm.setAbsPower(0.1);
+        double time_offset = timer.time();
+        while(!magnet_activated()){
+            telemetry.addData("Position",arm.getCurrentPosition());
+            telemetry.update();
+            if(timer.time() - time_offset > 2){
+
+                return;
+            }
+        }
+        offset = arm.getCurrentPosition() - arm_at_0_ticks + offset_offset;
+        telemetry.addData("Offset", offset);
+
+        arm.setAbsPower(0);
+
+    }
+    public int getOffset(){
+        return offset;
     }
     public void setFourBar(boolean state){
         power_four_bar_enabled = state;
@@ -107,7 +145,7 @@ public class Intake extends Subsystem {
     public void setAbsSlidePower(double power){
         slides.setAbsPower(power);
     }
-    public void openClaw() {claw.setPosition(robotConstants.claw_fully_open);claw_open = true;}
+    public void openClaw() {claw.setPosition(RobotConstants.claw_fully_open);claw_open = true;}
     public void setClawPWM(boolean on){
         if(on){
             claw.enableServo();
@@ -129,16 +167,16 @@ public class Intake extends Subsystem {
         return claw.isPWMEnabled();
     }
     public void closeClaw() {
-        claw.setPosition(robotConstants.claw_closed); claw_open=false;
+        claw.setPosition(RobotConstants.claw_closed); claw_open=false;
     }
     public void plowClaw(){
-        claw.setPosition(robotConstants.claw_open); claw_open=true;
+        claw.setPosition(RobotConstants.claw_open); claw_open=true;
     }
     public void foldWrist(){
-        wrist.setPosition(robotConstants.wrist_folded); wrist_open=false;
+        wrist.setPosition(RobotConstants.wrist_folded); wrist_open=false;
     }
     public void extendWrist(){
-        wrist.setPosition(robotConstants.wrist_extended); wrist_open=true;
+        wrist.setPosition(RobotConstants.wrist_extended); wrist_open=true;
     }
     public boolean isClawOpen(){
         return claw_open;
@@ -147,7 +185,8 @@ public class Intake extends Subsystem {
         return wrist_open;
     }
     public double getArmAngle(){
-        return (double) (arm.getCurrentPosition() - arm_at_0_ticks) / (arm_at_90_ticks - arm_at_0_ticks) * 90.0;
+
+        return (double) (arm.getCurrentPosition() - arm_at_0_ticks + 2 * offset) / (arm_at_90_ticks - arm_at_0_ticks + 2 * offset) * 90.0;
     }
     public double calculateWristPosition(){
         double arm_angle = getArmAngle();
@@ -155,11 +194,13 @@ public class Intake extends Subsystem {
         return target_position;
     }
     public double calculateSlideLength(int slide_position){
+        telemetry.addData("SlideLength", slide_starting_length + slide_position * slide_ticks_to_inches);
+
         return Math.sqrt(Math.pow(slide_starting_length + slide_position * slide_ticks_to_inches,2) + Math.pow(slide_width,2));
     }
     public int calculateArmPosition(int slide_position){
         double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
-        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks;
+        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
         return arm_angle_in_ticks;
     }
@@ -196,6 +237,7 @@ public class Intake extends Subsystem {
         forward_delay = false;
         backward_delay = true;
     }
+
     @Override
     public void update() {
 //        if(arm.getCurrentPosition() > feedforward_turning_point){
@@ -205,7 +247,7 @@ public class Intake extends Subsystem {
 //
 //        }
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        if(arm.getCurrentPosition() > 330){
+        if(arm.getCurrentPosition() > 330 || use_fast_pid){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
         }else{
             arm.setPIDF(armsLevelPID.p, armsLevelPID.i, armsLevelPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsLevelPID.f);
@@ -226,24 +268,37 @@ public class Intake extends Subsystem {
             backward_delay = false;
         }
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
-//        telemetry.addData("slideTargetPositions", slideTargetPositions.toString());
         arm.update();
         slides.update();
     }
 
     @Override
     public void telemetry() {
+        telemetry.addData("Arm Angle", getArmAngle());
         claw.telemetry();
         wrist.telemetry();
         slides.telemetry();
         arm.telemetry();
     }
+    public void init_without_encoder_reset(){
+
+        arm.setMaxAcceleration(4000);
+        arm.setMaxVelocity(4900);
+        wrist.setMin(0.19);
+        wrist.setMax(0.95);
+        slides.setUseMotionProfile(true);
+        slides.setMax(1400);
+        slides.setMaxAcceleration(9000);
+        slides.setMaxVelocity(10000);
+        moveWrist(1);
+        closeClaw();
+    }
 
     @Override
     public void init() {
         arm.init();
-        arm.setMaxAcceleration(3000);
-        arm.setMaxVelocity(3900);
+        arm.setMaxAcceleration(4000);
+        arm.setMaxVelocity(4900);
         wrist.setMin(0.19);
         wrist.setMax(0.95);
         slides.init();
@@ -251,8 +306,7 @@ public class Intake extends Subsystem {
         slides.setMax(1400);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
-
-        openClaw();
-        foldWrist();
+        moveWrist(1);
+        closeClaw();
     }
 }

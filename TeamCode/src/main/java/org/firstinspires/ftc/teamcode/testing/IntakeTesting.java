@@ -24,6 +24,7 @@ public class IntakeTesting extends LinearOpMode {
     public static boolean delay = false;
     public static boolean disable_pid_movement = false;
     public static boolean use_motion_profile_arm = false;
+    public static boolean use_offset_calibrate = false;
     public static boolean use_motion_profile_slide = false;
     public static int slide_hard_stop = 900;
     public static double claw_height = 0.75;
@@ -41,10 +42,10 @@ public class IntakeTesting extends LinearOpMode {
         intake.init();
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
-                intake.update();
+            intake.update();
 
-                intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
-                intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
+            intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
+            intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
 
             intake.slides.setMax(slide_hard_stop);
             intake.slides.setUseMotionProfile(use_motion_profile_slide);
@@ -55,6 +56,10 @@ public class IntakeTesting extends LinearOpMode {
                 intake.setTargetAngle(target_angle);
             }else{
                 intake.moveWrist(wrist_position);
+            }
+            if(use_offset_calibrate){
+                intake.calculateOffset();
+                use_offset_calibrate = false;
             }
             intake.moveClaw(claw_position);
 

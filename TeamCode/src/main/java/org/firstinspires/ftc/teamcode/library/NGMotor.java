@@ -6,6 +6,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+
 import java.util.concurrent.TimeUnit;
 
 public class NGMotor extends Subsystem {
@@ -43,6 +47,7 @@ public class NGMotor extends Subsystem {
     private double MAX_ACCEL = 1;
 
 
+
     Telemetry telemetry;
 
     public NGMotor(HardwareMap hardwareMap, Telemetry telemetry, String name) {
@@ -70,6 +75,10 @@ public class NGMotor extends Subsystem {
 
         this.timer = timer;
 
+    }
+    public void resetEncoder(){
+        pid_motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        pid_motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
     public void setReachedRange(int range){
         reached_range = range;
@@ -185,6 +194,12 @@ public class NGMotor extends Subsystem {
         pid_motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         pid_motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+    public double getCurrent(){
+        return pid_motor.getCurrent(CurrentUnit.MILLIAMPS);
+    }
+    public double getVelocity(){
+        return pid_motor.getVelocity(AngleUnit.DEGREES);
+    }
     @Override
     public void telemetry(){
         telemetry.addData(name + " Power", getPower());
@@ -194,6 +209,8 @@ public class NGMotor extends Subsystem {
         telemetry.addData(name + "'s Min Hardstop", minHardstop);
         telemetry.addData(name + " Exceeding Constraints", exceedingConstraints());
         telemetry.addData(name + " Busy Status", isBusy());
+        telemetry.addData(name + "Current Draw", getCurrent());
+        telemetry.addData(name + "Velocity", getVelocity());
         telemetry.addData("Out Power", out);
 
 
@@ -357,7 +374,7 @@ public class NGMotor extends Subsystem {
 // Feedforward term
         out += F;
 // Check if the target has been reached (based on an error threshold)
-        if(Math.abs(error) < 10) {
+        if(Math.abs(getCurrentPosition() - targetPos) < 10) {
             reached = true;
         }
 // Set motor power output

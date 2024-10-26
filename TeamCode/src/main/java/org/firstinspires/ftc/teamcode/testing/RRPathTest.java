@@ -8,8 +8,11 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.roadrunner.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
@@ -56,16 +59,28 @@ public class RRPathTest extends LinearOpMode {
         currentGamepad1 = new Gamepad();
         previousGamepad1 = new Gamepad();
         intake.foldWrist();
+        intake.arm.setUseMotionProfile(true);
+        intake.slides.setUseMotionProfile(true);
+        RobotConstants.auto_transfer = true;
+        intake.calculateOffset();
+        intake.init();
+        RobotConstants.offset = intake.getOffset();
         intake.closeClaw();
-
         telemetry.clear();
         telemetry.addLine("x for Blue Sample");
         telemetry.addLine("a for Blue Specimen");
         telemetry.addLine("b for Red Sample");
         telemetry.addLine("y for Red Specimen");
         telemetry.update();
+
         while (!isStopRequested()) {
             while(!isStopRequested()) {
+                intake.update();
+                telemetry.addLine("x for Blue Sample");
+                telemetry.addLine("a for Blue Specimen");
+                telemetry.addLine("b for Red Sample");
+                telemetry.addLine("y for Red Specimen");
+                telemetry.update();
                 previousGamepad1.copy(currentGamepad1);
                 currentGamepad1.copy(gamepad1);
                 sleep(20);
@@ -108,6 +123,7 @@ public class RRPathTest extends LinearOpMode {
             // Wait for confirmation or restart
             boolean exit = false;
             while (!isStopRequested()) {
+                intake.update();
                 previousGamepad1.copy(currentGamepad1);
                 currentGamepad1.copy(gamepad1);
                 sleep(20);
@@ -132,18 +148,19 @@ public class RRPathTest extends LinearOpMode {
 
         switch(position){
             case RED_SAMPLE:
-                moveFirst = mecanumDrive.trajectorySequenceBuilder(new Pose2d(-38, -63, 0))
+                moveFirst = mecanumDrive.trajectorySequenceBuilder(new Pose2d(-38, -63, Math.toRadians(0)))
                     .setReversed(true)
-                    .splineToConstantHeading(new Vector2d(-45,-50), Math.toRadians(180))
-                    .addTemporalMarker(() -> intake.moveArm(1410))
-                    .splineTo(new Vector2d(-53,-53), Math.toRadians(225))
+                        .splineToConstantHeading(new Vector2d(-43,-50), Math.toRadians(180))
+                        .splineTo(new Vector2d(-52.5,-53), Math.toRadians(225))
                     .setReversed(false)
+                    .addTemporalMarker(() -> intake.moveArm(1500))
                     .build();
 
                 deliverSample = mecanumDrive.trajectorySequenceBuilder(moveFirst.end())
                         .addTemporalMarker(() -> intake.moveWrist(0.8))
                         .waitSeconds(0.3)
                         .addTemporalMarker(() -> intake.openClaw())
+                        .waitSeconds(0.25)
                         .addTemporalMarker(() -> intake.moveWrist(0.5))
                         .waitSeconds(0.3)
                         .addTemporalMarker(() -> intake.moveSlides(0))
@@ -151,30 +168,32 @@ public class RRPathTest extends LinearOpMode {
                         .build();
 
                 pickupSecond = mecanumDrive.trajectorySequenceBuilder(deliverSample.end())
-                        .addTemporalMarker(() -> intake.moveWrist(0.65))
+                        .addTemporalMarker(() -> intake.moveWrist(0.7))
                         .addTemporalMarker(() -> intake.moveClaw(0.7))
-                        .splineTo(new Vector2d(-46,-34), Math.toRadians(90))
+                        .splineTo(new Vector2d(-46,-35), Math.toRadians(90))
                         .addTemporalMarker(() -> intake.closeClaw())
                         .waitSeconds(0.3)
-                        .addTemporalMarker(() -> intake.moveWrist(0.5))
+                        .addTemporalMarker(() -> intake.moveWrist(0.8))
                         .setReversed(true)
-                        .UNSTABLE_addTemporalMarkerOffset(1.2, () -> intake.moveArm(1470))
-                        .splineTo(new Vector2d(-53,-53), Math.toRadians(225))
+                        .UNSTABLE_addTemporalMarkerOffset(1.2, () -> intake.moveArm(1550))
+                        .splineTo(new Vector2d(-52,-53), Math.toRadians(225))
                         .setReversed(false)
                         .build();
 
 
                 pickupThird = mecanumDrive.trajectorySequenceBuilder(deliverSample.end())
                         .setReversed(false)
-                        .addTemporalMarker(() -> intake.moveWrist(0.65))
+                        .addTemporalMarker(() -> intake.moveWrist(0.7))
                         .addTemporalMarker(() -> intake.moveClaw(0.7))
-                        .splineTo(new Vector2d(-58,-36), Math.toRadians(90))
-                        .addTemporalMarker(() -> intake.closeClaw())
+                        .splineTo(new Vector2d(-54,-33), Math.toRadians(90) ,
+                                mecanumDrive.getVelocityConstraint(DriveConstants.MAX_VEL * .60, DriveConstants.MAX_ANG_VEL * 0.60, DriveConstants.TRACK_WIDTH),
+                                mecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                        .UNSTABLE_addTemporalMarkerOffset(-0.25, () -> intake.closeClaw())
                         .waitSeconds(0.3)
-                        .addTemporalMarker(() -> intake.moveWrist(0.5))
+                        .addTemporalMarker(() -> intake.moveWrist(0.8))
                         .setReversed(true)
-                        .UNSTABLE_addTemporalMarkerOffset(1.2, () -> intake.moveArm(1470))
-                        .splineTo(new Vector2d(-53,-53), Math.toRadians(225))
+                        .UNSTABLE_addTemporalMarkerOffset(1.2, () -> intake.moveArm(1550))
+                        .splineTo(new Vector2d(-51.5,-53), Math.toRadians(225))
                         .setReversed(false)
                         .build();
 
@@ -186,11 +205,25 @@ public class RRPathTest extends LinearOpMode {
 
 
         }
-
-        waitForStart();
+        telemetry.clear();
+        telemetry.addLine("Ready to go!");
+        telemetry.update();
+        while (!opModeIsActive() && !isStopRequested()) {
+            intake.update();
+        }
         mecanumDrive.followTrajectorySequenceAsync(moveFirst);
 
         while(!isStopRequested() && opModeIsActive()){
+            previousGamepad1.copy(currentGamepad1);
+            currentGamepad1.copy(gamepad1);
+
+            // Check if the "A" button is pressed
+            if (currentGamepad1.a && !previousGamepad1.a) {
+                auto_position += 1;  // Increment auto_position when "A" is pressed
+                telemetry.addData("Auto Position", auto_position);
+                telemetry.update();
+            }
+
             switch(auto_position){
                 case 0:
                     if(!mecanumDrive.isBusy() && !intake.arm.isBusy()){
@@ -222,31 +255,38 @@ public class RRPathTest extends LinearOpMode {
                 case 15:
                     if(!intake.slides.isBusy() && !mecanumDrive.isBusy()){
                         intake.moveArm(0);
-                        intake.moveWrist(0.8);
+                        intake.moveWrist(0.75);
+                        intake.moveClaw(0.7);
                         auto_position += 1;
                     }
                     break;
                 case 4:
-                    if(!intake.arm.isBusy()){
+                    if(intake.arm.getCurrentPosition() < 40){
                         mecanumDrive.followTrajectorySequenceAsync(pickupSecond);
                         auto_position += 1;
                     }
                     break;
                 case 8:
-                    if(!intake.arm.isBusy()){
+                    if(intake.arm.getCurrentPosition() < 40){
                         mecanumDrive.followTrajectorySequenceAsync(pickupThird);
                         auto_position += 1;
                     }
                     break;
                 case 12:
-                    if(!intake.arm.isBusy()){
-                        mecanumDrive.followTrajectorySequenceAsync(pickupFourth);
-                        auto_position += 1;
+                    if(intake.arm.getCurrentPosition() < 40){
+                        return;
+//                        mecanumDrive.followTrajectorySequenceAsync(pickupFourth);
+//                        auto_position += 1;
                     }
                     break;
 
 
             }
+//            if(Math.abs(mecanumDrive.getLastError().getX()) > 12 || Math.abs(mecanumDrive.getLastError().getY()) > 12){
+//                mecanumDrive.breakFollowing();
+//                mecanumDrive.setDrivePower(new Pose2d());
+//                return;
+//            }
             mecanumDrive.update();
             intake.update();
 
