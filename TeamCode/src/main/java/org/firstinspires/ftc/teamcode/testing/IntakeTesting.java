@@ -34,7 +34,7 @@ public class IntakeTesting extends LinearOpMode {
     public static double SLIDE_VEL = 10000;
     public static double SLIDE_ACCEL = 9000;
 
-
+    public static double DISTANCE_FILTER = 0.6;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -42,8 +42,9 @@ public class IntakeTesting extends LinearOpMode {
         intake.init();
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
-            intake.update();
 
+            intake.update();
+            intake.distance.setFilter(DISTANCE_FILTER);
             intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
             intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
 

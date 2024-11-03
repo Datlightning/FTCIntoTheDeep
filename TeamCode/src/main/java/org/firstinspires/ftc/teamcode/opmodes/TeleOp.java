@@ -34,8 +34,9 @@ public class TeleOp extends LinearOpMode {
 
     ;
     public static boolean player2 = false;
-    boolean move_next = false;
     public static double target_height = -1.8;
+    boolean move_next = false;
+    boolean move_next2 = false;
     public static int offset = 0;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -44,6 +45,9 @@ public class TeleOp extends LinearOpMode {
     Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
     double current_time = 0;
     double delay = 0;
+
+    private boolean waiting_for_distance = false;
+    double distance_wait = 0;
 
 
     public void runOpMode() {
@@ -56,9 +60,10 @@ public class TeleOp extends LinearOpMode {
             intake.init_without_encoder_reset();
 
         }else {
+            intake.init();
+            sleep(200);
             intake.calculateOffset();
             offset = intake.getOffset();
-            intake.init();
         }
 
         currentGamepad1 = new Gamepad();
@@ -90,7 +95,7 @@ public class TeleOp extends LinearOpMode {
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             boolean a = player2 ? (currentGamepad2.a && !previousGamepad2.a) : (currentGamepad1.a && !previousGamepad1.a);
             if ( move_next || a) {
-                if (!a  && move_next && timer.time() - current_time < delay) {
+                if (!a && timer.time() - current_time < delay) {
                     continue;
                 }
                 position = next_position;
@@ -127,6 +132,7 @@ public class TeleOp extends LinearOpMode {
                         intake.slides.setMax(1400);
                         break;
                     case RAISE_ARM:
+                        intake.slides.setMax(1400);
                         current_time = timer.seconds();
                         intake.useFastPID(true);
                         intake.moveArm(intake.arm.targetPos + 200);
@@ -152,7 +158,9 @@ public class TeleOp extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.EXTEND;
                         break;
                     case EXTEND:
+                        intake.slides.setMax(1400);
                         intake.moveSlides(1400);
+                        mecaTank.setMaxPower(0.5);
                         current_time = timer.time();
                         delay = 0.7;
                         next_position = INTAKE_POSITIONS.TURN_CLAW;
@@ -162,6 +170,7 @@ public class TeleOp extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.DELIVER;
                         break;
                     case DELIVER:
+                        mecaTank.setMaxPower(1);
                         intake.openClaw();
                         delay = 0.3;
                         current_time = timer.time();
@@ -191,15 +200,38 @@ public class TeleOp extends LinearOpMode {
                 }
             }
             boolean x = player2 ? (currentGamepad2.x && !previousGamepad2.x) : (currentGamepad1.x && !previousGamepad1.x);
-            if (x) {
-                position = next_position2;
+            if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR)){
+                if(intake.distance.getFilteredDist() > RobotConstants.TOO_CLOSE && intake.distance.getFilteredDist() < RobotConstants.TOO_FAR){
+                    if (waiting_for_distance){
+                        if(timer.time() - distance_wait > 0.5) {
+                            move_next2 = true;
+                        }
+
+                    }else {
+                        waiting_for_distance = true;
+                        distance_wait = timer.time();
+                    }
+//                    telemetry.addData("Distance Waiting Time", timer.time() - distance_wait);
+//                    telemetry.addData("Distance Wait", distance_wait);
+                }else{
+                    waiting_for_distance = false;
+                }
+            }
+//            telemetry.addData("Waiting For Distance", waiting_for_distance);
+//
+//            telemetry.addData("Intake Position", position);
+
+            if (x || move_next2) {
+                mecaTank.setMaxPower(1);
+                intake.slides.setMax(1400);
+                move_next2 = false;
                 switch (position) {
                     case PICK_UP_FLOOR:
                         intake.moveArm(0);
                         next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
                         break;
                     case GRAB_FLOOR:
-                        intake.moveClaw(.93);
+                        intake.moveClaw(.95);
                         move_next = true;
                         delay = 0.3;
                         current_time = timer.time();
@@ -212,9 +244,9 @@ public class TeleOp extends LinearOpMode {
 
                         next_position2 = INTAKE_POSITIONS.PICK_UP_FLOOR;
                         break;
-
-
                 }
+                position = next_position2;
+
             }
 
 
@@ -253,8 +285,9 @@ public class TeleOp extends LinearOpMode {
 
             boolean y = player2 ? currentGamepad2.y && !previousGamepad2.y : currentGamepad1.y && !previousGamepad1.y;
             if (y) {
-                next_position = INTAKE_POSITIONS.LOWER_CLAW;
-                position = INTAKE_POSITIONS.START;
+                next_position = INTAKE_POSITIONS.START;
+                delay = 0;
+                move_next = true;
             }
 
             mecaTank.telemetry();

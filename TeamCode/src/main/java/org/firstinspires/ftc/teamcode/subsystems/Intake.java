@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -14,6 +18,7 @@ import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 
+import java.io.PipedOutputStream;
 import java.util.ArrayList;
 
 @Config
@@ -30,6 +35,8 @@ public class Intake extends Subsystem {
     HardwareMap hardwareMap;
     Telemetry telemetry;
     ElapsedTime timer;
+
+    public Distance distance;
     private boolean claw_open = false;
     private boolean wrist_open =false;
     private boolean power_four_bar_enabled = false;
@@ -56,7 +63,7 @@ public class Intake extends Subsystem {
     public static int offset = 0;
     public static int offset_offset = -57;
 
-
+    public static double DISTANCE_FILTER = 0.6;
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
@@ -65,7 +72,8 @@ public class Intake extends Subsystem {
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
         arm.setDirection(DcMotor.Direction.REVERSE);
         timer = new ElapsedTime();
-        magnet_sensor = hardwareMap.get(DigitalChannel.class, "magnet_sensor");
+        distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
+        magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
@@ -79,6 +87,7 @@ public class Intake extends Subsystem {
         magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         this.timer = timer;
+        distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
         arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor, timer);
         arm.setDirection(DcMotor.Direction.REVERSE);
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
@@ -246,6 +255,7 @@ public class Intake extends Subsystem {
 //            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 //
 //        }
+        distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         if(arm.getCurrentPosition() > 330 || use_fast_pid){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
@@ -267,6 +277,7 @@ public class Intake extends Subsystem {
         }else if(armTargetPositions.size() == 0){
             backward_delay = false;
         }
+        distance.update();
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
         arm.update();
         slides.update();
@@ -274,6 +285,7 @@ public class Intake extends Subsystem {
 
     @Override
     public void telemetry() {
+        distance.telemetry();
         telemetry.addData("Arm Angle", getArmAngle());
         claw.telemetry();
         wrist.telemetry();
@@ -284,6 +296,7 @@ public class Intake extends Subsystem {
 
         arm.setMaxAcceleration(4000);
         arm.setMaxVelocity(4900);
+        arm.setUseMotionProfile(true);
         wrist.setMin(0.19);
         wrist.setMax(0.95);
         slides.setUseMotionProfile(true);
@@ -291,6 +304,7 @@ public class Intake extends Subsystem {
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
         moveWrist(1);
+
         closeClaw();
     }
 
@@ -299,6 +313,7 @@ public class Intake extends Subsystem {
         arm.init();
         arm.setMaxAcceleration(4000);
         arm.setMaxVelocity(4900);
+        arm.setUseMotionProfile(true);
         wrist.setMin(0.19);
         wrist.setMax(0.95);
         slides.init();
@@ -309,4 +324,69 @@ public class Intake extends Subsystem {
         moveWrist(1);
         closeClaw();
     }
+    public class moveSlidesAction implements Action {
+        private boolean first = true;
+        private int target_pos = 0;
+        public moveSlidesAction(int position){
+            target_pos = position;
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(first){
+                moveSlides(target_pos);
+                slides.update();
+                first = false;
+                return true;
+            }
+            slides.update();
+            return slides.isBusy();
+        }
+    }
+    public Action slideAction(int position) {
+        return new moveSlidesAction(position);
+    }
+    public class moveArmAction implements Action {
+        private int endpos = 0;
+        private boolean partial_motion = false;
+        private boolean first = true;
+        private int target_pos = 0;
+
+        public moveArmAction(int position){
+            target_pos = position;
+
+        }
+        public moveArmAction(int position, int endpos){
+            this.endpos = endpos;
+            partial_motion = true;
+            target_pos = position;
+
+
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            telemetryPacket.put("armPosition", arm.getCurrentPosition());
+            telemetryPacket.put("armBusy", arm.isBusy());
+
+            if(first){
+                moveArm(target_pos);
+                arm.update();
+                first = false;
+                return true;
+            }
+            arm.update();
+
+            if(partial_motion){
+                return arm.getCurrentPosition() < endpos;
+            }
+            return arm.isBusy();
+        }
+    }
+    public Action armAction(int position) {
+        return new moveArmAction(position);
+    }
+    public Action armAction(int position, int end_position) {
+        return new moveArmAction(position, end_position);
+    }
+
+
 }
