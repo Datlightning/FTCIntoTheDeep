@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.testing;
 
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
-import com.acmerobotics.roadrunner.InstantFunction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
@@ -15,14 +14,10 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.roadrunner.TankDrive;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.TuningOpModes;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-import java.util.function.DoubleSupplier;
-
 @Autonomous
-public class RRPathTest extends LinearOpMode {
+public class DistanceRRPathTest extends LinearOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -44,8 +39,8 @@ public class RRPathTest extends LinearOpMode {
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .waitSeconds(0.2)
                 .setReversed(false)
-                .afterTime(0, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToLinearHeading(new Pose2d(-40, -47, Math.toRadians(90)), Math.toRadians(90));
+                .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
+                .splineToLinearHeading(new Pose2d(-40, -45, Math.toRadians(90)), Math.toRadians(90));
 
 
 
@@ -55,8 +50,8 @@ public class RRPathTest extends LinearOpMode {
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
-                .afterTime(0, new InstantAction(() -> intake.moveClaw(0.7)))
-                .splineToLinearHeading(new Pose2d(-50, -47, Math.toRadians(90)), Math.toRadians(90));
+                .afterTime(0.5, new InstantAction(() -> intake.moveClaw(0.7)))
+                .splineToLinearHeading(new Pose2d(-50, -45, Math.toRadians(90)), Math.toRadians(90));
 
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
@@ -66,7 +61,7 @@ public class RRPathTest extends LinearOpMode {
                 .setReversed(false)
                 .stopAndAdd(new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position + 0.05)))
                 .splineToSplineHeading(new Pose2d(-40,-40, Math.toRadians(180)), Math.toRadians(90))
-                .splineToConstantHeading(new Vector2d(-47,-28 ), Math.toRadians(180));
+                .splineToConstantHeading(new Vector2d(-47,-27), Math.toRadians(180));
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToLinearHeading(new Pose2d(-43, -55, Math.toRadians(45)), Math.toRadians(225));
@@ -130,10 +125,7 @@ public class RRPathTest extends LinearOpMode {
                                     firstSample,
                                     intake.armAction(0)
                             ),
-                            new InstantAction(() -> intake.moveClaw(0.7)),
                             new SleepAction(0.2),
-                            new InstantAction(() -> intake.moveWrist(1)),
-                            new SleepAction(0.4),
                             drive.moveUsingDistance(intake.distance),
                             new SleepAction(0.1),
                             intake.grab(),
@@ -147,10 +139,7 @@ public class RRPathTest extends LinearOpMode {
                                     secondSample
                             ),
                             new SleepAction(0.2),
-                            new InstantAction(() -> intake.moveClaw(0.7)),
-                            new SleepAction(0.2),
-                            new InstantAction(() -> intake.moveWrist(1)),
-                            new SleepAction(0.4),
+
                             drive.moveUsingDistance(intake.distance),
                             new SleepAction(0.1),
                             intake.grab(),
@@ -160,9 +149,7 @@ public class RRPathTest extends LinearOpMode {
                             ),
                             intake.score(),
                             new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                            new InstantAction(() -> intake.moveClaw(0.7)),
-                            new SleepAction(0.2),
-                            new InstantAction(() -> intake.moveWrist(1)),
+                            new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                             new SleepAction(0.4),
                             drive.moveUsingDistance(intake.distance, 4, 2.5),
                             new SleepAction(0.3),

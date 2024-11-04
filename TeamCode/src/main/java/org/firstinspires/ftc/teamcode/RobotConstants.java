@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 public class RobotConstants {
     //horizontal slides1
     public static double claw_fully_open = 0.8, claw_closed = 0.95, claw_open=0.89, claw_flat = 0.57;
-    public static double wrist_folded = 0.9, wrist_extended=0, floor_pickup_position = 0.52;
+    public static double wrist_folded = 0.9, wrist_extended=0, floor_pickup_position = 0.48;
 
     public static double TOO_FAR = 5, TOO_CLOSE = 2.6;
     public static Intake intake;

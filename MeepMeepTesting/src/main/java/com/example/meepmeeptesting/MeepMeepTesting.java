@@ -32,10 +32,10 @@ public class MeepMeepTesting {
                 .splineToSplineHeading(new Pose2d(-50,-40, Math.toRadians(180)), Math.toRadians(90))
                 .splineToConstantHeading(new Vector2d(-50,-24), Math.toRadians(180))
                 .splineToConstantHeading(new Vector2d(-56,-24), Math.toRadians(180))
-                .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53,-42, Math.toRadians(120)),
-                        Math.toRadians(120))
-
+//                .setReversed(true)
+//                .splineToSplineHeading(new Pose2d(-40,-32, Math.toRadians(180)), Math.toRadians(90))
+//                .splineToConstantHeading(new Vector2d(-43,-28.5), Math.toRadians(180))
+//                .splineTo(new Vector2d(-50,-28.5), Math.toRadians(180))
                 .build());
 //        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(0,0,0))
 //                .splineTo(new Vector2d(30, 30), 0)

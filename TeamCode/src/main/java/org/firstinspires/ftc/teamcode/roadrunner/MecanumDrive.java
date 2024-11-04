@@ -38,6 +38,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -48,11 +49,13 @@ import org.firstinspires.ftc.teamcode.roadrunner.messages.DriveCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.PoseMessage;
+import org.firstinspires.ftc.teamcode.subsystems.Distance;
 
 import java.lang.Math;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Config
 public final class MecanumDrive {
@@ -256,7 +259,71 @@ public final class MecanumDrive {
         rightBack.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
         rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
     }
+    public Action moveUsingDistance(Distance distance){
+        return new MoveUsingDistanceAction(distance);
+    }
+    public Action moveUsingDistance(Distance distance, double TOO_FAR, double TOO_CLOSE){
+        return new MoveUsingDistanceAction(distance, TOO_FAR, TOO_CLOSE);
+    }
 
+    public class MoveUsingDistanceAction implements Action {
+
+        private Distance distance;
+        private double TOO_FAR = RobotConstants.TOO_FAR;
+        private double TOO_CLOSE = RobotConstants.TOO_CLOSE;
+
+        private ElapsedTime timer;
+        private double currentTime = 0;
+        public MoveUsingDistanceAction(Distance distance){
+            this.distance = distance;
+
+            timer = new ElapsedTime();
+            currentTime = timer.time(TimeUnit.SECONDS);
+
+        }
+        public MoveUsingDistanceAction(Distance distance, double TOO_FAR, double TOO_CLOSE){
+            this.distance = distance;
+            this.TOO_FAR = TOO_FAR;
+            this.TOO_CLOSE = TOO_CLOSE;
+            timer = new ElapsedTime();
+            currentTime = timer.time(TimeUnit.SECONDS);        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(distance.getDist() > 50){
+                return false;
+            }
+            if(timer.time(TimeUnit.SECONDS) - currentTime > 1.3){
+                leftFront.setPower(0);
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                rightFront.setPower(0);
+                return false;
+            }
+            if(distance.getDist() > TOO_FAR  ){
+                double power = 0.05 * (distance.getDist() - TOO_FAR) + 0.1;
+                leftFront.setPower(power);
+                leftBack.setPower(power);
+                rightBack.setPower(power);
+                rightFront.setPower(power);
+            }
+            else if(distance.getDist() < TOO_CLOSE ){
+                double power = 0.05 * (distance.getDist() - TOO_CLOSE) - 0.1;
+
+                leftFront.setPower(power);
+                leftBack.setPower(power);
+                rightBack.setPower(power);
+                rightFront.setPower(power);
+            }else{
+                leftFront.setPower(0);
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                rightFront.setPower(0);
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     public final class FollowTrajectoryAction implements Action {
         public final TimeTrajectory timeTrajectory;

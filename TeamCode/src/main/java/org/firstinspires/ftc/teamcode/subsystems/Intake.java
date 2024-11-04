@@ -176,11 +176,17 @@ public class Intake extends Subsystem {
                 new SleepAction(0.5)
         );
     }
+    public Action grab(double position){
+        return new SequentialAction(
+                new InstantAction(() -> moveClaw(position)),
+                new SleepAction(0.5)
+        );
+    }
     public Action raiseArm(){
         return new SequentialAction(
                 armAction(1400, 600),
                 new ParallelAction(
-                        slideAction(1400),
+//                        slideAction(1400),
                         armAction(1400)
                 ),
                 new InstantAction(() -> moveWrist(0.9))
