@@ -5,6 +5,10 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.ParallelAction;
+import com.acmerobotics.roadrunner.SequentialAction;
+import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -155,6 +159,33 @@ public class Intake extends Subsystem {
         slides.setAbsPower(power);
     }
     public void openClaw() {claw.setPosition(RobotConstants.claw_fully_open);claw_open = true;}
+
+    public Action score(){
+        return new SequentialAction(
+                armAction(1450),
+                new InstantAction(() -> openClaw()),
+                new SleepAction(0.1),
+                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position)),
+                new SleepAction(0.3),
+                armAction(1400),
+                slideAction(0));
+    }
+    public Action grab(){
+        return new SequentialAction(
+                new InstantAction(() -> closeClaw()),
+                new SleepAction(0.5)
+        );
+    }
+    public Action raiseArm(){
+        return new SequentialAction(
+                armAction(1400, 600),
+                new ParallelAction(
+                        slideAction(1400),
+                        armAction(1400)
+                ),
+                new InstantAction(() -> moveWrist(0.9))
+        );
+    }
     public void setClawPWM(boolean on){
         if(on){
             claw.enableServo();
@@ -303,9 +334,6 @@ public class Intake extends Subsystem {
         slides.setMax(1400);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
-        moveWrist(1);
-
-        closeClaw();
     }
 
     @Override
@@ -334,11 +362,9 @@ public class Intake extends Subsystem {
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if(first){
                 moveSlides(target_pos);
-                slides.update();
                 first = false;
                 return true;
             }
-            slides.update();
             return slides.isBusy();
         }
     }
@@ -369,17 +395,26 @@ public class Intake extends Subsystem {
 
             if(first){
                 moveArm(target_pos);
-                arm.update();
                 first = false;
                 return true;
             }
-            arm.update();
 
             if(partial_motion){
                 return arm.getCurrentPosition() < endpos;
             }
             return arm.isBusy();
         }
+    }
+    public class updateAction implements Action{
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            update();
+            return true;
+        }
+    }
+    public Action updateAction(){
+        return new updateAction();
     }
     public Action armAction(int position) {
         return new moveArmAction(position);
