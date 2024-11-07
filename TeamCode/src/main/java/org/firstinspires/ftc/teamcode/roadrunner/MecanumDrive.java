@@ -87,8 +87,8 @@ public final class MecanumDrive {
 
         // path controller gains
         public double axialGain = 8;
-        public double lateralGain = 8;
-        public double headingGain = 12; // shared with turn
+        public double lateralGain = 6;
+        public double headingGain = 6; // shared with turn
 
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
@@ -262,8 +262,8 @@ public final class MecanumDrive {
     public Action moveUsingDistance(Distance distance){
         return new MoveUsingDistanceAction(distance);
     }
-    public Action moveUsingDistance(Distance distance, double TOO_FAR, double TOO_CLOSE){
-        return new MoveUsingDistanceAction(distance, TOO_FAR, TOO_CLOSE);
+    public Action moveUsingDistance(Distance distance, double target, double TOO_CLOSE, double TOO_FAR){
+        return new MoveUsingDistanceAction(distance, target, TOO_CLOSE, TOO_FAR);
     }
 
     public class MoveUsingDistanceAction implements Action {
@@ -274,54 +274,62 @@ public final class MecanumDrive {
 
         private ElapsedTime timer;
         private double currentTime = 0;
+        private double target = 0;
+
+        private boolean first = true;
         public MoveUsingDistanceAction(Distance distance){
             this.distance = distance;
+            target = (TOO_FAR + TOO_CLOSE) / 2;  // Midpoint distance
 
             timer = new ElapsedTime();
             currentTime = timer.time(TimeUnit.SECONDS);
 
+
         }
-        public MoveUsingDistanceAction(Distance distance, double TOO_FAR, double TOO_CLOSE){
+        public MoveUsingDistanceAction(Distance distance, double target, double TOO_CLOSE, double TOO_FAR){
             this.distance = distance;
-            this.TOO_FAR = TOO_FAR;
-            this.TOO_CLOSE = TOO_CLOSE;
+            this.target = target;
             timer = new ElapsedTime();
-            currentTime = timer.time(TimeUnit.SECONDS);        }
+            currentTime = timer.time(TimeUnit.SECONDS);
+            this.TOO_CLOSE = TOO_CLOSE;
+            this.TOO_FAR = TOO_FAR;
+        }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            if(distance.getDist() > 50){
-                return false;
+            if(first){
+                timer.reset();
+                first = false;
+                currentTime = timer.time(TimeUnit.SECONDS);
             }
-            if(timer.time(TimeUnit.SECONDS) - currentTime > 1.3){
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
-                return false;
-            }
-            if(distance.getDist() > TOO_FAR  ){
-                double power = 0.05 * (distance.getDist() - TOO_FAR) + 0.1;
-                leftFront.setPower(power);
-                leftBack.setPower(power);
-                rightBack.setPower(power);
-                rightFront.setPower(power);
-            }
-            else if(distance.getDist() < TOO_CLOSE ){
-                double power = 0.05 * (distance.getDist() - TOO_CLOSE) - 0.1;
 
-                leftFront.setPower(power);
-                leftBack.setPower(power);
-                rightBack.setPower(power);
-                rightFront.setPower(power);
-            }else{
+            double kP = 0.05;  // Proportional constant
+            double error =  distance.getDist() - target;  // Calculate error
+            telemetryPacket.put("Distance", distance.getDist());
+            telemetryPacket.put("Error", error);
+            telemetryPacket.put("Time", timer.time(TimeUnit.SECONDS) - currentTime);
+            telemetryPacket.put("Active", !(timer.time(TimeUnit.SECONDS) - currentTime > 0.2 && (Math.abs(error) < 0.5)));
+
+            if ((Math.abs(error) < 0.5 || timer.time(TimeUnit.SECONDS) - currentTime > 1 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))) {
+
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);
                 rightFront.setPower(0);
                 return false;
             }
+
+
+// Apply proportional control based on error
+            double power = kP * error + Math.copySign(0.1, error);
+
+// Set motor power proportionally to the error
+            leftFront.setPower(power);
+            leftBack.setPower(power);
+            rightBack.setPower(power);
+            rightFront.setPower(power);
 
             return true;
+
         }
     }
 

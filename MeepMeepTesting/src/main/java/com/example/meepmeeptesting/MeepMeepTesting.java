@@ -1,5 +1,6 @@
 package com.example.meepmeeptesting;
 
+import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.noahbres.meepmeep.MeepMeep;
@@ -15,23 +16,14 @@ public class MeepMeepTesting {
                 .setConstraints(44, 60, Math.toRadians(180), Math.toRadians(180), 15)
                 .build();
 
-        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-12, -63, Math.toRadians(270 )))
+        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-10, -64 , Math.toRadians(90  )))
+                .splineToConstantHeading(new Vector2d(-4, -33 ), Math.toRadians(90))
                 .setReversed(true)
+                .splineToConstantHeading(new Vector2d(-4, -40), Math.toRadians(270))
+                .splineToConstantHeading(new Vector2d(-42, -36), Math.toRadians(90))
 
-                .splineToLinearHeading(new Pose2d(-10, -34, Math.toRadians(270)), Math.toRadians(90))
-                .setReversed(false)
-                .splineToLinearHeading(new Pose2d(-48,-36, Math.toRadians(90)), Math.toRadians(90))
-                .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53,-53, Math.toRadians(45)), Math.toRadians(225))
-                .setReversed(false)
 
-                .splineToLinearHeading(new Pose2d(-58,-36, Math.toRadians(90)), Math.toRadians(90))
-                .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53,-53, Math.toRadians(45)), Math.toRadians(225))
-                .setReversed(false)
-                .splineToSplineHeading(new Pose2d(-50,-40, Math.toRadians(180)), Math.toRadians(90))
-                .splineToConstantHeading(new Vector2d(-50,-24), Math.toRadians(180))
-                .splineToConstantHeading(new Vector2d(-56,-24), Math.toRadians(180))
+
 //                .setReversed(true)
 //                .splineToSplineHeading(new Pose2d(-40,-32, Math.toRadians(180)), Math.toRadians(90))
 //                .splineToConstantHeading(new Vector2d(-43,-28.5), Math.toRadians(180))

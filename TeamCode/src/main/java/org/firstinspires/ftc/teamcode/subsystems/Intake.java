@@ -10,7 +10,6 @@ import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -22,7 +21,6 @@ import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 
-import java.io.PipedOutputStream;
 import java.util.ArrayList;
 
 @Config
@@ -47,6 +45,9 @@ public class Intake extends Subsystem {
     private boolean forward_delay = false;
     private boolean backward_delay = false;
     private boolean use_fast_pid = false;
+
+    private int slide_stuck_offset = 0;
+    private boolean level_on = false;
     private double target_angle = 0;//To the y-axis
     private double target_height = 0;//To the floor
     private ArrayList<Integer> slideTargetPositions = new ArrayList<>();
@@ -59,13 +60,13 @@ public class Intake extends Subsystem {
     public static int arm_at_90_ticks = 1380;
     public static double wrist_90 = .2;
     public static double wrist_180 = 0.56;
-    public static double slide_ticks_to_inches = 0.015;
+    public static double slide_ticks_to_inches = 0.0171875;
     public static double slide_starting_length = 13;
-    public static double slide_starting_height = 9;
-    public static double slide_width = 3.25;
-    public static double claw_height = 10;
+    public static double slide_starting_height = 9.125;
+    public static double slide_width = 3.125;
+    public static double claw_height = 8;
     public static int offset = 0;
-    public static int offset_offset = -57;
+    public static int offset_distance_to_0 = -57;
 
     public static double DISTANCE_FILTER = 0.6;
 
@@ -82,7 +83,8 @@ public class Intake extends Subsystem {
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
-        wrist=  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
+        wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
+        arm.setMin(-500);
         arm.setReachedRange(50);
     }
     public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
@@ -119,7 +121,7 @@ public class Intake extends Subsystem {
                 return;
             }
         }
-        offset = arm.getCurrentPosition() - arm_at_0_ticks + offset_offset;
+        offset = arm.getCurrentPosition() - arm_at_0_ticks + offset_distance_to_0;
         telemetry.addData("Offset", offset);
 
         arm.setAbsPower(0);
@@ -137,6 +139,8 @@ public class Intake extends Subsystem {
     public void moveArm(int targetPosition){
         arm.move_async(targetPosition);
     }
+
+
     public void moveWrist(double wristPosition){
         wrist.setPosition(wristPosition);
     }
@@ -163,28 +167,33 @@ public class Intake extends Subsystem {
     public Action score(){
         return new SequentialAction(
                 armAction(1450),
-                new InstantAction(() -> openClaw()),
-                new SleepAction(0.1),
-                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position)),
-                new SleepAction(0.3),
+                new InstantAction(this::openClaw),
                 armAction(1400),
+                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1)),
                 slideAction(0));
+    }
+    public Action scoreLast(){
+        return new SequentialAction(
+                armAction(1450),
+                new InstantAction(this::openClaw),
+                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1))
+        );
     }
     public Action grab(){
         return new SequentialAction(
-                new InstantAction(() -> closeClaw()),
-                new SleepAction(0.5)
+                new InstantAction(this::closeClaw),
+                new SleepAction(0.3)
         );
     }
     public Action grab(double position){
         return new SequentialAction(
                 new InstantAction(() -> moveClaw(position)),
-                new SleepAction(0.5)
+                new SleepAction(0.3)
         );
     }
     public Action raiseArm(){
         return new SequentialAction(
-                armAction(1400, 600),
+                armAction(1400 ,600),
                 new ParallelAction(
 //                        slideAction(1400),
                         armAction(1400)
@@ -218,6 +227,9 @@ public class Intake extends Subsystem {
     public void plowClaw(){
         claw.setPosition(RobotConstants.claw_open); claw_open=true;
     }
+    public void enableLevel(boolean on){
+        level_on = on;
+    }
     public void foldWrist(){
         wrist.setPosition(RobotConstants.wrist_folded); wrist_open=false;
     }
@@ -232,12 +244,16 @@ public class Intake extends Subsystem {
     }
     public double getArmAngle(){
 
-        return (double) (arm.getCurrentPosition() - arm_at_0_ticks + 2 * offset) / (arm_at_90_ticks - arm_at_0_ticks + 2 * offset) * 90.0;
+        return (double) (arm.getCurrentPosition()  - arm_at_0_ticks -  offset ) / (arm_at_90_ticks - arm_at_0_ticks) * 90.0;
     }
     public double calculateWristPosition(){
         double arm_angle = getArmAngle();
         double target_position = (90 - arm_angle - target_angle)/90.0 * (wrist_180 - wrist_90) + wrist_90;
+
         return target_position;
+    }
+    public double calculateSlideLengthNotTheHypot(int slide_position){
+        return slide_starting_length + slide_position * slide_ticks_to_inches;
     }
     public double calculateSlideLength(int slide_position){
         telemetry.addData("SlideLength", slide_starting_length + slide_position * slide_ticks_to_inches);
@@ -292,6 +308,12 @@ public class Intake extends Subsystem {
 //            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 //
 //        }
+        if(level_on){
+           arm.setUseMotionProfile(false);
+           arm.move_async(calculateArmPosition(slides.getCurrentPosition()));
+        }else{
+            arm.setUseMotionProfile(true);
+        }
         distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         if(arm.getCurrentPosition() > 330 || use_fast_pid){
@@ -302,18 +324,7 @@ public class Intake extends Subsystem {
         if(power_four_bar_enabled){
             moveWrist(calculateWristPosition());
         }
-        if(forward_delay && slideTargetPositions.size() > 0 && arm.getCurrentPosition() <= armTargetPositions.get(0)){
-            armTargetPositions.remove(0);
-            moveSlides(slideTargetPositions.remove(0));
-        }else if(slideTargetPositions.size() == 0){
-            forward_delay = false;
-        }
-        if(backward_delay && armTargetPositions.size() > 0 && slides.getCurrentPosition() <= slideTargetPositions.get(0)){
-            slideTargetPositions.remove(0);
-            moveArm(armTargetPositions.remove(0));
-        }else if(armTargetPositions.size() == 0){
-            backward_delay = false;
-        }
+
         distance.update();
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
         arm.update();
@@ -355,7 +366,7 @@ public class Intake extends Subsystem {
         slides.setMax(1400);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
-        moveWrist(1);
+        moveWrist(0.9);
         closeClaw();
     }
     public class moveSlidesAction implements Action {
@@ -383,8 +394,11 @@ public class Intake extends Subsystem {
         private boolean first = true;
         private int target_pos = 0;
 
+        private boolean direction_up = true;
         public moveArmAction(int position){
+
             target_pos = position;
+
 
         }
         public moveArmAction(int position, int endpos){
@@ -396,17 +410,19 @@ public class Intake extends Subsystem {
         }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            telemetryPacket.put("armPosition", arm.getCurrentPosition());
-            telemetryPacket.put("armBusy", arm.isBusy());
 
+            telemetryPacket.put("Arm Target Position", target_pos);
+            telemetryPacket.put("Arm Position", arm.getCurrentPosition());
             if(first){
                 moveArm(target_pos);
                 first = false;
+                direction_up = arm.getCurrentPosition() < endpos;
                 return true;
             }
 
             if(partial_motion){
-                return arm.getCurrentPosition() < endpos;
+
+                return direction_up ? arm.getCurrentPosition() < endpos : arm.getCurrentPosition() > endpos;
             }
             return arm.isBusy();
         }
@@ -422,7 +438,7 @@ public class Intake extends Subsystem {
     public Action updateAction(){
         return new updateAction();
     }
-    public Action armAction(int position) {
+    public Action armAction(int position ) {
         return new moveArmAction(position);
     }
     public Action armAction(int position, int end_position) {

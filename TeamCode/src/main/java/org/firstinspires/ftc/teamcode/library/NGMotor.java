@@ -40,7 +40,8 @@ public class NGMotor extends Subsystem {
     private double MAX_POWER = 1;
     private int SLOW_POS = 0;
     private boolean SLOW = false;
-    private int reached_range = 10;
+    private int
+            reached_range = 10;
     private double integralSum = 0;
 
     private double MAX_VEL = 1;
@@ -62,6 +63,9 @@ public class NGMotor extends Subsystem {
 
         timer = new ElapsedTime();
 
+    }
+    public void setZeroPowerBehaviour(DcMotor.ZeroPowerBehavior zeroPower){
+        pid_motor.setZeroPowerBehavior(zeroPower);
     }
     public NGMotor(HardwareMap hardwareMap, Telemetry telemetry, String name, ElapsedTime timer) {
         this.telemetry = telemetry;

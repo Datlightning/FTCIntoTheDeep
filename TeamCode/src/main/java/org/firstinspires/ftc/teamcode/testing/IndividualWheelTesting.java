@@ -59,10 +59,10 @@ public class IndividualWheelTesting extends LinearOpMode {
 
         while (!isStopRequested() && opModeIsActive()) {
 
-            backLeft.setPower(bl ? MAX_SPEED : 0);
-            backRight.setPower(br ? MAX_SPEED : 0);
-            frontLeft.setPower(fl ? MAX_SPEED : 0);
-            frontRight.setPower(fr ? MAX_SPEED : 0);
+            backLeft.setPower(gamepad1.a || bl ? MAX_SPEED : 0);
+            backRight.setPower(gamepad1.b || br ? MAX_SPEED : 0);
+            frontLeft.setPower(gamepad1.x || fl ? MAX_SPEED : 0);
+            frontRight.setPower(gamepad1.y || fr ? MAX_SPEED : 0);
 
             telemetry.addData("Left Target Power", leftTgtPower);
             telemetry.addData("Right Target Power", rightTgtPower);

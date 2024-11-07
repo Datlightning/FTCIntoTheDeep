@@ -26,7 +26,7 @@ public class IntakeTesting extends LinearOpMode {
     public static boolean use_motion_profile_arm = false;
     public static boolean use_offset_calibrate = false;
     public static boolean use_motion_profile_slide = false;
-    public static int slide_hard_stop = 900;
+    public static int slide_hard_stop = 1400;
     public static double claw_height = 0.75;
     public static int increment = 30;
     public static double VEL = 3900;
