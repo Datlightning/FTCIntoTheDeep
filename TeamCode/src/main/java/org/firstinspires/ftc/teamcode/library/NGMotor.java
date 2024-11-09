@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 public class NGMotor extends Subsystem {
     DcMotorEx pid_motor;
+
+    private boolean on = true;
     public int targetPos = 0;
     private int startPos = 0;
     public static double P = 0.0005, I = 0.0002, D = 0;
@@ -40,8 +42,7 @@ public class NGMotor extends Subsystem {
     private double MAX_POWER = 1;
     private int SLOW_POS = 0;
     private boolean SLOW = false;
-    private int
-            reached_range = 10;
+    private int reached_range = 10;
     private double integralSum = 0;
 
     private double MAX_VEL = 1;
@@ -66,6 +67,9 @@ public class NGMotor extends Subsystem {
     }
     public void setZeroPowerBehaviour(DcMotor.ZeroPowerBehavior zeroPower){
         pid_motor.setZeroPowerBehavior(zeroPower);
+    }
+    public void enableMotor(boolean on){
+        this.on = on;
     }
     public NGMotor(HardwareMap hardwareMap, Telemetry telemetry, String name, ElapsedTime timer) {
         this.telemetry = telemetry;
@@ -192,6 +196,62 @@ public class NGMotor extends Subsystem {
             return direction * (int) Math.round(position);
         }
     }
+    public double motionProfileVel(double maxAcceleration, double maxVelocity, int distance, double elapsedTime){
+// Track whether the distance is positive or negative
+        int direction = distance < 0 ? -1 : 1;
+        distance = Math.abs(distance);  // Work with absolute distance
+
+// Calculate the time it takes to accelerate to max velocity
+        double accelerationDt = maxVelocity / maxAcceleration;
+
+// If we can't accelerate to max velocity in the given distance, adjust accordingly
+        double halfwayDistance = distance / 2.0;
+        double accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+        if (accelerationDistance > halfwayDistance) {
+            accelerationDt = Math.sqrt(halfwayDistance / (0.5 * maxAcceleration));
+        }
+
+        accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+// Deceleration happens at the same rate as acceleration
+        double decelerationDt = accelerationDt;
+
+// Calculate the distance covered during the cruise (at max velocity)
+        double cruiseDistance = distance - 2 * accelerationDistance;
+        double cruiseDt = cruiseDistance / maxVelocity;
+        double decelerationTime = accelerationDt + cruiseDt;
+
+// Total time for the motion profile (acceleration + cruise + deceleration)
+        double entireDt = accelerationDt + cruiseDt + decelerationDt;
+
+// If elapsed time exceeds the total time of the profile, return zero velocity (since the motion is complete)
+        if (elapsedTime > entireDt) {
+            return 0;  // Velocity is 0 when the motion is complete
+        }
+
+// If we're in the acceleration phase
+        if (elapsedTime < accelerationDt) {
+            // Velocity during acceleration phase: v = a * t
+            double velocity = maxAcceleration * elapsedTime;
+            return direction * velocity;
+        }
+
+// If we're in the cruising phase (constant velocity)
+        else if (elapsedTime < decelerationTime) {
+            return direction * maxVelocity;  // Constant max velocity during cruise
+        }
+
+// If we're in the deceleration phase
+        else {
+            double decelerationElapsedTime = elapsedTime - decelerationTime;
+
+            // Velocity during deceleration phase: v = maxVelocity - a * t
+            double velocity = maxVelocity - maxAcceleration * decelerationElapsedTime;
+            return direction * velocity;
+        }
+
+    }
     @Override
     public void init(){
         setPower(0);
@@ -201,8 +261,11 @@ public class NGMotor extends Subsystem {
     public double getCurrent(){
         return pid_motor.getCurrent(CurrentUnit.MILLIAMPS);
     }
+    public double getCurrentAlert(){
+        return pid_motor.getCurrentAlert(CurrentUnit.AMPS);
+    }
     public double getVelocity(){
-        return pid_motor.getVelocity(AngleUnit.DEGREES);
+        return pid_motor.getVelocity();
     }
     @Override
     public void telemetry(){
@@ -214,6 +277,8 @@ public class NGMotor extends Subsystem {
         telemetry.addData(name + " Exceeding Constraints", exceedingConstraints());
         telemetry.addData(name + " Busy Status", isBusy());
         telemetry.addData(name + "Current Draw", getCurrent());
+        telemetry.addData(name + "Current Cooked", getCurrentAlert());
+
         telemetry.addData(name + "Velocity", getVelocity());
         telemetry.addData("Out Power", out);
 
@@ -316,9 +381,9 @@ public class NGMotor extends Subsystem {
     }
 
     public void move_async(int target) {
-        if(target > maxHardstop || target < minHardstop){
-            return;
-        }
+        target = Math.min(target, maxHardstop);
+        target = Math.max(target, minHardstop);
+
         if(targetPos != target){
             reached = false;
             integralSum = 0;
@@ -344,6 +409,9 @@ public class NGMotor extends Subsystem {
         if(manual){
             return;
         }
+        if(!on){
+            return;
+        }
 //        telemetry.addData(name + " P", P);
 //        telemetry.addData(name + " I",I);
 //        telemetry.addData(name + " D", D);
@@ -351,6 +419,8 @@ public class NGMotor extends Subsystem {
         // Obtain the encoder position and calculate the error
         if(useMotionProfile){
             error = motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+            telemetry.addData(name + " Expected Velocity", motionProfileVel(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started));
+
         }else {
             error = targetPos - getCurrentPosition();
         }

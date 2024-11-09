@@ -29,7 +29,7 @@ public class Intake extends Subsystem {
     public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
     public NGMotor arm;
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.005, 0.00001, 0.000003, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
     DigitalChannel magnet_sensor;
 
     NGServo claw;
@@ -46,20 +46,23 @@ public class Intake extends Subsystem {
     private boolean backward_delay = false;
     private boolean use_fast_pid = false;
 
-    private int slide_stuck_offset = 0;
+    public static int SLIDE_CURRENT_LIMIT = 10000;
+    private double slide_stuck_time = 0;
     private boolean level_on = false;
     private double target_angle = 0;//To the y-axis
     private double target_height = 0;//To the floor
     private ArrayList<Integer> slideTargetPositions = new ArrayList<>();
     private ArrayList<Integer> armTargetPositions = new ArrayList<>();
 
-
+    private double[] pos1 = {260.0,180.0};//slide, motor
+    private double[] pos2 = {800.0,140.0};
+    // Adjust current threshold based on battery voltage
 
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
     public static int arm_at_90_ticks = 1380;
-    public static double wrist_90 = .2;
-    public static double wrist_180 = 0.56;
+    public static double wrist_90 = 0.27;
+    public static double wrist_180 = 0.62;
     public static double slide_ticks_to_inches = 0.0171875;
     public static double slide_starting_length = 13;
     public static double slide_starting_height = 9.125;
@@ -166,7 +169,7 @@ public class Intake extends Subsystem {
 
     public Action score(){
         return new SequentialAction(
-                armAction(1450),
+                armAction(1500, 1450),
                 new InstantAction(this::openClaw),
                 armAction(1400),
                 new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1)),
@@ -174,7 +177,7 @@ public class Intake extends Subsystem {
     }
     public Action scoreLast(){
         return new SequentialAction(
-                armAction(1450),
+                armAction(1500,1450),
                 new InstantAction(this::openClaw),
                 new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1))
         );
@@ -195,10 +198,11 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 armAction(1400 ,600),
                 new ParallelAction(
-//                        slideAction(1400),
-                        armAction(1400)
+                        slideAction(1400),
+                        armAction(1400 )
                 ),
-                new InstantAction(() -> moveWrist(0.9))
+                new InstantAction(() -> moveWrist(0.9)),
+                new SleepAction(0.2)
         );
     }
     public void setClawPWM(boolean on){
@@ -261,10 +265,11 @@ public class Intake extends Subsystem {
         return Math.sqrt(Math.pow(slide_starting_length + slide_position * slide_ticks_to_inches,2) + Math.pow(slide_width,2));
     }
     public int calculateArmPosition(int slide_position){
-        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
-        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return arm_angle_in_ticks;
+//        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
+//        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
+
+        return (int) ((pos1[1] - pos2[1])/(pos1[0] - pos2[0]) * (slide_position - pos1[0]) + pos1[1]);
     }
     public void moveSlidesWithDelay(int increment){
         if(backward_delay){
@@ -299,6 +304,16 @@ public class Intake extends Subsystem {
         forward_delay = false;
         backward_delay = true;
     }
+    public void slidesStuck(){
+        if(slides.getCurrent() > 3000 ){
+                arm.setManualPower(0.3);
+                slides.setManualPower(-0.2);
+
+        }else{
+            arm.setManualPower(0);
+        }
+    }
+
 
     @Override
     public void update() {
@@ -308,9 +323,13 @@ public class Intake extends Subsystem {
 //            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 //
 //        }
+        if(slides.getCurrent() > SLIDE_CURRENT_LIMIT){
+            moveSlides(slides.getCurrentPosition());
+        }
         if(level_on){
            arm.setUseMotionProfile(false);
            arm.move_async(calculateArmPosition(slides.getCurrentPosition()));
+           slidesStuck();
         }else{
             arm.setUseMotionProfile(true);
         }
@@ -349,6 +368,7 @@ public class Intake extends Subsystem {
         wrist.setMax(0.95);
         slides.setUseMotionProfile(true);
         slides.setMax(1400);
+        arm.setMax(1600);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
     }
@@ -358,6 +378,7 @@ public class Intake extends Subsystem {
         arm.init();
         arm.setMaxAcceleration(4000);
         arm.setMaxVelocity(4900);
+        arm.setMax(1600);
         arm.setUseMotionProfile(true);
         wrist.setMin(0.19);
         wrist.setMax(0.95);

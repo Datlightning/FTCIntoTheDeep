@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -17,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class MecaTank extends Subsystem {
     private DcMotor frontLeft, frontRight, backLeft, backRight;
     private RobotConstants config;
+
+    private BNO055IMU imu; // IMU for field-centric control
 
     private Distance distance;
     private Telemetry telemetry;
@@ -38,6 +41,11 @@ public class MecaTank extends Subsystem {
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance);
 
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
         backRight.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -53,6 +61,27 @@ public class MecaTank extends Subsystem {
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
 
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+        backRight.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.FORWARD);
+        frontLeft.setDirection(DcMotor.Direction.FORWARD);
+        this.telemetry = telemetry;
+
+    }
+    public MecaTank(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer, BNO055IMU imu){
+        frontLeft = hardwareMap.get(DcMotor.class, RobotConstants.fl);
+        frontRight = hardwareMap.get(DcMotor.class, RobotConstants.fr);
+        backLeft = hardwareMap.get(DcMotor.class, RobotConstants.bl);
+        backRight = hardwareMap.get(DcMotor.class, RobotConstants.br);
+        this.imu = imu;
+        distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
+
         backRight.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -65,6 +94,16 @@ public class MecaTank extends Subsystem {
     private double sameSignSqrt(double number) {
         return Math.copySign(Math.sqrt(Math.abs(number)), number);
     }
+    private double getHeading() {
+        return imu.getAngularOrientation().firstAngle;
+    }
+    private double[] rotateVector(double x, double y, double angle) {
+        double cosA = Math.cos(angle);
+        double sinA = Math.sin(angle);
+        double xRotated = x * cosA - y * sinA;
+        double yRotated = x * sinA + y * cosA;
+        return new double[] {xRotated, yRotated};
+    }
    public void forceExit(){
         force_exit = true;
    }
@@ -74,8 +113,39 @@ public class MecaTank extends Subsystem {
         backLeft.setPower(bl_power);
         backRight.setPower(br_power);
     }
+    public void setPowers(double left_stick_x, double left_stick_y, double right_stick_x) {
+        double heading = getHeading();  // Get robot heading
+
+        // Rotate joystick inputs for field-centric control
+        double[] rotated = rotateVector(left_stick_x, left_stick_y, -heading);
+        double x = rotated[0];
+        double y = rotated[1];
+
+        // Mecanum drive equations
+        double frontLeftPower = y + x + right_stick_x;
+        double frontRightPower = y - x - right_stick_x;
+        double backLeftPower = y - x + right_stick_x;
+        double backRightPower = y + x - right_stick_x;
+
+        // Normalize powers so that no value exceeds 1
+        double max = Math.max(Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
+                Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)));
+        if (max > 1.0) {
+            frontLeftPower /= max;
+            frontRightPower /= max;
+            backLeftPower /= max;
+            backRightPower /= max;
+        }
+
+        // Apply the calculated power values to the motors
+        frontLeft.setPower(frontLeftPower * MAX_DRIVE_SPEED);
+        frontRight.setPower(frontRightPower * MAX_DRIVE_SPEED);
+        backLeft.setPower(backLeftPower * MAX_DRIVE_SPEED);
+        backRight.setPower(backRightPower * MAX_DRIVE_SPEED);
+    }
 
     public void setPowers(double left_stick_y, double right_stick_y, double left_trigger, double right_trigger){
+
         if(auto_move){
             return;
         }

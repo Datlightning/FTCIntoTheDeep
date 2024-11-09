@@ -5,6 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
@@ -26,6 +27,8 @@ public class IntakeTesting extends LinearOpMode {
     public static boolean use_motion_profile_arm = false;
     public static boolean use_offset_calibrate = false;
     public static boolean use_motion_profile_slide = false;
+
+    public static boolean enable_arm_motor = true;
     public static int slide_hard_stop = 1400;
     public static double claw_height = 0.75;
     public static int increment = 30;
@@ -62,6 +65,8 @@ public class IntakeTesting extends LinearOpMode {
                 intake.calculateOffset();
                 use_offset_calibrate = false;
             }
+                intake.arm.enableMotor(enable_arm_motor);
+
             intake.moveClaw(claw_position);
 
             intake.setTargetHeight(claw_height);
