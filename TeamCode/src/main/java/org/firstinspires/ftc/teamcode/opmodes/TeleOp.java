@@ -30,7 +30,7 @@ public class TeleOp extends LinearOpMode {
         FOLD_IN,
         FOLD_IN_2,
         DELIVER,
-        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, LOWER_CLAW_TO_CLEAR, RAISE_CLAW, AUTO_GRAB, RAISE_ARM_HIGHER, DISABLE_ARM, EXTEND_SLIDE, DROP_ARM, RAISE_ARM
+        TURN_CLAW, PICK_UP_FLOOR, GRAB_FLOOR, LOWER_CLAW_TO_CLEAR, RAISE_CLAW, AUTO_GRAB, RAISE_ARM_HIGHER, DISABLE_ARM, EXTEND_SLIDE, DROP_ARM, PICK_UP_SPECIMEN, SCORE_SPECMEN, RAISE_ARM_TO_SCORE, RELEASE, FOLD_IN_AFTER_SPECIMEN, MOVE_CLOSE, RAISE_ARM_FOR_SPECIMEN, GRAB_FLOOR_SPECIMEN, RAISE_ARM
     }
 
     ;
@@ -38,12 +38,28 @@ public class TeleOp extends LinearOpMode {
     public static double target_height = 3;
     boolean move_next = false;
     boolean move_next2 = false;
+    boolean move_next3 = false;
     public static int offset = 0;
+
+    public static boolean telemetry_on = false;
+
+    double lastTapTimeA = 0;
+
+    int tapsA = 0;
+    int current_tapsA = 0;
+
+    double lastTapTimeX = 0;
+
+    int tapsX = 0;
+    int current_tapsX = 0;
 
     public static double current_closed = 0.95;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
+
+    INTAKE_POSITIONS previous_position = INTAKE_POSITIONS.START;
     INTAKE_POSITIONS next_position2 = INTAKE_POSITIONS.START;
+    INTAKE_POSITIONS next_position3 = INTAKE_POSITIONS.START;
     ElapsedTime timer;
     Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
     double current_time = 0;
@@ -86,7 +102,7 @@ public class TeleOp extends LinearOpMode {
         mecaTank.init();
 
         waitForStart();
-        intake.moveArm(500);
+        intake.moveArm(250);
         while (!isStopRequested() && opModeIsActive()) {
             previousGamepad1.copy(currentGamepad1);
             previousGamepad2.copy(currentGamepad2);
@@ -104,47 +120,79 @@ public class TeleOp extends LinearOpMode {
 
             }
             boolean dpad_right = player2 ?  (currentGamepad2.dpad_right && !previousGamepad2.dpad_right) : (currentGamepad1.dpad_right && !previousGamepad1.dpad_right);
-            if(dpad_right){
-                intake.moveWrist(0.55);//TODO: Clear level
-            }
             boolean dpad_left = player2 ?  (currentGamepad2.dpad_left && !previousGamepad2.dpad_left) : (currentGamepad1.dpad_left && !previousGamepad1.dpad_left);
+
             if(dpad_left){
-                intake.moveWrist(0.43);//TODO: Grabby level
+                intake.plowClaw();
+            }
+            if(dpad_right){
+                intake.closeClaw();
+            }
+            mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+
+            if(getRuntime() - lastTapTimeA > 0.3) {
+                current_tapsA = tapsA;
+                lastTapTimeA = getRuntime();
+                tapsA = 0;
+
+            }
+            boolean a = player2 ? (currentGamepad2.a && !previousGamepad2.a) : (currentGamepad1.a && !previousGamepad1.a);
+
+            if(a){
+                tapsA += 1;
+                lastTapTimeA = getRuntime();
             }
 
-            mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
-            boolean a = player2 ? (currentGamepad2.a && !previousGamepad2.a) : (currentGamepad1.a && !previousGamepad1.a);
-            if ( move_next || a) {
-
-                position = next_position;
+            if (move_next || current_tapsA > 0) {
+                // Move forward if single tap, move backward if double tap
+                if (current_tapsA == 1 || move_next) {
+                    telemetry.addLine("progress forward");
+                    position = next_position;  // Move forward
+                } else if (current_tapsA == 2) {
+                    telemetry.addLine("run.");
+                    position = previous_position;  // Move backward
+                }
+                current_tapsA = 0;
 
                 switch (position) {
                     case START:
                         move_next = false;
                         intake.plowClaw();
-                        intake.foldWrist();
+                        intake.moveWrist(0.62);
                         intake.moveArm(250);
                         intake.moveSlides(300);
-                        intake.slides.setMax(800);
+                        intake.slides.setMax(1000);
                         next_position = INTAKE_POSITIONS.LOWER_CLAW;
+                        previous_position = INTAKE_POSITIONS.START; // Set previous position for double tap
                         break;
+
                     case LOWER_CLAW:
                         intake.extendWrist();
-                        intake.moveArm(0);
+                        intake.plowClaw();
+                        intake.moveArm(250);
+                        intake.moveSlides(300);
+                        intake.setTargetAngle(90);
                         intake.setFourBar(true);
                         intake.arm.setUseMotionProfile(false);
                         intake.enableLevel(true);
                         next_position = INTAKE_POSITIONS.DROP_ARM;
+                        previous_position = INTAKE_POSITIONS.START;
                         break;
+
                     case DROP_ARM:
                         intake.useFastPID(true);
-                        intake.moveArm(intake.arm.getCurrentPosition() - 50);
+                        intake.enableLevel(true);
+                        intake.setFourBar(true);
+                        intake.arm.setManualPower(-0.2);
+                        delay = 0.2;
+                        current_time = timer.time();
                         move_next = true;
                         next_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
+                        previous_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
 
                     case CLOSE_AND_FOLD:
-                        if(intake.arm.isBusy()){
+                        if (timer.time() - current_time < delay) {
                             break;
                         }
                         move_next = false;
@@ -152,19 +200,16 @@ public class TeleOp extends LinearOpMode {
 
                         mecaTank.setMaxPower(1);
                         current_time = timer.seconds();
-                        delay = 0.4;
                         intake.closeClaw();
                         next_position = INTAKE_POSITIONS.RAISE_ARM;
                         intake.slides.setMax(1400);
                         intake.enableLevel(false);
 
-
-                        move_next = true;
+                        previous_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
+
                     case RAISE_ARM:
-                        if(timer.time() - current_time > delay){
-                            break;
-                        }
+
                         move_next = true;
                         intake.slides.setMax(1400);
                         current_time = timer.seconds();
@@ -173,7 +218,9 @@ public class TeleOp extends LinearOpMode {
                         intake.moveArm(250);
                         intake.setFourBar(false);
                         next_position = INTAKE_POSITIONS.FOLD;
+                        previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
+
                     case FOLD:
                         if (intake.arm.getCurrentPosition() <= 200) {
                             break;
@@ -184,32 +231,40 @@ public class TeleOp extends LinearOpMode {
                         intake.moveWrist(0.6);
                         intake.moveSlides(0);
                         next_position = INTAKE_POSITIONS.TURN_ARM;
+                        previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
+
                     case TURN_ARM:
-                        intake.moveArm(1380 + intake.getOffset());
+                        intake.moveArm(1450 + intake.getOffset());
                         intake.moveWrist(0.5);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.EXTEND;
+                        previous_position = INTAKE_POSITIONS.FOLD;
                         break;
+
                     case EXTEND:
-                        if(intake.arm.getCurrentPosition() < 1380 + intake.getOffset() - 200){
+                        if (intake.arm.getCurrentPosition() < 1380 + intake.getOffset() - 200) {
                             break;
                         }
                         intake.slides.setMax(1400);
-                        intake.moveSlides(1400);
+                        intake.moveSlides(1200);
                         mecaTank.setMaxPower(0.5);
                         current_time = timer.time();
                         delay = 0.7;
                         next_position = INTAKE_POSITIONS.TURN_CLAW;
+                        previous_position = INTAKE_POSITIONS.FOLD;
                         break;
+
                     case TURN_CLAW:
-                        if(intake.slides.isBusy()){
+                        if (intake.slides.isBusy()) {
                             break;
                         }
                         move_next = false;
                         intake.moveWrist(0.8);
                         next_position = INTAKE_POSITIONS.DELIVER;
+                        previous_position = INTAKE_POSITIONS.FOLD;
                         break;
+
                     case DELIVER:
                         mecaTank.setMaxPower(1);
                         intake.openClaw();
@@ -217,9 +272,11 @@ public class TeleOp extends LinearOpMode {
                         current_time = timer.time();
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RAISE_CLAW;
+                        previous_position = INTAKE_POSITIONS.TURN_CLAW;
                         break;
+
                     case RAISE_CLAW:
-                        if(timer.time() - current_time > delay){
+                        if (timer.time() - current_time > delay) {
                             break;
                         }
                         current_time = timer.time();
@@ -227,34 +284,51 @@ public class TeleOp extends LinearOpMode {
                         intake.moveWrist(0.5);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RETRACT_TO_LEAVE_2;
+                        previous_position = INTAKE_POSITIONS.TURN_CLAW;
                         break;
 
                     case RETRACT_TO_LEAVE_2:
-                        if(timer.time() - current_time > delay){
+                        if (timer.time() - current_time > delay) {
                             break;
                         }
                         intake.moveSlides(0);
                         next_position = INTAKE_POSITIONS.FOLD_IN_2;
+                        previous_position = INTAKE_POSITIONS.TURN_CLAW;
                         break;
+
                     case FOLD_IN_2:
                         if (intake.slides.getCurrentPosition() < 50) {
                             intake.foldWrist();
                             intake.moveArm(180 + offset);
                             next_position = INTAKE_POSITIONS.START;
+                            previous_position = INTAKE_POSITIONS.TURN_CLAW;
                             move_next = false;
                         }
                         break;
-
-
                 }
             }
 
+            if(getRuntime() - lastTapTimeX > 0.3) {
+                current_tapsX = tapsX;
+                lastTapTimeX = getRuntime();
+                tapsX = 0;
+
+            }
             boolean x = player2 ? (currentGamepad2.x && !previousGamepad2.x) : (currentGamepad1.x && !previousGamepad1.x);
-            if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR)){
+
+            if(x){
+                tapsX += 1;
+                lastTapTimeX = getRuntime();
+            }
+            if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR) || position.equals(INTAKE_POSITIONS.GRAB_FLOOR_SPECIMEN)){
                 if(intake.distance.getFilteredDist() > RobotConstants.TOO_CLOSE && intake.distance.getFilteredDist() < RobotConstants.TOO_FAR){
                     if (waiting_for_distance){
                         if(timer.time() - distance_wait > 0.3) {
-                            move_next2 = true;
+                            if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR)) {
+                                move_next2 = true;
+                            }else{
+                                move_next3 = true;
+                            }
                         }
 
                     }else {
@@ -271,45 +345,52 @@ public class TeleOp extends LinearOpMode {
 //
 //            telemetry.addData("Intake Position", position);
 
-            if (x || move_next2) {
-                mecaTank.setMaxPower(1);
-                intake.slides.setMax(1400);
 
-                switch (position) {
-                    case PICK_UP_FLOOR:
-                        if(!intake.slides.isBusy()){
-                            intake.moveArm(0);
-                            next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
-                            move_next2 = false;
-                        }
-                        break;
-//                    case AUTO_GRAB:
-//                        mecaTank.PIDToDistance(4);
-//                        move_next2 = true;
-//                        next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
-//                        break;
-                    case GRAB_FLOOR:
-                        if(!mecaTank.isBusy()) {
-                            move_next2 = false;
-                            intake.closeClaw();
-                            move_next = true;
-                            delay = 0.3;
-                            current_time = timer.time();
-                            next_position = INTAKE_POSITIONS.RAISE_ARM;
-                        }
-                        break;
-                    default:
-                        intake.moveSlides(0);
-                        intake.moveWrist(RobotConstants.floor_pickup_position);
-                        intake.moveClaw(0.65);
 
-                        next_position2 = INTAKE_POSITIONS.PICK_UP_FLOOR;
-                        move_next2 = true;
-                        break;
+            if (current_tapsX > 0 || move_next2) {
+                if(current_tapsX == 2){
+                    mecaTank.PIDToDistance(3);
+                } else if(current_tapsX == 1) {
+                    intake.enableLevel(false);
+                    intake.setFourBar(false);
+
+                    mecaTank.setMaxPower(1);
+                    intake.slides.setMax(1400);
+
+                    switch (position) {
+                        case PICK_UP_FLOOR:
+                            if (!intake.slides.isBusy()) {
+                                intake.moveArm(0);
+                                next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
+                                move_next2 = false;
+                            }
+                            break;
+//
+                        case GRAB_FLOOR:
+                            if (!mecaTank.isBusy()) {
+                                move_next2 = false;
+                                intake.closeClaw();
+                                move_next = true;
+                                delay = 0.3;
+                                current_time = timer.time();
+                                next_position = INTAKE_POSITIONS.RAISE_ARM;
+                            }
+                            break;
+                        default:
+                            intake.moveSlides(0);
+                            intake.moveWrist(RobotConstants.floor_pickup_position);
+                            intake.moveClaw(0.8);
+
+                            next_position2 = INTAKE_POSITIONS.PICK_UP_FLOOR;
+                            move_next2 = true;
+                            break;
+                    }
+                    position = next_position2;
                 }
-                position = next_position2;
+                current_tapsX = 0;
 
-            }
+
+                }
 
 
             boolean left_bumper = player2 ? (currentGamepad2.left_bumper) : (currentGamepad1.left_bumper);
@@ -346,19 +427,77 @@ public class TeleOp extends LinearOpMode {
             }
 
             boolean y = player2 ? currentGamepad2.y && !previousGamepad2.y : currentGamepad1.y && !previousGamepad1.y;
-            if (y) {
-                next_position = INTAKE_POSITIONS.START;
-                delay = 0;
-                move_next = true;
+            if (y || move_next3) {
+                mecaTank.setMaxPower(1);
+                intake.slides.setMax(1400);
+                intake.enableLevel(false);
+
+                switch (position) {
+                    case PICK_UP_FLOOR:
+                        if(!intake.slides.isBusy()){
+                            intake.moveArm(0);
+                            next_position3 = INTAKE_POSITIONS.GRAB_FLOOR_SPECIMEN;
+                            move_next3 = false;
+                        }
+                        break;
+                    case GRAB_FLOOR_SPECIMEN:
+                        if(!mecaTank.isBusy()) {
+                            intake.closeClaw();
+                            delay = 0.4;
+                            current_time = timer.time();
+                            next_position3 = INTAKE_POSITIONS.RAISE_ARM_FOR_SPECIMEN;
+                        }
+                        break;
+                    case RAISE_ARM_FOR_SPECIMEN:
+                        if(timer.time() - current_time > delay) {
+                            move_next3 = false;
+                            intake.moveArm(1400);
+                            intake.moveSlides(200);
+                            intake.moveWrist(0.8);
+                            next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;
+                        }
+                        break;
+                    case SCORE_SPECMEN:
+                        intake.moveSlides(0);
+                        next_position3 = INTAKE_POSITIONS.RELEASE;
+                        move_next3 = true;
+                    case RELEASE:
+                        if(intake.slides.isBusy()){
+                            break;
+                        }
+                        intake.openClaw();
+                        move_next3 = false;
+                        next_position3 = INTAKE_POSITIONS.FOLD_IN_AFTER_SPECIMEN;
+                        break;
+                    case FOLD_IN_AFTER_SPECIMEN:
+
+                        intake.moveArm(0);
+                        intake.moveWrist(0.9);
+                        next_position = INTAKE_POSITIONS.START;
+                        next_position3 = INTAKE_POSITIONS.START;
+                        break;
+                    default:
+                        intake.moveSlides(0);
+                        intake.moveWrist(RobotConstants.floor_pickup_position);
+                        intake.moveClaw(0.8);
+                        move_next3 = true;
+                        next_position3 = INTAKE_POSITIONS.PICK_UP_FLOOR;
+                        break;
+                }
+                position = next_position3;
+
             }
 
-            mecaTank.telemetry();
-            intake.telemetry();
+            if(telemetry_on) {
+                mecaTank.telemetry();
+                intake.telemetry();
+            }
 
             intake.update();
             mecaTank.update();
             telemetry.update();
         }
     }
+
 }
 

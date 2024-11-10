@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.testing;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -9,6 +10,7 @@ import java.io.*;
 import java.net.*;
 
 @TeleOp
+@Disabled
 public class EpicWebTransferTest extends LinearOpMode {
 
     private volatile int variable1 = 0;

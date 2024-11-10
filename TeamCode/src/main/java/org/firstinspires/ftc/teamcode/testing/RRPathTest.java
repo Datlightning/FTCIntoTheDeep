@@ -14,6 +14,7 @@ import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
@@ -25,6 +26,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import java.util.function.DoubleSupplier;
 
 @Autonomous
+@Disabled
+
 public class RRPathTest extends LinearOpMode {
     Intake intake;
     @Override

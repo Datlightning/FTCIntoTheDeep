@@ -8,8 +8,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 @Config
 public class RobotConstants {
     //horizontal slides1
-    public static double claw_fully_open = 0.8, claw_closed = 0.99, claw_open=0.9, claw_flat = 0.57;
-    public static double wrist_folded = 0.9, wrist_extended=0, floor_pickup_position = 0.53, specimen_deliver = 0.6;//update the 0 and 90 degrees as well.
+    public static double claw_fully_open = 0.8, claw_closed = 1, claw_open=0.9, claw_flat = 0.57;
+    public static double wrist_folded = 0.9, wrist_extended=0, floor_pickup_position = 0.56, specimen_deliver = 0.6;//update the 0 and 90 degrees as well.
     public static double TOO_FAR = 4.25, TOO_CLOSE = 1.7;
     public static Intake intake;
     public static String intakeMotor = "intake_motor";//ehub 0

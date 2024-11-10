@@ -42,22 +42,22 @@ public class Auto1Specimen extends LinearOpMode {
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(2, -40), Math.toRadians(270))
                 .afterTime(0.5,  new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToConstantHeading(new Vector2d(-42, -38), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-22,22));
+                .splineToConstantHeading(new Vector2d(-42, -40), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-22,22));
 
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-48, -54, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-45, -52, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToLinearHeading(new Pose2d(-52, -39, Math.toRadians(90)), Math.toRadians(90));
+                .splineToLinearHeading(new Pose2d(-52, -42, Math.toRadians(90)), Math.toRadians(90));
 
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-47, -55, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-45, -52, Math.toRadians(45)), Math.toRadians(225));
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
@@ -67,7 +67,7 @@ public class Auto1Specimen extends LinearOpMode {
                 .splineToLinearHeading(new Pose2d(-42, -52, Math.toRadians(45)), Math.toRadians(225));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToConstantHeading(new Vector2d(-46, -56), Math.toRadians(45));
+                .splineToConstantHeading(new Vector2d(-45, -53), Math.toRadians(45));
 
 
 

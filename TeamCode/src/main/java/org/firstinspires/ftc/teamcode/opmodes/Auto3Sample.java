@@ -21,7 +21,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @Autonomous
-public class Auto4Sample extends LinearOpMode {
+public class Auto3Sample extends LinearOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -118,23 +118,6 @@ public class Auto4Sample extends LinearOpMode {
                                 ),
                                 intake.score(),
                                 new InstantAction(() -> intake.moveClaw(0.73)),
-                                intake.armAction(0,800),
-                                new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                                drive.moveUsingDistance(intake.distance, 4.125, 3.5,5),
-                                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
-                                new SleepAction(0.3),
-                                intake.grab(0.9),
-//                                intake.grab(1),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreThirdSample
-                                ),
-                                intake.scoreLast(),
-                                intake.armAction(1250, 1350),
-                                new ParallelAction(
-                                        intake.slideAction(0),
-                                        park
-                                ),
                                 intake.armAction(0)
                         )
                 )
