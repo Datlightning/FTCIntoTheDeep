@@ -5,30 +5,40 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.roadrunner.tuning.StrafeTest;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
+import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
+
+import java.lang.annotation.Target;
 
 @TeleOp
 @Config
 public class IntakeTesting extends LinearOpMode {
     Intake intake;
+    TrafficLight trafficLight;
     public static double claw_position = 0.85;
     public static double wrist_position = 1;
     public static double rotation_power = 0;
     public static double slide_power = 0;
-    public static int target_position = 0;
+    public static int arm_position = 0;
     public static int slide_position = 0;
+
+    private int past_arm_position = 0;
+    private int past_slide_position = 0;
     public static boolean controller =false;
     public static double target_angle = 0;
     public static boolean testing_level = false;
-    public static boolean delay = false;
-    public static boolean disable_pid_movement = false;
-    public static boolean use_motion_profile_arm = false;
+    public static boolean use_motion_profile_arm = true;
     public static boolean use_offset_calibrate = false;
-    public static boolean use_motion_profile_slide = false;
+    public static boolean use_motion_profile_slide = true;
 
     public static boolean enable_arm_motor = true;
+
+    public static boolean extend_slide_with_distance = false;
     public static int slide_hard_stop = 1400;
     public static double claw_height = 0.75;
     public static int increment = 30;
@@ -36,20 +46,55 @@ public class IntakeTesting extends LinearOpMode {
     public static double ACCEL = 3000;
     public static double SLIDE_VEL = 10000;
     public static double SLIDE_ACCEL = 9000;
-
+    MecaTank mecaTank;
+    public static boolean drive_pid_on = false;
+    public static boolean front_distance = true;
+    public static boolean fast_pid = false;
+    public static double distance = 8;
     public static double DISTANCE_FILTER = 0.6;
+
+    public static double drive_speed = 0.15;
+
+    public static boolean distance_scope = true;
+    private boolean past_distance_scope = false;
+    ElapsedTime timer;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        intake = new Intake(hardwareMap, telemetry);
+        trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
+        timer = new ElapsedTime();
+        intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         intake.init();
+        mecaTank = new MecaTank(hardwareMap, telemetry, timer, trafficLight);
+
+        mecaTank.init();
+
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
+            if(distance_scope != past_distance_scope){
+                if(!distance_scope){
+                    trafficLight.green(false);
+                }
+            }
+            past_distance_scope = distance_scope;
+
+
+            mecaTank.setDistanceType(front_distance);
+            if(arm_position != past_arm_position){
+                intake.moveArm(arm_position);
+
+            }
+            if(slide_position != past_slide_position){
+                intake.moveSlides(slide_position);
+            }
+            past_arm_position = arm_position;
+            past_slide_position = slide_position;
+
+
+
 
             intake.update();
             intake.distance.setFilter(DISTANCE_FILTER);
-            intake.setRotationPower(rotation_power == 0 ? gamepad1.left_stick_y : rotation_power);
-            intake.setSlidePower(slide_power == 0 ? gamepad2.left_stick_y : slide_power);
 
             intake.slides.setMax(slide_hard_stop);
             intake.slides.setUseMotionProfile(use_motion_profile_slide);
@@ -78,35 +123,44 @@ public class IntakeTesting extends LinearOpMode {
             intake.slides.setMaxVelocity(SLIDE_VEL);
             intake.slides.setMaxAcceleration(SLIDE_ACCEL);
 
+
+            intake.slides.setManualPower(gamepad2.left_stick_y);
+            intake.arm.setManualPower(gamepad2.right_stick_y);
             if(testing_level){
                 intake.moveArm(intake.calculateArmPosition(intake.slides.getCurrentPosition()));
             }
-            if(gamepad1.left_bumper){
-                intake.moveSlides(intake.slides.targetPos + increment);
-            }else if(gamepad1.right_bumper){
-                intake.moveSlides(intake.slides.targetPos - increment);
+            if(extend_slide_with_distance){
+                intake.moveSlides(intake.calculateSlidePositionForFloorPickup(intake.distance.getFilteredDist()));
             }
-            if(testing_level){
-                intake.moveArm(intake.calculateArmPosition(intake.slides.getCurrentPosition()));
-            }else{
-                if(!disable_pid_movement) {
-                    intake.moveArm(target_position);
-                    intake.moveSlides(slide_position);
-                }
-            }
+
             if(gamepad1.left_bumper){
-                if(delay){
-                    intake.moveArmWithDelay(increment);
-                }else {
                     intake.moveSlides(intake.slides.targetPos + increment);
-                }
+                    slide_position += increment;
             }else if(gamepad1.right_bumper){
-                if(delay){
-                    intake.moveSlidesWithDelay(-increment);
-                }else {
                     intake.moveSlides(intake.slides.targetPos - increment);
+                    slide_position -= increment;
+            }
+
+            if(!mecaTank.isBusy()){
+                mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+            }
+            if(!drive_pid_on) {
+                mecaTank.forceExit();
+            }else{
+                if(fast_pid){
+                    mecaTank.DrivePastDistance(distance, drive_speed);
+                }else {
+                    mecaTank.PIDToDistance(distance);
                 }
             }
+            if(distance_scope) {
+                trafficLight.green(intake.distance.getFilteredDist() < 12);
+            }
+            telemetry.addData("Target Distance", distance);
+            mecaTank.telemetry();
+            mecaTank.update();
+
+            telemetry.addData("Slide Predicted Distance", intake.calculateSlidePositionForFloorPickup(intake.distance.getFilteredDist()));
             intake.telemetry();
             telemetry.update();
         }

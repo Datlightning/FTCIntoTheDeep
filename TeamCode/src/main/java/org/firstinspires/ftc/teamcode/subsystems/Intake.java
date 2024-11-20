@@ -27,16 +27,19 @@ import java.util.ArrayList;
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
     public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
+
     public NGMotor arm;
+
     public NGMotor slides;
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
     DigitalChannel magnet_sensor;
-
     NGServo claw;
     NGServo wrist;
     HardwareMap hardwareMap;
     Telemetry telemetry;
     ElapsedTime timer;
+
+    public TrafficLight trafficLight;
 
     public Distance distance;
     private boolean claw_open = false;
@@ -46,17 +49,21 @@ public class Intake extends Subsystem {
     private boolean backward_delay = false;
     private boolean use_fast_pid = false;
 
+    private boolean distance_scope = false;
     public static int SLIDE_CURRENT_LIMIT = 10000;
     private double slide_stuck_time = 0;
     private boolean level_on = false;
     private double target_angle = 0;//To the y-axis
     private double target_height = 0;//To the floor
-    private ArrayList<Integer> slideTargetPositions = new ArrayList<>();
-    private ArrayList<Integer> armTargetPositions = new ArrayList<>();
 
-    private double[] pos1 = {260.0,180.0};//slide, motor
-    private double[] pos2 = {800.0,140.0};
+
+    private final double[] pickup_position_1 = {260.0,180.0};//slide, motor
+    private final double[] pickup_position_2 = {800.0,140.0};
+
+    private final double[] slide_distance_position_1 = {0.1,0.1};
+    private final double[] slide_distance_position_2 = {0.2,0.2};
     // Adjust current threshold based on battery voltage
+
 
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
@@ -87,10 +94,11 @@ public class Intake extends Subsystem {
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
         wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
+        trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         arm.setMin(-500);
         arm.setReachedRange(50);
     }
-    public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
+    public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer, TrafficLight trafficLight){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
         magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
@@ -106,6 +114,8 @@ public class Intake extends Subsystem {
         claw.mountTimer(timer);
         wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
         wrist.mountTimer(timer);
+        this.trafficLight = trafficLight;
+
     }
     private boolean magnet_activated(){
         return !magnet_sensor.getState();
@@ -167,6 +177,12 @@ public class Intake extends Subsystem {
     }
     public void openClaw() {claw.setPosition(RobotConstants.claw_fully_open);claw_open = true;}
 
+    public void setDistanceScoping(boolean on){
+        if(!on){
+            trafficLight.green(false);
+        }
+        distance_scope = on;
+    }
     public Action score(){
         return new SequentialAction(
                 armAction(1500, 1450),
@@ -174,6 +190,16 @@ public class Intake extends Subsystem {
                 armAction(1400),
                 new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1)),
                 slideAction(0));
+    }
+
+    public Action yeetSample(){
+        //TODO make sure that it "yeets" the sample
+        return new SequentialAction(
+                grab(1),
+                armAction(1400),
+                grab(0.74),
+                armAction(0)
+        );
     }
     public Action scoreLast(){
         return new SequentialAction(
@@ -198,7 +224,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 armAction(1400 ,600),
                 new ParallelAction(
-                        slideAction(1400),
+//                        slideAction(1400),
                         armAction(1400 )
                 ),
                 new InstantAction(() -> moveWrist(0.9)),
@@ -269,47 +295,16 @@ public class Intake extends Subsystem {
 //        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
 //        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return (int) ((pos1[1] - pos2[1])/(pos1[0] - pos2[0]) * (slide_position - pos1[0]) + pos1[1]);
-    }
-    public void moveSlidesWithDelay(int increment){
-        if(backward_delay){
-            slideTargetPositions.clear();
-            armTargetPositions.clear();
-        }
-        int lastPosition ;
-
-        if(slideTargetPositions.isEmpty()) {
-            slideTargetPositions.add(slides.targetPos + increment);
-            lastPosition = slides.targetPos;
-        } else {
-            lastPosition = slideTargetPositions.get(slideTargetPositions.size() - 1);
-            slideTargetPositions.add(lastPosition + increment);
-        }
-        int arm_pos = calculateArmPosition(lastPosition + increment);
-        armTargetPositions.add(arm_pos);
-        moveArm(arm_pos);
-        forward_delay = true;
-        backward_delay = false;
-    }
-    public void moveArmWithDelay(int increment){
-        if(forward_delay){
-            slideTargetPositions.clear();
-            armTargetPositions.clear();
-        }
-        slideTargetPositions.add(slides.targetPos + increment);
-
-        int arm_pos = calculateArmPosition(slides.targetPos + increment);
-        armTargetPositions.add(arm_pos);
-        moveSlides(slides.targetPos + increment);
-        forward_delay = false;
-        backward_delay = true;
+        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]);
     }
     public void slidesStuck(){
         if(slides.getCurrent() > 3000 ){
+                trafficLight.flashRed(0.5, 2);
                 arm.setManualPower(0.3);
                 slides.setManualPower(-0.2);
 
         }else{
+            slides.setManualPower(0);
             arm.setManualPower(0);
         }
     }
@@ -323,8 +318,13 @@ public class Intake extends Subsystem {
 //            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 //
 //        }
+        trafficLight.update();
+        if(distance_scope) {
+            trafficLight.green(distance.getFilteredDist() < 12);
+        }
         if(slides.getCurrent() > SLIDE_CURRENT_LIMIT){
             moveSlides(slides.getCurrentPosition());
+            trafficLight.flashRed(0.5, 2);
         }
         if(level_on){
            arm.setUseMotionProfile(false);
@@ -349,7 +349,11 @@ public class Intake extends Subsystem {
         arm.update();
         slides.update();
     }
+    public int calculateSlidePositionForFloorPickup(double distance){
+        double slope = (slide_distance_position_2[0] - slide_distance_position_1[0])/(slide_distance_position_2[1] - slide_distance_position_1[1]);
 
+        return (int) (slide_distance_position_1[0] + slope * (distance - slide_distance_position_1[1]));
+    }
     @Override
     public void telemetry() {
         distance.telemetry();
@@ -361,8 +365,8 @@ public class Intake extends Subsystem {
     }
     public void init_without_encoder_reset(){
 
-        arm.setMaxAcceleration(4000);
-        arm.setMaxVelocity(4900);
+        arm.setMaxAcceleration(2000);
+        arm.setMaxVelocity(5000);
         arm.setUseMotionProfile(true);
         wrist.setMin(0.19);
         wrist.setMax(0.95);
@@ -376,8 +380,8 @@ public class Intake extends Subsystem {
     @Override
     public void init() {
         arm.init();
-        arm.setMaxAcceleration(4000);
-        arm.setMaxVelocity(4900);
+        arm.setMaxAcceleration(2000);
+        arm.setMaxVelocity(5000);
         arm.setMax(1600);
         arm.setUseMotionProfile(true);
         wrist.setMin(0.19);

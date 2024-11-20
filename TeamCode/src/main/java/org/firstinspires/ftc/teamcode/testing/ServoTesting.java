@@ -22,7 +22,7 @@ public class ServoTesting extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         timer = new ElapsedTime();
-        intake = new Intake(hardwareMap, telemetry,timer);
+        intake = new Intake(hardwareMap, telemetry);
 
         waitForStart();
         while(!isStopRequested() && opModeIsActive()){

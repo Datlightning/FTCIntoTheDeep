@@ -6,9 +6,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 import java.util.concurrent.TimeUnit;
 
@@ -129,129 +127,6 @@ public class NGMotor extends Subsystem {
         return !(reached && timer.time(TimeUnit.SECONDS) - completed_time > time);
 
     }
-    public static int motionProfile(double maxAcceleration, double maxVelocity, int distance, double elapsedTime) {
-        // Track whether the distance is positive or negative
-        int direction = distance < 0 ? -1 : 1;
-        distance = Math.abs(distance);  // Work with absolute distance
-
-        // Calculate the time it takes to accelerate to max velocity
-        double accelerationDt = maxVelocity / maxAcceleration;
-
-        // If we can't accelerate to max velocity in the given distance, adjust accordingly
-        double halfwayDistance = distance / 2.0;
-        double accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-
-        if (accelerationDistance > halfwayDistance) {
-            accelerationDt = Math.sqrt(halfwayDistance / (0.5 * maxAcceleration));
-        }
-
-        accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-
-        // Recalculate max velocity based on the adjusted acceleration time
-        maxVelocity = maxAcceleration * accelerationDt;
-
-        // Deceleration happens at the same rate as acceleration
-        double decelerationDt = accelerationDt;
-
-        // Calculate the distance covered during the cruise (at max velocity)
-        double cruiseDistance = distance - 2 * accelerationDistance;
-        double cruiseDt = cruiseDistance / maxVelocity;
-        double decelerationTime = accelerationDt + cruiseDt;
-
-        // Total time for the motion profile (acceleration + cruise + deceleration)
-        double entireDt = accelerationDt + cruiseDt + decelerationDt;
-
-        // If elapsed time exceeds the total time of the profile, return the full distance
-        if (elapsedTime > entireDt) {
-            return direction * distance;
-        }
-
-        // If we're in the acceleration phase
-        if (elapsedTime < accelerationDt) {
-            // Use the kinematic equation for acceleration: s = 0.5 * a * t^2
-            double position = 0.5 * maxAcceleration * Math.pow(elapsedTime, 2);
-            return direction * (int) Math.round(position);
-        }
-
-        // If we're in the cruising phase (constant velocity)
-        else if (elapsedTime < decelerationTime) {
-            accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-            double cruiseCurrentDt = elapsedTime - accelerationDt;
-
-            // Use the kinematic equation for constant velocity: s = v * t
-            double position = accelerationDistance + maxVelocity * cruiseCurrentDt;
-            return direction * (int) Math.round(position);
-        }
-
-        // If we're in the deceleration phase
-        else {
-            accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-            cruiseDistance = maxVelocity * cruiseDt;
-            double decelerationElapsedTime = elapsedTime - decelerationTime;
-
-            // Use the kinematic equations for deceleration: s = v * t - 0.5 * a * t^2
-            double position = accelerationDistance + cruiseDistance
-                    + maxVelocity * decelerationElapsedTime
-                    - 0.5 * maxAcceleration * Math.pow(decelerationElapsedTime, 2);
-            return direction * (int) Math.round(position);
-        }
-    }
-    public double motionProfileVel(double maxAcceleration, double maxVelocity, int distance, double elapsedTime){
-// Track whether the distance is positive or negative
-        int direction = distance < 0 ? -1 : 1;
-        distance = Math.abs(distance);  // Work with absolute distance
-
-// Calculate the time it takes to accelerate to max velocity
-        double accelerationDt = maxVelocity / maxAcceleration;
-
-// If we can't accelerate to max velocity in the given distance, adjust accordingly
-        double halfwayDistance = distance / 2.0;
-        double accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-
-        if (accelerationDistance > halfwayDistance) {
-            accelerationDt = Math.sqrt(halfwayDistance / (0.5 * maxAcceleration));
-        }
-
-        accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
-
-// Deceleration happens at the same rate as acceleration
-        double decelerationDt = accelerationDt;
-
-// Calculate the distance covered during the cruise (at max velocity)
-        double cruiseDistance = distance - 2 * accelerationDistance;
-        double cruiseDt = cruiseDistance / maxVelocity;
-        double decelerationTime = accelerationDt + cruiseDt;
-
-// Total time for the motion profile (acceleration + cruise + deceleration)
-        double entireDt = accelerationDt + cruiseDt + decelerationDt;
-
-// If elapsed time exceeds the total time of the profile, return zero velocity (since the motion is complete)
-        if (elapsedTime > entireDt) {
-            return 0;  // Velocity is 0 when the motion is complete
-        }
-
-// If we're in the acceleration phase
-        if (elapsedTime < accelerationDt) {
-            // Velocity during acceleration phase: v = a * t
-            double velocity = maxAcceleration * elapsedTime;
-            return direction * velocity;
-        }
-
-// If we're in the cruising phase (constant velocity)
-        else if (elapsedTime < decelerationTime) {
-            return direction * maxVelocity;  // Constant max velocity during cruise
-        }
-
-// If we're in the deceleration phase
-        else {
-            double decelerationElapsedTime = elapsedTime - decelerationTime;
-
-            // Velocity during deceleration phase: v = maxVelocity - a * t
-            double velocity = maxVelocity - maxAcceleration * decelerationElapsedTime;
-            return direction * velocity;
-        }
-
-    }
     @Override
     public void init(){
         setPower(0);
@@ -337,49 +212,6 @@ public class NGMotor extends Subsystem {
 
     }
 
-    public void DO_NOT_USEmove_sync(double target, double timeoutS, double MOTOR_POWER) {
-        double slidesPosition = getCurrentPosition();
-        double Kp = P;
-        double Ki = I;
-        double Kd = D;
-
-        double reference = target;
-
-        double integralSum = 0;
-
-        double currentTime = timer.time();
-        while (timer.time() - currentTime < timeoutS && !exceedingConstraints()) {
-
-            error = reference - slidesPosition;
-
-            // rate of change of the error
-
-            // sum of all error over time
-            out = (Kp * error);
-            integralSum = integralSum + (error * timer.seconds());
-
-            if (Ki * integralSum <= max_integral_component){
-                out += (Ki * integralSum) ;
-            }
-
-
-
-            if(timer.seconds() != 0) {
-                double derivative = (error - lastError) / timer.seconds();
-                out += Kd * derivative;
-            }
-            out += F;
-            out *= (reversed_encoder ? -1 : 1);
-            setPower(out * MOTOR_POWER);
-            if(Math.abs(error) < 5){
-                break;
-            }
-
-        }
-        setPower(0);
-
-    }
-
     public void move_async(int target) {
         target = Math.min(target, maxHardstop);
         target = Math.max(target, minHardstop);
@@ -418,8 +250,8 @@ public class NGMotor extends Subsystem {
 //        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
         if(useMotionProfile){
-            error = motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
-            telemetry.addData(name + " Expected Velocity", motionProfileVel(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started));
+            error = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+            telemetry.addData(name + " Expected Velocity",  Control.motionProfileVelo(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started));
 
         }else {
             error = targetPos - getCurrentPosition();

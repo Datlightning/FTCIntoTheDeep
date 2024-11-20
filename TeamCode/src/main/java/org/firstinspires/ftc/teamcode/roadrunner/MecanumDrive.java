@@ -1,5 +1,13 @@
 package org.firstinspires.ftc.teamcode.roadrunner;
 
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_ACCEL;
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_VEL;
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kF;
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kI;
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kP;
+
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -30,6 +38,7 @@ import com.acmerobotics.roadrunner.ftc.LynxFirmware;
 import com.acmerobotics.roadrunner.ftc.OverflowEncoder;
 import com.acmerobotics.roadrunner.ftc.PositionVelocityPair;
 import com.acmerobotics.roadrunner.ftc.RawEncoder;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -43,6 +52,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.library.Control;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.Localizer;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.DriveCommandMessage;
@@ -50,6 +60,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.PoseMessage;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
+import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 import java.lang.Math;
 import java.util.Arrays;
@@ -94,7 +105,6 @@ public final class MecanumDrive {
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0; // shared with turn
     }
-
     public static Params PARAMS = new Params();
 
     public final MecanumKinematics kinematics = new MecanumKinematics(
@@ -126,6 +136,7 @@ public final class MecanumDrive {
     private final DownsampledWriter driveCommandWriter = new DownsampledWriter("DRIVE_COMMAND", 50_000_000);
     private final DownsampledWriter mecanumCommandWriter = new DownsampledWriter("MECANUM_COMMAND", 50_000_000);
 
+    TrafficLight trafficLight;
     public class DriveLocalizer implements Localizer {
         public final Encoder leftFront, leftBack, rightBack, rightFront;
         public final IMU imu;
@@ -235,8 +246,11 @@ public final class MecanumDrive {
         leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
         leftBack.setDirection(DcMotorSimple.Direction.FORWARD);
 
+
         lazyImu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
                 PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
+        RobotConstants.imu = lazyImu;
+        RobotConstants.imu_init = true;
 
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
@@ -244,7 +258,9 @@ public final class MecanumDrive {
 
         FlightRecorder.write("MECANUM_PARAMS", PARAMS);
     }
-
+    public void mountTrafficLight(TrafficLight light){
+        this.trafficLight = light;
+    }
     public void setDrivePowers(PoseVelocity2d powers) {
         MecanumKinematics.WheelVelocities<Time> wheelVels = new MecanumKinematics(1).inverse(
                 PoseVelocity2dDual.constant(powers, 1));
@@ -265,6 +281,13 @@ public final class MecanumDrive {
     public Action moveUsingDistance(Distance distance, double target, double TOO_CLOSE, double TOO_FAR){
         return new MoveUsingDistanceAction(distance, target, TOO_CLOSE, TOO_FAR);
     }
+    public Action moveUsingDistance(Distance distance, double target, double TOO_CLOSE, double TOO_FAR, double GIVE_UP){
+        return new MoveUsingDistanceAction(distance, target, TOO_CLOSE, TOO_FAR, GIVE_UP);
+    }
+    public Action moveUsingDistance(Distance distance, double target, double speed, boolean front){
+        return new MoveUsingDistanceAction(distance, target, speed, front);
+    }
+
 
     public class MoveUsingDistanceAction implements Action {
 
@@ -277,9 +300,24 @@ public final class MecanumDrive {
         private double target = 0;
 
         private boolean first = true;
+
+        private double distance_to_target = 0;
+        private double start_position = 0;
+        private double starting_motion_profile_time = 0;
+
+        private double time_stop = 0;
+
+        private double integral = 0;
+
+        private double GIVE_UP = 100;
+        private double SPEED = 0;
+        private boolean fast = false;
+        private boolean front_distance = true;
+        private boolean fast_drive_direction;
+
         public MoveUsingDistanceAction(Distance distance){
             this.distance = distance;
-            target = (TOO_FAR + TOO_CLOSE) / 2;  // Midpoint distance
+            target = RobotConstants.TARGET;  // Midpoint distance
 
             timer = new ElapsedTime();
             currentTime = timer.time(TimeUnit.SECONDS);
@@ -294,39 +332,109 @@ public final class MecanumDrive {
             this.TOO_CLOSE = TOO_CLOSE;
             this.TOO_FAR = TOO_FAR;
         }
+        public MoveUsingDistanceAction(Distance distance, double target, double TOO_CLOSE, double TOO_FAR, double GIVE_UP){
+            this.distance = distance;
+            this.target = target;
+            timer = new ElapsedTime();
+            currentTime = timer.time(TimeUnit.SECONDS);
+            this.TOO_CLOSE = TOO_CLOSE;
+            this.TOO_FAR = TOO_FAR;
+            this.GIVE_UP = GIVE_UP;
+        }
+        public MoveUsingDistanceAction(Distance distance, double target, double speed, boolean front_distance){
+            this.distance = distance;
+            this.target = target;
+            timer = new ElapsedTime();
+            currentTime = timer.seconds();
+            this.TOO_CLOSE = 0;
+            this.TOO_FAR = 0;
+            this.front_distance = front_distance;
+            fast_drive_direction = front_distance ? (distance.getFilteredDist() > target) : (distance.getFilteredDist() < target);
+            this.SPEED = fast_drive_direction ? speed : -speed;
+
+        }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if(first){
                 timer.reset();
                 first = false;
-                currentTime = timer.time(TimeUnit.SECONDS);
+                currentTime = timer.seconds();
+                distance_to_target = target - distance.getFilteredDist();
+                starting_motion_profile_time = timer.seconds();
+                start_position = distance.getFilteredDist();
+                time_stop = timer.seconds();
+
             }
 
-            double kP = 0.05;  // Proportional constant
-            double error =  distance.getDist() - target;  // Calculate error
+            updatePoseEstimate();
+            if(fast){
+                boolean completed = fast_drive_direction ? (front_distance ? ( distance.getFilteredDist() < target) : (distance.getFilteredDist() > target)) : (front_distance ? (distance.getFilteredDist() > target) : (distance.getFilteredDist() < target));
+                if(completed){
+                    leftFront.setPower(0);
+                    leftBack.setPower(0);
+                    rightBack.setPower(0);
+                    rightFront.setPower(0);
+                    trafficLight.red(false);
+                    trafficLight.green(true);
+                    trafficLight.flashGreen(1, 1);
+                    return false;
+                }
+                trafficLight.red(true);
+                leftFront.setPower(SPEED);
+                rightFront.setPower(SPEED);
+                leftBack.setPower(SPEED);
+                rightBack.setPower(SPEED);
+
+
+            }
+            double time_passed = timer.seconds() - time_stop;
+
+            double error = distance.getFilteredDist() - (Control.motionProfile(MAX_ACCEL, MAX_VEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + start_position);
+            double real_error = distance.getFilteredDist() - target;
             telemetryPacket.put("Distance", distance.getDist());
             telemetryPacket.put("Error", error);
             telemetryPacket.put("Time", timer.time(TimeUnit.SECONDS) - currentTime);
             telemetryPacket.put("Active", !(timer.time(TimeUnit.SECONDS) - currentTime > 0.2 && (Math.abs(error) < 0.5)));
+            if(distance.getFilteredDist() > GIVE_UP){
+                leftFront.setPower(0);
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                rightFront.setPower(0);
+                trafficLight.flashOffred(0.5, 2);
 
-            if ((Math.abs(error) < 0.5 || timer.time(TimeUnit.SECONDS) - currentTime > 1 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))) {
+                return false;
+            }
+            if ((Math.abs(real_error) < 0.5 || timer.time(TimeUnit.SECONDS) - currentTime > 1 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))) {
 
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);
                 rightFront.setPower(0);
+                trafficLight.red(false);
+                trafficLight.green(true);
+                trafficLight.flashGreen(1, 1);
                 return false;
             }
 
+            trafficLight.red(true);
 
 // Apply proportional control based on error
-            double power = kP * error + Math.copySign(0.1, error);
+            // filter out hight frequency noise to increase derivative performance
+            integral += error * time_passed;  // Accumulate the error over time
+            // PID output
+            double power = kP * error + kI * integral;
 
+            // Limit power to a safe range (optional, depending on your motor controller)
+            power = Math.max(-1.0, Math.min(1.0, power));
+            power -= kF * Math.signum(power);
 // Set motor power proportionally to the error
             leftFront.setPower(power);
             leftBack.setPower(power);
             rightBack.setPower(power);
             rightFront.setPower(power);
+
+            time_stop = timer.seconds();
+
 
             return true;
 

@@ -18,23 +18,33 @@ public class MeepMeepTesting {
                 .setConstraints(44, 60, Math.toRadians(180), Math.toRadians(180), 15)
                 .build();
 
-        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-38, -64 , Math.toRadians(0  )))
-                        .setReversed(true)
-                .splineToConstantHeading(new Vector2d(-43, -60), Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(-48, -54, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(10))
+        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(10, -64 , Math.toRadians(90)))
+                        .setReversed(false)
+                .splineToConstantHeading(new Vector2d(10, -34.5), Math.toRadians(90))
+                .setReversed(true)
 
-
-
-//                .setReversed(true)
-//                .splineToSplineHeading(new Pose2d(-40,-32, Math.toRadians(180)), Math.toRadians(90))
-//                .splineToConstantHeading(new Vector2d(-43,-28.5), Math.toRadians(180))
-//                .splineTo(new Vector2d(-50,-28.5), Math.toRadians(180))
+                .splineToConstantHeading(new Vector2d(36, -46), Math.toRadians(0))
+                .splineToConstantHeading(new Vector2d(48, -34.5), Math.toRadians(90))
+                .splineToConstantHeading(new Vector2d(52, -40), Math.toRadians(0))
+                .splineToConstantHeading(new Vector2d(58, -34.5), Math.toRadians(90))
+                        .waitSeconds(1)
+                .setReversed(false)
+                .splineToSplineHeading(new Pose2d(55, -14, 0), Math.toRadians(0))
+                .splineToConstantHeading(new Vector2d(55 , -14), Math.toRadians(0))
+                .splineToConstantHeading(new Vector2d(60, -50), Math.toRadians(270))
+                .splineToSplineHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(180))
+                .setReversed(true)
+                .splineToLinearHeading(new Pose2d(10, -34.5, Math.toRadians(270)), Math.toRadians(90))
+                .setReversed(false)
+                .splineToLinearHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(0))
+                .setReversed(true)
+                .splineToLinearHeading(new Pose2d(7, -34.5, Math.toRadians(270)), Math.toRadians(90))
+                .setReversed(false)
+                .splineToLinearHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(0))
+                .setReversed(true)
+                .splineToLinearHeading(new Pose2d(4, -34.5, Math.toRadians(270)), Math.toRadians(90))
                 .build());
-//        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(0,0,0))
-//                .splineTo(new Vector2d(30, 30), 0)
-//                        .setReversed(true)
-//                .splineTo(new Vector2d(0, 0), Math.PI)
-//                .build());
+
         meepMeep.setBackground(MeepMeep.Background.FIELD_INTO_THE_DEEP_OFFICIAL )
                 .setDarkMode(true)
                 .setBackgroundAlpha(0.95f)

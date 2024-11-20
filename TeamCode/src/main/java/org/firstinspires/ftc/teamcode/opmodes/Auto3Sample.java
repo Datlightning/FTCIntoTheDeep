@@ -15,21 +15,27 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 @Autonomous
 public class Auto3Sample extends LinearOpMode {
     Intake intake;
+    TrafficLight trafficLight;
+    ElapsedTime timer;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
 
-        Pose2d beginPose = new Pose2d(-38, -64, Math.toRadians(0));
+        Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
-        intake = new Intake(hardwareMap, telemetry);
+        intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
+        drive.mountTrafficLight(trafficLight);
         intake.init();
         intake.slides.setReachedRange(30);
         intake.calculateOffset();
@@ -89,6 +95,7 @@ public class Auto3Sample extends LinearOpMode {
         Actions.runBlocking(
                 new ParallelAction(
                         intake.updateAction(),
+                        trafficLight.updateAction(),
                         new SequentialAction(
                                 new ParallelAction(
                                         scoreSpecimen,
@@ -100,6 +107,7 @@ public class Auto3Sample extends LinearOpMode {
                                         new SequentialAction(intake.armAction(0, 800), firstSample),intake.armAction(0),
                                         intake.slideAction(0)
                                 ),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                                 intake.grab(),
                                 new ParallelAction(
                                         intake.raiseArm(),
@@ -110,7 +118,7 @@ public class Auto3Sample extends LinearOpMode {
                                 new ParallelAction(
                                         new SequentialAction(intake.armAction(0, 800), secondSample),intake.armAction(0)
                                         ),
-//                                drive.moveUsingDistance(intake.distance, 4, 1.25, 4.5),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                                 intake.grab(),
                                 new ParallelAction(
                                         intake.raiseArm(),

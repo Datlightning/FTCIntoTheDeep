@@ -17,7 +17,7 @@ public class Distance extends Subsystem {
     private double past_distance_reading = 0;
     private double current_dist = 0;
     private double filtered_position = 0;
-    public static double filter_value = 0;
+    public static double filter_value = 0.65;
     private double delay = 0;
     private ElapsedTime timer;
     private String name = "";
@@ -52,6 +52,7 @@ public class Distance extends Subsystem {
     @Override
     public void telemetry() {
         telemetry.addData(name + " Distance (in)", getDist());
+        telemetry.addData(name + " Filtered Distance (in)", getFilteredDist());
     }
     public void update(){
         if(timer.seconds() - delay > 0.005){

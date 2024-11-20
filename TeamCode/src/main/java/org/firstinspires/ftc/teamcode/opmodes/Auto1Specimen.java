@@ -15,21 +15,27 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 @Autonomous
 public class Auto1Specimen extends LinearOpMode {
     Intake intake;
+    TrafficLight trafficLight;
+    ElapsedTime timer;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
 
-        Pose2d beginPose = new Pose2d(-10, -64, Math.toRadians(90));
+        Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
-        intake = new Intake(hardwareMap, telemetry);
+        intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
+        drive.mountTrafficLight(trafficLight);
         intake.init();
         intake.slides.setReachedRange(30);
         intake.calculateOffset();
@@ -42,33 +48,34 @@ public class Auto1Specimen extends LinearOpMode {
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(2, -40), Math.toRadians(270))
                 .afterTime(0.5,  new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToConstantHeading(new Vector2d(-42, -40), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-22,22));
+                .splineToConstantHeading(new Vector2d(-49, -39), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,42));
 
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-45, -52, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-48, -53, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToLinearHeading(new Pose2d(-52, -42, Math.toRadians(90)), Math.toRadians(90));
+                .splineToLinearHeading(new Pose2d(-59, -37.5, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22));
 
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-45, -52, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-47, -51, Math.toRadians(45)), Math.toRadians(225));
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToSplineHeading(new Pose2d(-45,-26, Math.toRadians(180)), Math.toRadians(180));
+                .splineToSplineHeading(new Pose2d(-53,-38.5, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
+                .splineToConstantHeading(new Vector2d(-53,-25), Math.toRadians(270), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-15,20))
+                .splineToConstantHeading(new Vector2d(-58,-25), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,15));
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-42, -52, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-46, -53, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,22));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToConstantHeading(new Vector2d(-45, -53), Math.toRadians(45));
-
+                .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
 
 
 
@@ -87,6 +94,7 @@ public class Auto1Specimen extends LinearOpMode {
 
         Actions.runBlocking(
                 new ParallelAction(
+                        trafficLight.updateAction(),
                         intake.updateAction(),
                         new SequentialAction(
                                 new ParallelAction(
@@ -96,47 +104,45 @@ public class Auto1Specimen extends LinearOpMode {
                                 ),
                                 intake.armAction(1000),
                                 new SleepAction(0.3),
-                                new InstantAction(() -> intake.moveClaw(0.7)),
+                                new InstantAction(() -> intake.moveClaw(0.73)),
                                 new ParallelAction(
-                                        firstSample,
+                                        new SequentialAction(intake.armAction(0, 800), firstSample),
                                         intake.armAction(0),
                                         intake.slideAction(0)
                                 ),
-                                intake.grab(),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
+                                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
+                                new SleepAction(0.6),
+                                intake.grab(1),
                                 new ParallelAction(
                                         intake.raiseArm(),
                                         scoreFirstSample
                                 ),
                                 intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.7)),
+                                new InstantAction(() -> intake.moveClaw(0.73)),
                                 new ParallelAction(
-                                        intake.armAction(0),
-                                        secondSample
+                                        new SequentialAction(intake.armAction(0, 800), secondSample),
+
+                                        intake.armAction(0)
                                 ),
-//                                drive.moveUsingDistance(intake.distance, 4, 1.25, 4.5),
-                                intake.grab(),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
+                                intake.grab(1),
                                 new ParallelAction(
                                         intake.raiseArm(),
                                         scoreSecondSample
                                 ),
                                 intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.7)),
+                                new InstantAction(() -> intake.moveClaw(0.88)),
                                 intake.armAction(0,800),
                                 new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                                drive.moveUsingDistance(intake.distance, 4.125, 3.5,5),
-                                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                                 new SleepAction(0.3),
-                                intake.grab(0.9),
+                                intake.grab(1),
                                 new ParallelAction(
                                         intake.raiseArm(),
                                         scoreThirdSample
                                 ),
                                 intake.scoreLast(),
-                                intake.armAction(1250, 1350),
-                                new ParallelAction(
-                                        intake.slideAction(0),
-                                        park
-                                ),
                                 intake.armAction(0)
                         )
                 )
