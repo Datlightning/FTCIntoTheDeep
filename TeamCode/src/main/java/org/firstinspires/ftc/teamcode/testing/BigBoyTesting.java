@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 @Config
 @TeleOp
-public class BigBoyTesting extends LinearOpMode {
+public class BigBoyTesting extends TestingOpMode {
     protected DcMotor motor1,motor2,motor3,motor4, motor1e, motor2e, motor3e, motor4e;
     public static double motor1power = 0,motor2power = 0, motor3power = 0,motor4power = 0,motor1epower = 0,motor2epower = 0,motor3epower = 0,motor4epower = 0;
     protected Servo servo1, servo2, servo3,servo4,servo5,servo6, servo1e,servo2e,servo3e,servo4e,servo5e, servo6e;

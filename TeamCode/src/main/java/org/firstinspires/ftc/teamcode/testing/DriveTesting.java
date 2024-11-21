@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 @Config
 @TeleOp
 //@Disabled
-public class DriveTesting extends LinearOpMode {
+public class DriveTesting extends TestingOpMode {
     MecaTank mecaTank;
     public static boolean pid_on = false;
     public static double distance = 8;

@@ -60,8 +60,8 @@ public class Intake extends Subsystem {
     private final double[] pickup_position_1 = {260.0,180.0};//slide, motor
     private final double[] pickup_position_2 = {800.0,140.0};
 
-    private final double[] slide_distance_position_1 = {0.1,0.1};
-    private final double[] slide_distance_position_2 = {0.2,0.2};
+    private final double[] slide_distance_position_1 = {0,1};
+    private final double[] slide_distance_position_2 = {400,7};
     // Adjust current threshold based on battery voltage
 
 
@@ -161,11 +161,6 @@ public class Intake extends Subsystem {
         claw.setPosition(clawPosition);
     }
     public void moveSlides(int targetPosition){
-        if(targetPosition < slides.getCurrentPosition()){
-            slides.setMaxAcceleration(4000);
-        }else{
-            slides.setMaxAcceleration(9000);
-        }
         slides.move_async(targetPosition);
     }
     public void setRotationPower(double power){ arm.setManualPower(power); }
@@ -365,7 +360,8 @@ public class Intake extends Subsystem {
     }
     public void init_without_encoder_reset(){
 
-        arm.setMaxAcceleration(2000);
+        arm.setMaxAcceleration(5000);
+        arm.setMaxDeceleration(1500);
         arm.setMaxVelocity(5000);
         arm.setUseMotionProfile(true);
         wrist.setMin(0.19);
@@ -375,22 +371,16 @@ public class Intake extends Subsystem {
         arm.setMax(1600);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
+        slides.setMaxDeceleration(3000);
     }
 
     @Override
     public void init() {
+        init_without_encoder_reset();
         arm.init();
-        arm.setMaxAcceleration(2000);
-        arm.setMaxVelocity(5000);
-        arm.setMax(1600);
-        arm.setUseMotionProfile(true);
-        wrist.setMin(0.19);
-        wrist.setMax(0.95);
+
         slides.init();
-        slides.setUseMotionProfile(true);
-        slides.setMax(1400);
-        slides.setMaxAcceleration(9000);
-        slides.setMaxVelocity(10000);
+
         moveWrist(0.9);
         closeClaw();
     }

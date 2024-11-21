@@ -28,7 +28,7 @@ import java.util.function.DoubleSupplier;
 @Autonomous
 @Disabled
 
-public class RRPathTest extends LinearOpMode {
+public class RRPathTest extends TestingOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {

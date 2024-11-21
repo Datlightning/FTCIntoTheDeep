@@ -26,28 +26,14 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 @Config
 @Autonomous
-public class Auto4Specimen extends LinearOpMode {
-    Intake intake;
-    TrafficLight trafficLight;
-    ElapsedTime timer;
-
+public class Auto4Specimen extends NGAutoOpMode {
     Distance rear_distance;
-    MecanumDrive drive;
     public static int SPECIMEN_COUNT = 1;
     @Override
     public void runOpMode() throws InterruptedException {
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        timer = new ElapsedTime();
-        timer.reset();
-        trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         Pose2d beginPose = new Pose2d(10, -64, Math.toRadians(90));
         drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
-        intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
-        intake.init();
-        intake.slides.setReachedRange(30);
-        intake.calculateOffset();
-        intake.moveClaw(1);
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
 
         TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)

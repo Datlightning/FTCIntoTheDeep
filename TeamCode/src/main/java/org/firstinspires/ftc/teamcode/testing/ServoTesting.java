@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 @Config
 @TeleOp
 @Disabled
-public class ServoTesting extends LinearOpMode {
+public class ServoTesting extends TestingOpMode {
 
     Intake intake;
     ElapsedTime timer;

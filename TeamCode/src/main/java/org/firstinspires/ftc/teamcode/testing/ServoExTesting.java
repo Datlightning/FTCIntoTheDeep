@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 @Config
 @TeleOp
 @Disabled
-public class ServoExTesting extends LinearOpMode {
+public class ServoExTesting extends TestingOpMode {
     ServoImplEx servo;
     @Override
     public void runOpMode() throws InterruptedException {

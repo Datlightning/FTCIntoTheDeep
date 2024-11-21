@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.util.Range;
 @Config
 @TeleOp
 @Disabled
-public class SwerveTesting extends LinearOpMode {
+public class SwerveTesting extends TestingOpMode {
 
     // Hardware
     private DcMotor driveMotor;      // Driving motor

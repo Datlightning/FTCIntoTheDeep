@@ -46,6 +46,8 @@ public class NGMotor extends Subsystem {
     private double MAX_VEL = 1;
     private double MAX_ACCEL = 1;
 
+    private double MAX_DECEL = -1;
+
 
 
     Telemetry telemetry;
@@ -120,6 +122,8 @@ public class NGMotor extends Subsystem {
     public void setMaxAcceleration(double accel){
         MAX_ACCEL = accel;
     }
+
+    public void setMaxDeceleration(double decel){ MAX_DECEL = decel;}
     public boolean isBusy(){
         return !(reached);
     }
@@ -250,7 +254,13 @@ public class NGMotor extends Subsystem {
 //        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
         if(useMotionProfile){
-            error = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+            if(MAX_DECEL == -1){
+                error = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+
+            }else{
+                error = Control.motionProfile( MAX_VEL, MAX_ACCEL, MAX_DECEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
+
+            }
             telemetry.addData(name + " Expected Velocity",  Control.motionProfileVelo(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started));
 
         }else {

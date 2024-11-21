@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 @Config
 @TeleOp
-public class TrafficLightTest extends LinearOpMode {
+public class TrafficLightTest extends TestingOpMode {
 
     TrafficLight trafficLight;
     public static int blinks = 0;

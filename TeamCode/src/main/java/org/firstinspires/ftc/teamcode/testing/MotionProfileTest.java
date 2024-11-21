@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.library.Control;
 
 @Config
 @TeleOp
-public class MotionProfileTest extends LinearOpMode {
+public class MotionProfileTest extends TestingOpMode {
 
     public static double distance = 10;
    public static double max_vel = 10;

@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 
 @TeleOp
 @Config
-public class PoseTrasnferTest extends LinearOpMode {
+public class PoseTrasnferTest extends TestingOpMode {
     MecanumDrive mecanumDrive;
     MecaTank mecaTank;
     public static Pose2d pose = new Pose2d(0,0, Math.toRadians(270));

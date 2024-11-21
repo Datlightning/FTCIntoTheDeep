@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @Disabled
 @Autonomous
-public class DistanceRRPathTest extends LinearOpMode {
+public class DistanceRRPathTest extends TestingOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {

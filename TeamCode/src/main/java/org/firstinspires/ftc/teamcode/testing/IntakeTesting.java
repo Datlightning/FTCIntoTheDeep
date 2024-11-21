@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
 
 @TeleOp
 @Config
-public class IntakeTesting extends LinearOpMode {
+public class IntakeTesting extends TestingOpMode {
     Intake intake;
     TrafficLight trafficLight;
     public static double claw_position = 0.85;
@@ -46,6 +46,10 @@ public class IntakeTesting extends LinearOpMode {
     public static double ACCEL = 3000;
     public static double SLIDE_VEL = 10000;
     public static double SLIDE_ACCEL = 9000;
+
+    public static double SLIDE_DECEL = 4000;
+
+    public static double DECEL = 1000;
     MecaTank mecaTank;
     public static boolean drive_pid_on = false;
     public static boolean front_distance = true;
@@ -55,7 +59,7 @@ public class IntakeTesting extends LinearOpMode {
 
     public static double drive_speed = 0.15;
 
-    public static boolean distance_scope = true;
+    public static boolean distance_scope = false;
     private boolean past_distance_scope = false;
     ElapsedTime timer;
     @Override
@@ -119,9 +123,11 @@ public class IntakeTesting extends LinearOpMode {
 
             intake.arm.setMaxVelocity(VEL);
             intake.arm.setMaxAcceleration(ACCEL);
+            intake.arm.setMaxDeceleration(DECEL);
 
             intake.slides.setMaxVelocity(SLIDE_VEL);
             intake.slides.setMaxAcceleration(SLIDE_ACCEL);
+            intake.slides.setMaxDeceleration(SLIDE_DECEL);
 
 
             intake.slides.setManualPower(gamepad2.left_stick_y);

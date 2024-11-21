@@ -11,7 +11,7 @@ import java.net.*;
 
 @TeleOp
 @Disabled
-public class EpicWebTransferTest extends LinearOpMode {
+public class EpicWebTransferTest extends TestingOpMode {
 
     private volatile int variable1 = 0;
     private volatile int variable2 = 0;

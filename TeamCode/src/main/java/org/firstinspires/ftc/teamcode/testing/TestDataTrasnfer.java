@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @Config
 @Autonomous
-public class TestDataTrasnfer extends LinearOpMode {
+public class TestDataTrasnfer extends TestingOpMode {
     ElapsedTime timer;
     Intake intake;
     @Override

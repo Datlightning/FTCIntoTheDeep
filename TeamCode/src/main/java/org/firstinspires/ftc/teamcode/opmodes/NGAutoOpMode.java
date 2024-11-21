@@ -15,13 +15,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 public abstract class NGAutoOpMode extends LinearOpMode {
     public static ElapsedTime timer;
     public static Intake intake;
-
     public static MecanumDrive drive;
     public static TrafficLight trafficLight;
     public NGAutoOpMode(){
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-
-
         timer = new ElapsedTime();
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led, timer);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);

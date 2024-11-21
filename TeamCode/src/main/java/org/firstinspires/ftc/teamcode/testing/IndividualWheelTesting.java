@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 @Config
 @Disabled
 @TeleOp
-public class IndividualWheelTesting extends LinearOpMode {
+public class IndividualWheelTesting extends TestingOpMode {
     private ElapsedTime time = new ElapsedTime();
     protected DcMotor frontRight;
     protected DcMotor backRight;

@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @TeleOp
 @Config
-public class ClawReset extends LinearOpMode {
+public class ClawReset extends TestingOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {

@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 @Config
 @TeleOp
 @Disabled
-public class IntakeTuning extends LinearOpMode {
+public class IntakeTuning extends TestingOpMode {
 
     Intake intake;
     public static double TARGET_HEIGHT = 0;
