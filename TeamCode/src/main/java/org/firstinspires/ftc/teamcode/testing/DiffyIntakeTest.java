@@ -29,7 +29,7 @@ public class DiffyIntakeTest extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         waitForStart();
-
+//COmment for funsies
         while(opModeIsActive()) {
 
             if (boundClear(theta1, theta2)) {
