@@ -14,6 +14,7 @@ public class ServoExTesting extends TestingOpMode {
     ServoImplEx servo;
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         servo = hardwareMap.get(ServoImplEx.class, "wrist_servo");
     }
 }

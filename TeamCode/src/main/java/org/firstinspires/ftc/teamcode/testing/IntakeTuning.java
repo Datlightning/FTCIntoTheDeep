@@ -22,6 +22,7 @@ public class IntakeTuning extends TestingOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         intake = new Intake(hardwareMap, telemetry);
         intake.init();
         intake.calculateOffset();

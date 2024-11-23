@@ -29,7 +29,7 @@ public class IntakeTesting extends TestingOpMode {
 
     private int past_arm_position = 0;
     private int past_slide_position = 0;
-    public static boolean controller =false;
+    public static boolean controller = false;
     public static double target_angle = 0;
     public static boolean testing_level = false;
     public static boolean use_motion_profile_arm = true;
@@ -64,7 +64,7 @@ public class IntakeTesting extends TestingOpMode {
     ElapsedTime timer;
     @Override
     public void runOpMode() throws InterruptedException {
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        makeTelemetry();
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         timer = new ElapsedTime();
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);

@@ -38,6 +38,7 @@ public class BigBoyTesting extends TestingOpMode {
 
 
     public void runOpMode(){
+        makeTelemetry();
         motor1 = hardwareMap.get(DcMotor.class, "motor1");
         motor2 = hardwareMap.get(DcMotor.class, "motor2");
         motor3 = hardwareMap.get(DcMotor.class, "motor3");

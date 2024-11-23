@@ -475,7 +475,7 @@ public class TeleOp extends LinearOpMode {
 
             }
             if (current_tapsY > 0 || move_next3) {
-                trafficLight.flashGreen(0.5, current_tapsX);
+                trafficLight.flashGreen(0.5, current_tapsY);
                 if(current_tapsY == 2){
                     mecaTank.setDistanceType(false);
                     mecaTank.PIDToDistance(4);
@@ -507,7 +507,7 @@ public class TeleOp extends LinearOpMode {
                             if (timer.time() - current_time > delay) {
                                 move_next3 = false;
                                 intake.moveArm(1400);
-                                intake.moveSlides(400);
+                                intake.moveSlides(320);
                                 intake.moveWrist(0.8);
                                 next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;
                             }

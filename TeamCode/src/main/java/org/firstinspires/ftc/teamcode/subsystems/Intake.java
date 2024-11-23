@@ -60,8 +60,8 @@ public class Intake extends Subsystem {
     private final double[] pickup_position_1 = {260.0,180.0};//slide, motor
     private final double[] pickup_position_2 = {800.0,140.0};
 
-    private final double[] slide_distance_position_1 = {0,1};
-    private final double[] slide_distance_position_2 = {400,7};
+    private final double[] slide_distance_position_1 = {0,3.3};
+    private final double[] slide_distance_position_2 = {400,10};
     // Adjust current threshold based on battery voltage
 
 
@@ -219,7 +219,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 armAction(1400 ,600),
                 new ParallelAction(
-//                        slideAction(1400),
+                        slideAction(1400),
                         armAction(1400 )
                 ),
                 new InstantAction(() -> moveWrist(0.9)),
@@ -322,6 +322,7 @@ public class Intake extends Subsystem {
             trafficLight.flashRed(0.5, 2);
         }
         if(level_on){
+
            arm.setUseMotionProfile(false);
            arm.move_async(calculateArmPosition(slides.getCurrentPosition()));
            slidesStuck();

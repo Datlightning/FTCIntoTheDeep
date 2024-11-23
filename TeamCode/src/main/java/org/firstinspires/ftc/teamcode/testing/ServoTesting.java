@@ -21,6 +21,7 @@ public class ServoTesting extends TestingOpMode {
     double increment = 0.05;
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         timer = new ElapsedTime();
         intake = new Intake(hardwareMap, telemetry);
 

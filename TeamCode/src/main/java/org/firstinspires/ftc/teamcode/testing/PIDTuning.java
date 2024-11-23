@@ -31,6 +31,7 @@ public class PIDTuning extends TestingOpMode {
     public static String name = "intake_motor";
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         ngMotor = new NGMotor(hardwareMap, telemetry, name);
         ngMotor.init();

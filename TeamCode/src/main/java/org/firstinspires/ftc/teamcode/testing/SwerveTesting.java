@@ -27,6 +27,7 @@ public class SwerveTesting extends TestingOpMode {
     public static double power = 0.5;
     @Override
     public void runOpMode() {
+        makeTelemetry();
         // Initialize hardware
         driveMotor = hardwareMap.get(DcMotor.class, "drive_motor");
         steeringServo = hardwareMap.get(CRServo.class, "servo");

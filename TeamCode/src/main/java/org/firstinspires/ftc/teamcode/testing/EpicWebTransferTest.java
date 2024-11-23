@@ -18,6 +18,7 @@ public class EpicWebTransferTest extends TestingOpMode {
     private Intake intake;
     @Override
     public void runOpMode() {
+        makeTelemetry();
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         intake = new Intake(hardwareMap, telemetry);

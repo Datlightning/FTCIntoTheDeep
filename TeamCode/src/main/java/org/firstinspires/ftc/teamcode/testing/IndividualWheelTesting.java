@@ -35,6 +35,7 @@ public class IndividualWheelTesting extends TestingOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
 
@@ -65,6 +66,10 @@ public class IndividualWheelTesting extends TestingOpMode {
             backRight.setPower(gamepad1.b || br ? MAX_SPEED : 0);
             frontLeft.setPower(gamepad1.x || fl ? MAX_SPEED : 0);
             frontRight.setPower(gamepad1.y || fr ? MAX_SPEED : 0);
+            telemetry.addLine("A for Backleft");
+            telemetry.addLine("B for Backright");
+            telemetry.addLine("X for Frontleft");
+            telemetry.addLine("Y for Frontright");
 
             telemetry.addData("Left Target Power", leftTgtPower);
             telemetry.addData("Right Target Power", rightTgtPower);

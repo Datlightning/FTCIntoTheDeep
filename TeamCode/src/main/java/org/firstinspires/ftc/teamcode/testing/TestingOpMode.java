@@ -5,7 +5,10 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 public abstract class TestingOpMode extends LinearOpMode {
-    public TestingOpMode(){
+    public void makeTelemetry(){
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
+    }
+    public TestingOpMode(){
     }
 }

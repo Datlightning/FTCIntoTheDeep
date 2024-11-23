@@ -27,7 +27,7 @@ public class Auto3Sample extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-
+        initAuto();
         Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
@@ -99,26 +99,11 @@ public class Auto3Sample extends NGAutoOpMode {
                                         new SequentialAction(intake.armAction(0, 800), firstSample),intake.armAction(0),
                                         intake.slideAction(0)
                                 ),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                intake.grab(),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreFirstSample
-                                ),
-                                intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.7)),
+                                collectSampleAndScore(scoreFirstSample, 0.73),
                                 new ParallelAction(
                                         new SequentialAction(intake.armAction(0, 800), secondSample),intake.armAction(0)
                                         ),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                intake.grab(),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreSecondSample
-                                ),
-                                intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.73)),
-                                intake.armAction(0)
+                                collectSampleAndScore(scoreSecondSample, 0.73)
                         )
                 )
         );

@@ -3,26 +3,34 @@ package org.firstinspires.ftc.teamcode.testing;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @TeleOp
 @Config
-public class ClawReset extends TestingOpMode {
-    Intake intake;
+public class RudimentaryDiffyTesting extends TestingOpMode {
+    public static double left_pos = 0;
+    public static double right_pos = 1;
+    public static double claw_pos = 0.9;
+    NGServo left;
+    NGServo right;
+    NGServo claw;
     @Override
     public void runOpMode() throws InterruptedException {
         makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        intake = new Intake(hardwareMap, telemetry);
-        intake.init();
+        claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
+        left = new NGServo(hardwareMap, telemetry, RobotConstants.left_servo);
+        right = new NGServo(hardwareMap, telemetry, RobotConstants.right_servo);
         waitForStart();
         while (!isStopRequested() && opModeIsActive()) {
 
-           intake.moveClaw(RobotConstants.claw_flat);
+           left.setPosition(left_pos);
+           right.setPosition(right_pos);
+           claw.setPosition(claw_pos);
         }
 
     }

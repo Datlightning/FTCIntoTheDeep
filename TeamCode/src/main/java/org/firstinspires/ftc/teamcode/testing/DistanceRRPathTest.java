@@ -28,6 +28,8 @@ public class DistanceRRPathTest extends TestingOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
+
         Pose2d beginPose = new Pose2d(-10, -63, Math.toRadians(270));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         intake = new Intake(hardwareMap, telemetry);

@@ -283,6 +283,8 @@ public final class MecanumDrive {
     }
     public Action moveUsingDistance(Distance distance, double target, double TOO_CLOSE, double TOO_FAR, double GIVE_UP){
         return new MoveUsingDistanceAction(distance, target, TOO_CLOSE, TOO_FAR, GIVE_UP);
+    }    public Action moveUsingDistance(Distance distance, double target, double TOO_CLOSE, double TOO_FAR, boolean front_distance){
+        return new MoveUsingDistanceAction(distance, target, TOO_CLOSE, TOO_FAR, front_distance);
     }
     public Action moveUsingDistance(Distance distance, double target, double speed, boolean front){
         return new MoveUsingDistanceAction(distance, target, speed, front);
@@ -328,6 +330,7 @@ public final class MecanumDrive {
             this.distance = distance;
             this.target = target;
             timer = new ElapsedTime();
+            fast = false;
             currentTime = timer.time(TimeUnit.SECONDS);
             this.TOO_CLOSE = TOO_CLOSE;
             this.TOO_FAR = TOO_FAR;
@@ -338,13 +341,25 @@ public final class MecanumDrive {
             timer = new ElapsedTime();
             currentTime = timer.time(TimeUnit.SECONDS);
             this.TOO_CLOSE = TOO_CLOSE;
+            fast = false;
             this.TOO_FAR = TOO_FAR;
             this.GIVE_UP = GIVE_UP;
+        }
+        public MoveUsingDistanceAction(Distance distance, double target, double TOO_CLOSE, double TOO_FAR, boolean front_distance){
+            this.distance = distance;
+            this.target = target;
+            timer = new ElapsedTime();
+            currentTime = timer.time(TimeUnit.SECONDS);
+            this.TOO_CLOSE = TOO_CLOSE;
+            fast = false;
+            this.front_distance = front_distance;
+            this.TOO_FAR = TOO_FAR;
         }
         public MoveUsingDistanceAction(Distance distance, double target, double speed, boolean front_distance){
             this.distance = distance;
             this.target = target;
             timer = new ElapsedTime();
+            fast = true;
             currentTime = timer.seconds();
             this.TOO_CLOSE = 0;
             this.TOO_FAR = 0;
@@ -390,6 +405,7 @@ public final class MecanumDrive {
             double time_passed = timer.seconds() - time_stop;
 
             double error = distance.getFilteredDist() - (Control.motionProfile(MAX_ACCEL, MAX_VEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + start_position);
+            error *= front_distance ? 1 : -1;
             double real_error = distance.getFilteredDist() - target;
             telemetryPacket.put("Distance", distance.getDist());
             telemetryPacket.put("Error", error);

@@ -23,6 +23,7 @@ public class TrafficLightTest extends TestingOpMode {
 
     @Override
     public void runOpMode() {
+        makeTelemetry();
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         // Wait for the start button
         telemetry.addData("Status", "Waiting for Start");

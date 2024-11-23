@@ -22,6 +22,7 @@ public class MotionProfileTest extends TestingOpMode {
 
     @Override
     public void runOpMode() {
+        makeTelemetry();
         timer = new ElapsedTime();
         timer.reset();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());

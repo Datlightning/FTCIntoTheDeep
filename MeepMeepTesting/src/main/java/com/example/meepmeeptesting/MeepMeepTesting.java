@@ -18,16 +18,18 @@ public class MeepMeepTesting {
                 .setConstraints(44, 60, Math.toRadians(180), Math.toRadians(180), 15)
                 .build();
 
-        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(10, -64 , Math.toRadians(90)))
-                        .setReversed(false)
-                .splineToConstantHeading(new Vector2d(10, -34.5), Math.toRadians(90))
+        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-7.125, -64 , Math.toRadians(180)))
                 .setReversed(true)
-
+                .strafeTo(new Vector2d(-7.125, -58))
+                .splineToSplineHeading(new Pose2d(-5.125, -32, Math.toRadians(270)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-8,22))
+                .setReversed(false)
+//                .splineTo(new Vector2d(-7.125, -40), Math.toRadians(180))
+                .splineToSplineHeading(new Pose2d(-47.5, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,30))
                 .splineToConstantHeading(new Vector2d(36, -46), Math.toRadians(0))
                 .splineToConstantHeading(new Vector2d(48, -34.5), Math.toRadians(90))
                 .splineToConstantHeading(new Vector2d(52, -40), Math.toRadians(0))
                 .splineToConstantHeading(new Vector2d(58, -34.5), Math.toRadians(90))
-                        .waitSeconds(1)
+                .waitSeconds(1)
                 .setReversed(false)
                 .splineToSplineHeading(new Pose2d(55, -14, 0), Math.toRadians(0))
                 .splineToConstantHeading(new Vector2d(55 , -14), Math.toRadians(0))

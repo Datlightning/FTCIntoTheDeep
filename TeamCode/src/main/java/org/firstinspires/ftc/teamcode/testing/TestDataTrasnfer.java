@@ -18,6 +18,7 @@ public class TestDataTrasnfer extends TestingOpMode {
     Intake intake;
     @Override
     public void runOpMode() throws InterruptedException {
+        makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         timer = new ElapsedTime();

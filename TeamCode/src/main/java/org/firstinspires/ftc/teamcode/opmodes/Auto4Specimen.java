@@ -29,8 +29,10 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 public class Auto4Specimen extends NGAutoOpMode {
     Distance rear_distance;
     public static int SPECIMEN_COUNT = 1;
+
     @Override
     public void runOpMode() throws InterruptedException {
+        initAuto();
         Pose2d beginPose = new Pose2d(10, -64, Math.toRadians(90));
         drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
@@ -86,7 +88,8 @@ public class Auto4Specimen extends NGAutoOpMode {
         if(SPECIMEN_COUNT == 4){
             auto = new SequentialAction(
                     scoreFirstSpecimen,
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     throwFirstSample,
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                     intake.yeetSample(),
@@ -97,22 +100,26 @@ public class Auto4Specimen extends NGAutoOpMode {
                     trafficLight.warnHuman(),
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreSecondSpecimen,trafficLight.disable()),
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     pickThirdSpecimen,
                     trafficLight.warnHuman(),
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreThirdSpecimen,trafficLight.disable()),
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     pickFourthSpecimen,
                     trafficLight.warnHuman(),
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreFourthSpecimen,trafficLight.disable()),
-                    scoreSpecimen()
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance)
 
                     );
         }else if(SPECIMEN_COUNT == 3){
             auto = new SequentialAction(scoreFirstSpecimen,
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     throwFirstSample,
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                     intake.yeetSample(),
@@ -124,16 +131,19 @@ public class Auto4Specimen extends NGAutoOpMode {
 
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreSecondSpecimen,trafficLight.disable()),
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     pickThirdSpecimen,
                     trafficLight.warnHuman(),
 
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreThirdSpecimen,trafficLight.disable()),
-                    scoreSpecimen());
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance));
         }else if(SPECIMEN_COUNT == 2){
             auto = new SequentialAction(scoreFirstSpecimen,
-                    scoreSpecimen(),
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance),
                     throwFirstSample,
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                     intake.yeetSample(),
@@ -144,11 +154,13 @@ public class Auto4Specimen extends NGAutoOpMode {
                     trafficLight.warnHuman(),
                     drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreSecondSpecimen,trafficLight.disable()),
-                    scoreSpecimen());
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance));
         }else{
             auto = new SequentialAction(
                     scoreFirstSpecimen,
-                    scoreSpecimen()
+                    raiseArmForSpecimen(),
+                    scoreSpecimen(rear_distance)
             );
         }
 
@@ -167,6 +179,7 @@ public class Auto4Specimen extends NGAutoOpMode {
                 new ParallelAction(
                         intake.updateAction(),
                         trafficLight.updateAction(),
+                        rear_distance.updateAction(),
                         auto
                 )
         );
@@ -176,18 +189,5 @@ public class Auto4Specimen extends NGAutoOpMode {
 
 
     }
-    public Action scoreSpecimen(){
-        return new SequentialAction(
-        new ParallelAction(
-                  intake.slideAction(300),
-                  intake.armAction(1400),
-                  new InstantAction(() -> intake.moveWrist(0.8))
-                ),
-                drive.moveUsingDistance(rear_distance, 4, 3.75, 4.25),
-                intake.slideAction(100),
-                drive.moveUsingDistance(rear_distance, 9, 0.15, false),
-                intake.grab(0.73),
-                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position))
-        );
-    }
+
 }

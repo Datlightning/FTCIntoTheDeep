@@ -22,6 +22,7 @@ public class DoubleTap extends TestingOpMode {
 
     @Override
     public void runOpMode() {
+        makeTelemetry();
         // Wait for the start button
         telemetry.addData("Status", "Waiting for Start");
         telemetry.update();

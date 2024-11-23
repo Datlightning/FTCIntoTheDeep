@@ -26,6 +26,7 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 public class Auto4SampleButArmBroke extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
+        initAuto();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
 

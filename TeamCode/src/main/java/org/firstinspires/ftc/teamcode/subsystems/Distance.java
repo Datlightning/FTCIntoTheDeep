@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -72,5 +76,17 @@ public class Distance extends Subsystem {
     @Override
     public void init() {
         return;
+    }
+    public class updateAction implements Action {
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            telemetryPacket.put("Filtered Distance", getFilteredDist());
+            update();
+            return true;
+        }
+    }
+    public Action updateAction(){
+        return new updateAction();
     }
 }

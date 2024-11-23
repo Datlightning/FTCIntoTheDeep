@@ -27,7 +27,7 @@ public class Auto4Sample extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-
+        initAuto();
         Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
@@ -105,40 +105,17 @@ public class Auto4Sample extends NGAutoOpMode {
                                         intake.armAction(0),
                                         intake.slideAction(0)
                                 ),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
-                                new SleepAction(0.6),
-                                intake.grab(1),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreFirstSample
-                                ),
-                                intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.73)),
+                                collectSampleAndScore(scoreFirstSample, 0.73),
+
                                 new ParallelAction(
                                         new SequentialAction(intake.armAction(0, 800), secondSample),
 
                                         intake.armAction(0)
                                         ),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                intake.grab(1),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreSecondSample
-                                ),
-                                intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.88)),
+                                collectSampleAndScore(scoreSecondSample, 0.88),
                                 intake.armAction(0,800),
                                 new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                new SleepAction(0.3),
-                                intake.grab(1),
-                                new ParallelAction(
-                                        intake.raiseArm(),
-                                        scoreThirdSample
-                                ),
-                                intake.scoreLast(),
-                                intake.armAction(0)
+                                collectSampleAndScore(scoreThirdSample, 0.73)
                         )
                 )
         );

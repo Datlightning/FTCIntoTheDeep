@@ -22,6 +22,7 @@ public class DriveTesting extends TestingOpMode {
     public static boolean front_distance = true;
     public static boolean field_centric = false;
     public void runOpMode(){
+        makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         mecaTank = new MecaTank(hardwareMap, telemetry);
 

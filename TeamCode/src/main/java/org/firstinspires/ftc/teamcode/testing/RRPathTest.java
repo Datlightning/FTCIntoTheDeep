@@ -33,7 +33,7 @@ public class RRPathTest extends TestingOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-
+        makeTelemetry();
         Pose2d beginPose = new Pose2d(-10, -64, Math.toRadians(270));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         intake = new Intake(hardwareMap, telemetry);
