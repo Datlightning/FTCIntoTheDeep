@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.Action;
@@ -33,9 +35,9 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
     public Action raiseArmForSpecimen(){
         return new ParallelAction(
-                intake.slideAction(360),
-                intake.armAction(1400),
-                new InstantAction(() -> intake.moveWrist(0.8))
+                intake.slideAction(150),
+                intake.armAction(ARM_LIMIT),
+                new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver))
         );
     }
     public Action eternalAction(){
@@ -44,11 +46,11 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
     public Action scoreSpecimen(Distance rear_distance){
         return new SequentialAction(
-                drive.moveUsingDistance(rear_distance, 4, 3.5, 4.5, false),
+                drive.moveUsingDistance(rear_distance, 4.5, 4, 4.8, false),
                 intake.slideAction(50),
                 drive.moveUsingDistance(rear_distance, 9, 0.15, false),
                 intake.grab(0.73),
-                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position + 0.1))
+                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position - 10))
         );
     }
     public Action collectSampleAndScore(Action sampleScore, double ending_claw_pos){

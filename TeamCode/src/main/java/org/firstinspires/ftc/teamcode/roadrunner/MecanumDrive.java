@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.roadrunner;
 
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_ACCEL;
+import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_DECEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_VEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kF;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kI;
@@ -404,7 +405,7 @@ public final class MecanumDrive {
             }
             double time_passed = timer.seconds() - time_stop;
 
-            double error = distance.getFilteredDist() - (Control.motionProfile(MAX_ACCEL, MAX_VEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + start_position);
+            double error = distance.getFilteredDist() - (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + start_position);
             error *= front_distance ? 1 : -1;
             double real_error = distance.getFilteredDist() - target;
             telemetryPacket.put("Distance", distance.getDist());

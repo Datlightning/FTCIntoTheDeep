@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -26,15 +28,13 @@ import java.util.ArrayList;
 @Config
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
-    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
+    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.0003,0);
 
     public NGMotor arm;
 
     public NGMotor slides;
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
     DigitalChannel magnet_sensor;
-    NGServo claw;
-    NGServo wrist;
     HardwareMap hardwareMap;
     Telemetry telemetry;
     ElapsedTime timer;
@@ -57,13 +57,13 @@ public class Intake extends Subsystem {
     private double target_height = 0;//To the floor
 
 
-    private final double[] pickup_position_1 = {260.0,180.0};//slide, motor
-    private final double[] pickup_position_2 = {800.0,140.0};
+    private final double[] pickup_position_1 = {400,225};//slide, motor
+    private final double[] pickup_position_2 = {800.0,210.0};
 
-    private final double[] slide_distance_position_1 = {0,3.3};
-    private final double[] slide_distance_position_2 = {400,10};
+    private final double[] slide_distance_position_1 = {200,4.5};
+    private final double[] slide_distance_position_2 = {800,10.6};
     // Adjust current threshold based on battery voltage
-
+    public DiffyClaw diffyClaw;
 
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
@@ -76,7 +76,7 @@ public class Intake extends Subsystem {
     public static double slide_width = 3.125;
     public static double claw_height = 8;
     public static int offset = 0;
-    public static int offset_distance_to_0 = -57;
+    public static int offset_distance_to_0 = 0;
 
     public static double DISTANCE_FILTER = 0.6;
 
@@ -92,9 +92,9 @@ public class Intake extends Subsystem {
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
-        wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
+        diffyClaw = new DiffyClaw(hardwareMap, telemetry);
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
+        diffyClaw.mountTrafficLight(trafficLight);
         arm.setMin(-500);
         arm.setReachedRange(50);
     }
@@ -110,10 +110,10 @@ public class Intake extends Subsystem {
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor, timer);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        claw = new NGServo(hardwareMap, telemetry, RobotConstants.claw_servo);
-        claw.mountTimer(timer);
-        wrist =  new NGServo(hardwareMap, telemetry, RobotConstants.wrist_servo);
-        wrist.mountTimer(timer);
+        diffyClaw = new DiffyClaw(hardwareMap, telemetry);
+        diffyClaw.left.mountTimer(timer);
+        diffyClaw.right.mountTimer(timer);
+        diffyClaw.mountTrafficLight(trafficLight);
         this.trafficLight = trafficLight;
 
     }
@@ -124,17 +124,17 @@ public class Intake extends Subsystem {
         use_fast_pid = on;
     }
     public void calculateOffset(){
-        arm.setAbsPower(0.1);
+        arm.setAbsPower(-0.1);
         double time_offset = timer.time();
         while(!magnet_activated()){
             telemetry.addData("Position",arm.getCurrentPosition());
             telemetry.update();
             if(timer.time() - time_offset > 2){
-
                 return;
             }
         }
-        offset = arm.getCurrentPosition() - arm_at_0_ticks + offset_distance_to_0;
+        arm.resetEncoder();
+        offset = arm.getCurrentPosition();
         telemetry.addData("Offset", offset);
 
         arm.setAbsPower(0);
@@ -150,15 +150,22 @@ public class Intake extends Subsystem {
         this.target_angle = target_angle;
     }
     public void moveArm(int targetPosition){
-        arm.move_async(targetPosition);
+        arm.move_async(targetPosition + offset);
     }
 
 
-    public void moveWrist(double wristPosition){
-        wrist.setPosition(wristPosition);
+    public void moveWrist(double wristAngle){
+        diffyClaw.setWristAngle(wristAngle);
     }
     public void moveClaw(double clawPosition){
-        claw.setPosition(clawPosition);
+        diffyClaw.moveClaw(clawPosition);
+    }
+    public void turnClaw(double clawAngle){
+        diffyClaw.setClawAngle(-clawAngle);
+    }
+    public void turnAndRotateClaw(double wristAngle, double clawAngle){
+        moveWrist(wristAngle);
+        turnClaw(clawAngle);
     }
     public void moveSlides(int targetPosition){
         slides.move_async(targetPosition);
@@ -170,7 +177,9 @@ public class Intake extends Subsystem {
     public void setAbsSlidePower(double power){
         slides.setAbsPower(power);
     }
-    public void openClaw() {claw.setPosition(RobotConstants.claw_fully_open);claw_open = true;}
+    public void openClaw() {
+        diffyClaw.moveClaw(RobotConstants.claw_fully_open);
+        claw_open = true;}
 
     public void setDistanceScoping(boolean on){
         if(!on){
@@ -180,26 +189,27 @@ public class Intake extends Subsystem {
     }
     public Action score(){
         return new SequentialAction(
-                armAction(1500, 1450),
+                armAction(ARM_LIMIT, ARM_LIMIT - 50),
                 new InstantAction(this::openClaw),
-                armAction(1400),
-                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1)),
+                armAction(ARM_LIMIT),
+                new InstantAction(() -> moveWrist(0)),
                 slideAction(0));
     }
 
     public Action yeetSample(){
         //TODO make sure that it "yeets" the sample
         return new SequentialAction(
-                grab(1),
-                armAction(1400),
+                grab(0.95),
+                armAction(ARM_LIMIT),
                 grab(0.74),
                 armAction(0)
         );
     }
     public Action scoreLast(){
         return new SequentialAction(
-                armAction(1500,1450),
+                armAction(ARM_LIMIT,ARM_LIMIT - 50),
                 new InstantAction(this::openClaw),
+                armAction(ARM_LIMIT),
                 new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1))
         );
     }
@@ -217,49 +227,53 @@ public class Intake extends Subsystem {
     }
     public Action raiseArm(){
         return new SequentialAction(
-                armAction(1400 ,600),
+                armAction(ARM_LIMIT ,ARM_LIMIT - 900),
                 new ParallelAction(
-                        slideAction(1400),
-                        armAction(1400 )
+                        slideAction(1500),
+                        armAction(ARM_LIMIT )
                 ),
-                new InstantAction(() -> moveWrist(0.9)),
+                new InstantAction(() -> moveWrist(180)),
                 new SleepAction(0.2)
         );
     }
     public void setClawPWM(boolean on){
         if(on){
-            claw.enableServo();
+            diffyClaw.claw.enableServo();
             return;
         }
-        claw.disableServo();
+        diffyClaw.claw.disableServo();
     }
     public void setWristPWM(boolean on){
         if(on){
-            wrist.enableServo();
+            diffyClaw.left.enableServo();
+            diffyClaw.right.enableServo();
             return;
         }
-        wrist.disableServo();
-    }
+        diffyClaw.left.disableServo();
+        diffyClaw.right.disableServo();    }
     public boolean WristPWMOn(){
-        return wrist.isPWMEnabled();
+        return diffyClaw.left.isPWMEnabled();
     }
     public boolean ClawPWMOn(){
-        return claw.isPWMEnabled();
+        return diffyClaw.claw.isPWMEnabled();
     }
     public void closeClaw() {
-        claw.setPosition(RobotConstants.claw_closed); claw_open=false;
+        diffyClaw.moveClaw(RobotConstants.claw_closed); claw_open=false;
     }
     public void plowClaw(){
-        claw.setPosition(RobotConstants.claw_open); claw_open=true;
+        diffyClaw.moveClaw(RobotConstants.claw_open); claw_open=true;
     }
     public void enableLevel(boolean on){
         level_on = on;
     }
+    public void turnClawMore(double turnAmount){
+        turnClaw(diffyClaw.getClawAngle() + turnAmount);
+    }
     public void foldWrist(){
-        wrist.setPosition(RobotConstants.wrist_folded); wrist_open=false;
+        diffyClaw.setWristAngle(RobotConstants.wrist_folded); wrist_open=false;
     }
     public void extendWrist(){
-        wrist.setPosition(RobotConstants.wrist_extended); wrist_open=true;
+        diffyClaw.setWristAngle(RobotConstants.wrist_extended); wrist_open=true;
     }
     public boolean isClawOpen(){
         return claw_open;
@@ -273,7 +287,7 @@ public class Intake extends Subsystem {
     }
     public double calculateWristPosition(){
         double arm_angle = getArmAngle();
-        double target_position = (90 - arm_angle - target_angle)/90.0 * (wrist_180 - wrist_90) + wrist_90;
+        double target_position = 90 + arm_angle + target_angle;
 
         return target_position;
     }
@@ -307,6 +321,7 @@ public class Intake extends Subsystem {
 
     @Override
     public void update() {
+        diffyClaw.update();
 //        if(arm.getCurrentPosition() > feedforward_turning_point){
 //            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
 //        }else{
@@ -315,7 +330,7 @@ public class Intake extends Subsystem {
 //        }
         trafficLight.update();
         if(distance_scope) {
-            trafficLight.green(distance.getFilteredDist() < 12);
+            trafficLight.green(distance.getFilteredDist() < 10);
         }
         if(slides.getCurrent() > SLIDE_CURRENT_LIMIT){
             moveSlides(slides.getCurrentPosition());
@@ -324,7 +339,7 @@ public class Intake extends Subsystem {
         if(level_on){
 
            arm.setUseMotionProfile(false);
-           arm.move_async(calculateArmPosition(slides.getCurrentPosition()));
+           moveArm(calculateArmPosition(slides.getCurrentPosition()));
            slidesStuck();
         }else{
             arm.setUseMotionProfile(true);
@@ -354,8 +369,7 @@ public class Intake extends Subsystem {
     public void telemetry() {
         distance.telemetry();
         telemetry.addData("Arm Angle", getArmAngle());
-        claw.telemetry();
-        wrist.telemetry();
+        diffyClaw.telemetry();
         slides.telemetry();
         arm.telemetry();
     }
@@ -365,11 +379,11 @@ public class Intake extends Subsystem {
         arm.setMaxDeceleration(1500);
         arm.setMaxVelocity(5000);
         arm.setUseMotionProfile(true);
-        wrist.setMin(0.19);
-        wrist.setMax(0.95);
+
         slides.setUseMotionProfile(true);
         slides.setMax(1400);
         arm.setMax(1600);
+        arm.setMin(-10);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(10000);
         slides.setMaxDeceleration(3000);
@@ -379,10 +393,10 @@ public class Intake extends Subsystem {
     public void init() {
         init_without_encoder_reset();
         arm.init();
-
+        diffyClaw.init();
         slides.init();
 
-        moveWrist(0.9);
+        moveWrist(0);
         closeClaw();
     }
     public class moveSlidesAction implements Action {

@@ -45,14 +45,15 @@ public class MecaTank extends Subsystem {
     private double time_stop = 0;
     double currentFilterEstimate = 0;
     double previousFilterEstimate = 0;
-    public static double kP = 0.07;  // Proportional constant
-    public static double kI = 0.008;  // Proportional constant
-    public static double kD = 0.001;
+    public static double kP = 0.03;  // Proportional constant
+    public static double kI = 0.01;  // Integral constant
+    public static double kD = 0.0005;
 
-    public static boolean  motion_profile = true;
-    public static double MAX_VEL = 22;
-    public static double MAX_ACCEL = 10;
-    public static double kF = 0.005;// Proportional constant
+    public static boolean  motion_profile = false;
+    public static double MAX_VEL = 5;
+    public static double MAX_ACCEL = 2;
+    public static double MAX_DECEL = -0.5;
+    public static double kF = -0.05;// Feedforward constant
     double previousError = 0;
     double integral = 0;
     private boolean fast_drive = false;
@@ -61,6 +62,7 @@ public class MecaTank extends Subsystem {
     private boolean front_distance = true;
     public static double a = 0.6;
     private boolean auto_move = false;
+    double error;
 
     private ElapsedTime timer;
     public MecaTank(HardwareMap hardwareMap, Telemetry telemetry){
@@ -231,14 +233,30 @@ public class MecaTank extends Subsystem {
 
 
     }
-    public void PIDToDistance(double distance){
-        if (target != distance){
+    public void LivePIDToDistance(double distance){
+//        if (target != distance){
             previousError = 0;
             integral = 0;
             distance_to_target = distance - getDistance();
             starting_motion_profile_time = timer.time();
             starting_pos = getDistance();
+            fast_drive = false;
+//        }
+        auto_move = true;
+        target = distance;
+
+
+    }
+    public void PIDToDistance(double distance){
+        if (target != distance){
+            previousError = 0;
+            integral = 0;
+            distance_to_target = distance - getDistance();
+            starting_motion_profile_time = timer.seconds();
+            starting_pos = getDistance();
             auto_move = true;
+            fast_drive = false;
+
             target = distance;
         }
     }
@@ -264,6 +282,10 @@ public class MecaTank extends Subsystem {
         if(force_exit){
             auto_move = false;
             force_exit = false;
+            frontLeft.setPower(0);
+            backLeft.setPower(0);
+            backRight.setPower(0);
+            frontRight.setPower(0);
         }
         // Declare variables outside of the loop for PID
 
@@ -295,14 +317,15 @@ public class MecaTank extends Subsystem {
                 }
 
 
-            }else {
-                double error;
+            }
+            else {
                 if (motion_profile) {
-                    error = getDistance() - (Control.motionProfile(MAX_ACCEL, MAX_VEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + starting_pos);
+                    error = getDistance() - (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + starting_pos);
                 } else {
                     error = getDistance() - target;
                 }
                 error *= front_distance ? 1 : -1;
+                telemetry.addData("weird goofy ah error", error);
 
                 // Calculate error
                 double time_passed = timer.seconds() - time_stop;
@@ -336,7 +359,7 @@ public class MecaTank extends Subsystem {
                     double power = kP * error + kI * integral + kD * derivative;
 
                     // Limit power to a safe range (optional, depending on your motor controller)
-                    power = Math.max(-1.0, Math.min(1.0, power));
+                    power = Math.max(-0.5, Math.min(0.5, power));
                     power -= kF * Math.signum(power);
                     // Set motor power based on the PID output
                     frontLeft.setPower(power);
@@ -347,7 +370,6 @@ public class MecaTank extends Subsystem {
                     // Update previous error
                     previousError = error;
                     time_stop = timer.seconds();
-
                 }
             }
         }
@@ -366,6 +388,7 @@ public class MecaTank extends Subsystem {
         telemetry.addData("Front Left Motor Power", frontLeft.getPower());
         telemetry.addData("Back Right Motor Power", backRight.getPower());
         telemetry.addData("Back Left Motor Power", backLeft.getPower());
+        telemetry.addData("MecaTank Perceived Distance", getDistance());
 
     }
 

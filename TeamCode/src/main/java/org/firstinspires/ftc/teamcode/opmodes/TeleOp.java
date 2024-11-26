@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -37,7 +39,7 @@ public class TeleOp extends LinearOpMode {
         PICK_UP_FLOOR,
         GRAB_FLOOR,
         RAISE_CLAW,
-         DROP_ARM, SCORE_SPECMEN, RELEASE, FOLD_IN_AFTER_SPECIMEN, RAISE_ARM_FOR_SPECIMEN, GRAB_FLOOR_SPECIMEN, REVERSE, FORWARD, RAISE_ARM
+         DROP_ARM, SCORE_SPECMEN, RELEASE, FOLD_IN_AFTER_SPECIMEN, RAISE_ARM_FOR_SPECIMEN, GRAB_FLOOR_SPECIMEN, REVERSE, FORWARD, EXIT_FLOOR_PICKUP_SEQ, RAISE_ARM
     }
 
 
@@ -66,6 +68,11 @@ public class TeleOp extends LinearOpMode {
     int tapsY = 0;
     int current_tapsY = 0;
 
+    double lastTapTimeLeftBumper = 0;
+
+    int tapsLeftBumper = 0;
+    int current_tapsLeftBumper = 0;
+
     public static double current_closed = 0.95;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -78,8 +85,14 @@ public class TeleOp extends LinearOpMode {
     double current_time = 0;
     double delay = 0;
 
+    public static boolean player_2_on = false;
+
     private boolean waiting_for_distance = false;
     double distance_wait = 0;
+
+    private boolean claw_turning = false;
+
+
 
 
     public void runOpMode() {
@@ -114,10 +127,11 @@ public class TeleOp extends LinearOpMode {
         intake.slides.setUseMotionProfile(true);
 
         mecaTank.init();
-
+        ElapsedTime loopTimer = new ElapsedTime();
         waitForStart();
         intake.moveArm(250);
         while (!isStopRequested() && opModeIsActive()) {
+            loopTimer.reset();
             previousGamepad1.copy(currentGamepad1);
             previousGamepad2.copy(currentGamepad2);
 
@@ -125,6 +139,24 @@ public class TeleOp extends LinearOpMode {
             currentGamepad1.copy(gamepad1);
 
             intake.setTargetHeight(target_height);
+
+            if(getRuntime() - lastTapTimeLeftBumper > 0.3) {
+                current_tapsLeftBumper = tapsLeftBumper;
+                lastTapTimeLeftBumper = getRuntime();
+                tapsLeftBumper = 0;
+
+            }
+            boolean left_bumper2 = currentGamepad2.left_bumper;
+
+            if(left_bumper2){
+                tapsLeftBumper += 1;
+                lastTapTimeLeftBumper = getRuntime();
+            }
+            if(tapsLeftBumper == 2){
+                tapsLeftBumper = 0;
+                intake.calculateOffset();
+            }
+
             boolean b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
             if (b) {
                 intake.moveSlides(intake.slides.getCurrentPosition());
@@ -140,14 +172,29 @@ public class TeleOp extends LinearOpMode {
                 intake.enableLevel(false);
 
             }
-            boolean dpad_right = player2 ?  (currentGamepad2.dpad_right && !previousGamepad2.dpad_right) : (currentGamepad1.dpad_right && !previousGamepad1.dpad_right);
-            boolean dpad_left = player2 ?  (currentGamepad2.dpad_left && !previousGamepad2.dpad_left) : (currentGamepad1.dpad_left && !previousGamepad1.dpad_left);
+            boolean dpad_right =  (player2 &&  currentGamepad2.dpad_right && !previousGamepad2.dpad_right) || (currentGamepad1.dpad_right && !previousGamepad1.dpad_right);
 
-            if(dpad_left){
-                intake.plowClaw();
+            player2 = !currentGamepad1.dpad_left && player_2_on;
+
+            if(currentGamepad2.left_trigger != 0){
+                intake.turnClaw(currentGamepad2.left_trigger * 90);
+                claw_turning = true;
+            }else if(currentGamepad2.right_trigger != 0){
+                intake.turnClaw(currentGamepad2.right_trigger * -90);
+                claw_turning = true;
+            }else if(claw_turning){
+                claw_turning = false;
+                intake.turnClaw(0);
             }
+
             if(dpad_right){
-                intake.closeClaw();
+                double distance_to_open = Math.abs(intake.diffyClaw.claw.getPosition() - RobotConstants.claw_open);
+                double distance_to_closed = Math.abs(intake.diffyClaw.claw.getPosition() - RobotConstants.claw_closed);
+                if(distance_to_open < distance_to_closed){
+                    intake.closeClaw();
+                }else{
+                    intake.plowClaw();
+                }
             }
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
 
@@ -157,7 +204,7 @@ public class TeleOp extends LinearOpMode {
                 tapsA = 0;
 
             }
-            boolean a = player2 ? (currentGamepad2.a && !previousGamepad2.a) : (currentGamepad1.a && !previousGamepad1.a);
+            boolean a = (player2  && currentGamepad2.a && !previousGamepad2.a) || ( currentGamepad1.a && !previousGamepad1.a);
 
             if(a){
                 tapsA += 1;
@@ -181,8 +228,8 @@ public class TeleOp extends LinearOpMode {
                     case START:
                         move_next = false;
                         intake.plowClaw();
-                        intake.moveWrist(0.62);
-                        intake.moveArm(250);
+                        intake.moveWrist(30);
+                        intake.moveArm(180);
                         intake.moveSlides(300);
                         intake.slides.setMax(1000);
                         intake.setFourBar(false);
@@ -193,7 +240,7 @@ public class TeleOp extends LinearOpMode {
                         break;
 
                     case LOWER_CLAW:
-                        intake.extendWrist();
+                        intake.moveWrist(90);
                         intake.plowClaw();
                         intake.moveArm(250);
                         intake.setTargetAngle(90);
@@ -238,7 +285,7 @@ public class TeleOp extends LinearOpMode {
                         move_next = true;
                         intake.slides.setMax(1400);
                         current_time = timer.seconds();
-                        intake.moveWrist(0.5);
+                        intake.moveWrist(90);
                         intake.useFastPID(true);
                         intake.moveArm(250);
                         intake.setFourBar(false);
@@ -253,26 +300,26 @@ public class TeleOp extends LinearOpMode {
                         move_next = false;
                         intake.arm.setUseMotionProfile(true);
                         intake.useFastPID(false);
-                        intake.moveWrist(0.6);
+                        intake.moveWrist(90);
                         intake.moveSlides(0);
                         next_position = INTAKE_POSITIONS.TURN_ARM;
                         previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
 
                     case TURN_ARM:
-                        intake.moveArm(1450 + intake.getOffset());
-                        intake.moveWrist(0.5);
+                        intake.moveArm(ARM_LIMIT );
+                        intake.moveWrist(120);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.EXTEND;
                         previous_position = INTAKE_POSITIONS.FOLD;
                         break;
 
                     case EXTEND:
-                        if (intake.arm.getCurrentPosition() < 1380 + intake.getOffset() - 200) {
+                        if (intake.arm.getCurrentPosition() < 1000) {
                             break;
                         }
                         intake.slides.setMax(1400);
-                        intake.moveSlides(1200);
+                        intake.moveSlides(1300);
                         mecaTank.setMaxPower(0.5);
                         current_time = timer.time();
                         delay = 0.7;
@@ -285,7 +332,7 @@ public class TeleOp extends LinearOpMode {
                             break;
                         }
                         move_next = false;
-                        intake.moveWrist(0.8);
+                        intake.moveWrist(30);
                         next_position = INTAKE_POSITIONS.DELIVER;
                         previous_position = INTAKE_POSITIONS.FOLD;
                         break;
@@ -301,19 +348,19 @@ public class TeleOp extends LinearOpMode {
                         break;
 
                     case RAISE_CLAW:
-                        if (timer.time() - current_time > delay) {
+                        if (timer.time() - current_time < delay) {
                             break;
                         }
                         current_time = timer.time();
                         delay = 0.1;
-                        intake.moveWrist(0.5);
+                        intake.moveWrist(105);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RETRACT_TO_LEAVE_2;
                         previous_position = INTAKE_POSITIONS.TURN_CLAW;
                         break;
 
                     case RETRACT_TO_LEAVE_2:
-                        if (timer.time() - current_time > delay) {
+                        if (timer.time() - current_time < delay) {
                             break;
                         }
                         intake.moveSlides(0);
@@ -324,7 +371,7 @@ public class TeleOp extends LinearOpMode {
                     case FOLD_IN_2:
                         if (intake.slides.getCurrentPosition() < 50) {
                             intake.foldWrist();
-                            intake.moveArm(180 + offset);
+                            intake.moveArm(200);
                             next_position = INTAKE_POSITIONS.START;
                             previous_position = INTAKE_POSITIONS.TURN_CLAW;
                             move_next = false;
@@ -334,7 +381,7 @@ public class TeleOp extends LinearOpMode {
             }
 
 
-            boolean x = player2 ? (currentGamepad2.x && !previousGamepad2.x) : (currentGamepad1.x && !previousGamepad1.x);
+            boolean x = (player2 && currentGamepad2.x && !previousGamepad2.x) || ( currentGamepad1.x && !previousGamepad1.x);
 
             if(x){
                 tapsX += 1;
@@ -344,7 +391,6 @@ public class TeleOp extends LinearOpMode {
                 current_tapsX = tapsX;
                 lastTapTimeX = getRuntime();
                 tapsX = 0;
-
             }
             if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR) || position.equals(INTAKE_POSITIONS.GRAB_FLOOR_SPECIMEN)){
                 if(intake.distance.getFilteredDist() > RobotConstants.TOO_CLOSE && intake.distance.getFilteredDist() < RobotConstants.TOO_FAR){
@@ -361,29 +407,30 @@ public class TeleOp extends LinearOpMode {
                         waiting_for_distance = true;
                         distance_wait = timer.time();
                     }
-//                    telemetry.addData("Distance Waiting Time", timer.time() - distance_wait);
-//                    telemetry.addData("Distance Wait", distance_wait);
+                    telemetry.addData("Distance Waiting Time", timer.time() - distance_wait);
+                    telemetry.addData("Distance Wait", distance_wait);
                 }else{
                     waiting_for_distance = false;
                 }
             }
 //            telemetry.addData("Waiting For Distance", waiting_for_distance);
 //
-//            telemetry.addData("Intake Position", position);
+            telemetry.addData("Intake Position", position);
 
 
 
             if (current_tapsX > 0 || move_next2) {
                 trafficLight.flashGreen(0.5, current_tapsX);
 
-                if(current_tapsX == 2){
+                if(current_tapsX > 1){
                     mecaTank.setDistanceType(true);
-                    if(mecaTank.getDistance() > 13){
+                    if(mecaTank.getDistance() > 12){
                         trafficLight.flashRed(0.5, 2);
                     }else {
-                        mecaTank.PIDToDistance(RobotConstants.TARGET);
+                        mecaTank.LivePIDToDistance(RobotConstants.TARGET);
                     }
-                } else if(current_tapsX == 1) {
+                }
+                else {
                     intake.enableLevel(false);
                     intake.setFourBar(false);
 
@@ -404,14 +451,20 @@ public class TeleOp extends LinearOpMode {
                             if (!mecaTank.isBusy()) {
                                 intake.setDistanceScoping(false);
 
-                                move_next2 = false;
                                 intake.closeClaw();
-                                move_next = true;
                                 delay = 0.3;
                                 current_time = timer.time();
+                                next_position2 = INTAKE_POSITIONS.EXIT_FLOOR_PICKUP_SEQ;
+                            }
+                            break;
+                        case EXIT_FLOOR_PICKUP_SEQ:
+                            if(timer.time() - current_time > delay){
+                                move_next = true;
+                                move_next2 = false;
                                 next_position = INTAKE_POSITIONS.RAISE_ARM;
                             }
                             break;
+
                         default:
                             intake.moveSlides(0);
                             intake.moveWrist(RobotConstants.floor_pickup_position);
@@ -429,41 +482,35 @@ public class TeleOp extends LinearOpMode {
                 }
 
 
-            boolean left_bumper = player2 ? (currentGamepad2.left_bumper) : (currentGamepad1.left_bumper);
-            boolean right_bumper = player2 ? (currentGamepad2.right_bumper) : (currentGamepad1.right_bumper);
+            boolean left_bumper = currentGamepad1.left_bumper;
+            boolean right_bumper = currentGamepad1.right_bumper;
+
             if (left_bumper) {
                 intake.setSlidePower(-0.4);
             } else if (right_bumper) {
                 intake.setSlidePower(0.4);
-            } else {
+            }else if(currentGamepad1.right_stick_y != 0){
+                intake.setSlidePower(-currentGamepad2.right_stick_y);
+            }
+            else {
                 intake.setSlidePower(0);
             }
-            boolean dpad_down = player2 ? currentGamepad2.dpad_down : currentGamepad1.dpad_down;
-            boolean dpad_up = player2 ? currentGamepad2.dpad_up : currentGamepad1.dpad_up;
+            boolean dpad_down = currentGamepad1.dpad_down;
+            boolean dpad_up = currentGamepad1.dpad_up;
             if (dpad_down) {
-//                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-//                    offset -= 20;
-//                    intake.moveArm(intake.arm.targetPos - 20);
-//                }else {
                     intake.setRotationPower(-0.4);
-                    telemetry.addData("Move up", -10);
-                    telemetry.update();
-//                }
             } else if (dpad_up) {
-//                if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
-//                    offset += 20;
-//                    intake.moveArm(intake.arm.targetPos + 20);
-//                }else {
-                    intake.setRotationPower(0.4);
-                telemetry.addData("Move up", 10);
-                telemetry.update();
-//                }
-            } else {
+                intake.setRotationPower(0.4);
+            }
+            else if(currentGamepad1.left_stick_y != 0){
+                intake.setRotationPower(-currentGamepad2.left_stick_y);
+            }
+            else {
                 intake.setRotationPower(0);
             }
 
 
-            boolean y = player2 ? currentGamepad2.y && !previousGamepad2.y : currentGamepad1.y && !previousGamepad1.y;
+            boolean y = (player2 && currentGamepad2.y && !previousGamepad2.y) || (currentGamepad1.y && !previousGamepad1.y);
             if(y){
                 tapsY += 1;
                 lastTapTimeY = getRuntime();
@@ -478,7 +525,7 @@ public class TeleOp extends LinearOpMode {
                 trafficLight.flashGreen(0.5, current_tapsY);
                 if(current_tapsY == 2){
                     mecaTank.setDistanceType(false);
-                    mecaTank.PIDToDistance(4);
+                    mecaTank.LivePIDToDistance(4.5);
                 }else {
                     mecaTank.setMaxPower(1);
                     intake.slides.setMax(1400);
@@ -506,9 +553,9 @@ public class TeleOp extends LinearOpMode {
                         case RAISE_ARM_FOR_SPECIMEN:
                             if (timer.time() - current_time > delay) {
                                 move_next3 = false;
-                                intake.moveArm(1400);
-                                intake.moveSlides(320);
-                                intake.moveWrist(0.8);
+                                intake.moveArm(ARM_LIMIT - 100);
+                                intake.moveSlides(200);
+                                intake.moveWrist(RobotConstants.specimen_deliver);
                                 next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;
                             }
                             break;
@@ -521,7 +568,9 @@ public class TeleOp extends LinearOpMode {
                             if (mecaTank.isBusy()) {
                                 break;
                             }
-                            intake.moveSlides(100);
+                            intake.moveSlides(0);
+
+                            intake.moveArm(ARM_LIMIT );
                             next_position3 = INTAKE_POSITIONS.REVERSE;
                             move_next3 = true;
                         case REVERSE:
@@ -544,7 +593,7 @@ public class TeleOp extends LinearOpMode {
                         case FOLD_IN_AFTER_SPECIMEN:
 
                             intake.moveArm(0);
-                            intake.moveWrist(0.9);
+                            intake.moveWrist(0);
                             next_position = INTAKE_POSITIONS.START;
                             next_position3 = INTAKE_POSITIONS.START;
                             break;
@@ -568,7 +617,9 @@ public class TeleOp extends LinearOpMode {
 
             intake.update();
             mecaTank.update();
+            telemetry.addData("Cycle Time", loopTimer.milliseconds());
             telemetry.update();
+
         }
     }
 

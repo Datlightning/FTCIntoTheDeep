@@ -21,7 +21,8 @@ public class IntakeTesting extends TestingOpMode {
     Intake intake;
     TrafficLight trafficLight;
     public static double claw_position = 0.85;
-    public static double wrist_position = 1;
+    public static double wrist_angle = 0;
+    public static double claw_angle = 0;
     public static double rotation_power = 0;
     public static double slide_power = 0;
     public static int arm_position = 0;
@@ -107,8 +108,9 @@ public class IntakeTesting extends TestingOpMode {
             if(controller){
                 intake.setFourBar(true);
                 intake.setTargetAngle(target_angle);
+                intake.turnClaw(claw_angle);
             }else{
-                intake.moveWrist(wrist_position);
+                intake.turnAndRotateClaw(wrist_angle, claw_angle);
             }
             if(use_offset_calibrate){
                 intake.calculateOffset();

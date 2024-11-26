@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
@@ -21,14 +22,19 @@ public class DriveTesting extends TestingOpMode {
     public static double speed = 0.5;
     public static boolean front_distance = true;
     public static boolean field_centric = false;
+    public static boolean motion_profile = false;
+    public static boolean static_pid = false;
+
     public void runOpMode(){
         makeTelemetry();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         mecaTank = new MecaTank(hardwareMap, telemetry);
 
         mecaTank.init();
+        ElapsedTime loopTimer = new ElapsedTime();
         waitForStart();
         while(!isStopRequested() && opModeIsActive()){
+            loopTimer.reset();
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             mecaTank.setDistanceType(front_distance);
             if(!pid_on) {
@@ -36,11 +42,15 @@ public class DriveTesting extends TestingOpMode {
             }else{
                 if(fast_drive){
                     mecaTank.DrivePastDistance(distance, speed);
-                }else {
+                }else if(static_pid){
                     mecaTank.PIDToDistance(distance);
+                }
+                else {
+                    mecaTank.LivePIDToDistance(distance);
                 }
             }
             telemetry.addData("Target Distance", distance);
+            telemetry.addData("Loop Time", loopTimer.milliseconds());
             mecaTank.telemetry();
             mecaTank.update();
             telemetry.update();
