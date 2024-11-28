@@ -27,10 +27,9 @@ public class Auto3Sample extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initAuto();
+
         Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
-        MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
-        drive.mountTrafficLight(trafficLight);
+        initAuto(beginPose);
 
 
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)

@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
@@ -33,7 +34,8 @@ public class Intake extends Subsystem {
     public NGMotor arm;
 
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.004, 0.00001, 0.000003, 0.0005);
+    public static PIDFCoefficients slidesLevelPID = new PIDFCoefficients(0, 0, 0, 0.0005);
     DigitalChannel magnet_sensor;
     HardwareMap hardwareMap;
     Telemetry telemetry;
@@ -42,13 +44,17 @@ public class Intake extends Subsystem {
     public TrafficLight trafficLight;
 
     public Distance distance;
+
+
     private boolean claw_open = false;
     private boolean wrist_open =false;
+
+    private boolean inside_pick_up = false;
     private boolean power_four_bar_enabled = false;
     private boolean forward_delay = false;
     private boolean backward_delay = false;
     private boolean use_fast_pid = false;
-
+    private boolean distance_update = true;
     private boolean distance_scope = false;
     public static int SLIDE_CURRENT_LIMIT = 10000;
     private double slide_stuck_time = 0;
@@ -57,8 +63,8 @@ public class Intake extends Subsystem {
     private double target_height = 0;//To the floor
 
 
-    private final double[] pickup_position_1 = {400,225};//slide, motor
-    private final double[] pickup_position_2 = {800.0,210.0};
+    private final double[] pickup_position_1 = {100,250};//slide, motor
+    private final double[] pickup_position_2 = {800.0,220};
 
     private final double[] slide_distance_position_1 = {200,4.5};
     private final double[] slide_distance_position_2 = {800,10.6};
@@ -77,7 +83,6 @@ public class Intake extends Subsystem {
     public static double claw_height = 8;
     public static int offset = 0;
     public static int offset_distance_to_0 = 0;
-
     public static double DISTANCE_FILTER = 0.6;
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
@@ -117,6 +122,29 @@ public class Intake extends Subsystem {
         this.trafficLight = trafficLight;
 
     }
+    public void mountDistance(Distance distance){
+        distance_update = false;
+        this.distance = distance;
+    }
+    public void setInsidePick(boolean on){
+        inside_pick_up = on;
+        if(claw_open){
+            openClaw();
+        }else{
+            closeClaw();
+        }
+    }
+    public void toggleInsidePick(){
+        setInsidePick(!inside_pick_up);
+    }
+    public void toggleClaw(){
+        claw_open = !claw_open;
+        if(claw_open){
+            openClaw();
+        }else{
+            closeClaw();
+        }
+    }
     private boolean magnet_activated(){
         return !magnet_sensor.getState();
     }
@@ -134,7 +162,7 @@ public class Intake extends Subsystem {
             }
         }
         arm.resetEncoder();
-        offset = arm.getCurrentPosition();
+//        offset = arm.getCurrentPosition();
         telemetry.addData("Offset", offset);
 
         arm.setAbsPower(0);
@@ -178,8 +206,13 @@ public class Intake extends Subsystem {
         slides.setAbsPower(power);
     }
     public void openClaw() {
-        diffyClaw.moveClaw(RobotConstants.claw_fully_open);
-        claw_open = true;}
+        if(inside_pick_up){
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_open);
+        }else {
+            diffyClaw.moveClaw(RobotConstants.claw_open);
+        }
+        claw_open=true;
+    }
 
     public void setDistanceScoping(boolean on){
         if(!on){
@@ -187,14 +220,7 @@ public class Intake extends Subsystem {
         }
         distance_scope = on;
     }
-    public Action score(){
-        return new SequentialAction(
-                armAction(ARM_LIMIT, ARM_LIMIT - 50),
-                new InstantAction(this::openClaw),
-                armAction(ARM_LIMIT),
-                new InstantAction(() -> moveWrist(0)),
-                slideAction(0));
-    }
+
 
     public Action yeetSample(){
         //TODO make sure that it "yeets" the sample
@@ -227,13 +253,28 @@ public class Intake extends Subsystem {
     }
     public Action raiseArm(){
         return new SequentialAction(
-                armAction(ARM_LIMIT ,ARM_LIMIT - 900),
+                new InstantAction(() -> arm.setExitWithTime(true)),
+                new InstantAction(() -> slides.setExitWithTime(true)),
+
+                armAction(ARM_LIMIT,ARM_LIMIT - 500),
+                new InstantAction(() -> moveWrist(90)),
                 new ParallelAction(
-                        slideAction(1500),
-                        armAction(ARM_LIMIT )
+                        slideAction(1250),
+                        armAction(ARM_LIMIT)
                 ),
-                new InstantAction(() -> moveWrist(180)),
+                new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
+
+        );
+    }
+    public Action score(){
+        return new SequentialAction(
+                new InstantAction(this::openClaw),
+                new InstantAction(() -> moveWrist(90)),
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                slideAction(0)
+
         );
     }
     public void setClawPWM(boolean on){
@@ -258,10 +299,20 @@ public class Intake extends Subsystem {
         return diffyClaw.claw.isPWMEnabled();
     }
     public void closeClaw() {
-        diffyClaw.moveClaw(RobotConstants.claw_closed); claw_open=false;
+        if(inside_pick_up){
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_closed);
+        }else {
+            diffyClaw.moveClaw(RobotConstants.claw_closed);
+        }
+        claw_open=false;
     }
     public void plowClaw(){
-        diffyClaw.moveClaw(RobotConstants.claw_open); claw_open=true;
+        if(inside_pick_up){
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_open);
+        }else {
+            diffyClaw.moveClaw(RobotConstants.claw_open);
+        }
+        claw_open=true;
     }
     public void enableLevel(boolean on){
         level_on = on;
@@ -304,10 +355,10 @@ public class Intake extends Subsystem {
 //        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
 //        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]);
+        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 60 : 0);
     }
     public void slidesStuck(){
-        if(slides.getCurrent() > 3000 ){
+        if(slides.getCurrent() > 9000 ){
                 trafficLight.flashRed(0.5, 2);
                 arm.setManualPower(0.3);
                 slides.setManualPower(-0.2);
@@ -322,12 +373,6 @@ public class Intake extends Subsystem {
     @Override
     public void update() {
         diffyClaw.update();
-//        if(arm.getCurrentPosition() > feedforward_turning_point){
-//            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, -armsPID.f);
-//        }else{
-//            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
-//
-//        }
         trafficLight.update();
         if(distance_scope) {
             trafficLight.green(distance.getFilteredDist() < 10);
@@ -346,16 +391,20 @@ public class Intake extends Subsystem {
         }
         distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
+
         if(arm.getCurrentPosition() > 330 || use_fast_pid){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
+
         }else{
             arm.setPIDF(armsLevelPID.p, armsLevelPID.i, armsLevelPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsLevelPID.f);
         }
+
         if(power_four_bar_enabled){
             moveWrist(calculateWristPosition());
         }
-
-        distance.update();
+        if(distance_update) {
+            distance.update();
+        }
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
         arm.update();
         slides.update();
@@ -367,7 +416,6 @@ public class Intake extends Subsystem {
     }
     @Override
     public void telemetry() {
-        distance.telemetry();
         telemetry.addData("Arm Angle", getArmAngle());
         diffyClaw.telemetry();
         slides.telemetry();
@@ -382,10 +430,10 @@ public class Intake extends Subsystem {
 
         slides.setUseMotionProfile(true);
         slides.setMax(1400);
-        arm.setMax(1600);
+        arm.setMax(ARM_LIMIT);
         arm.setMin(-10);
         slides.setMaxAcceleration(9000);
-        slides.setMaxVelocity(10000);
+        slides.setMaxVelocity(12000);
         slides.setMaxDeceleration(3000);
     }
 
@@ -426,17 +474,12 @@ public class Intake extends Subsystem {
 
         private boolean direction_up = true;
         public moveArmAction(int position){
-
             target_pos = position;
-
-
         }
         public moveArmAction(int position, int endpos){
             this.endpos = endpos;
             partial_motion = true;
             target_pos = position;
-
-
         }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
@@ -447,11 +490,12 @@ public class Intake extends Subsystem {
                 moveArm(target_pos);
                 first = false;
                 direction_up = arm.getCurrentPosition() < endpos;
-                return true;
             }
 
             if(partial_motion){
-
+                if(!arm.isBusy()){
+                    return false;
+                }
                 return direction_up ? arm.getCurrentPosition() < endpos : arm.getCurrentPosition() > endpos;
             }
             return arm.isBusy();

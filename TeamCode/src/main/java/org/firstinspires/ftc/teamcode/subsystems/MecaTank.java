@@ -25,8 +25,8 @@ public class MecaTank extends Subsystem {
     public  TrafficLight trafficLight;
     private LazyImu imu; // IMU for field-centric control
 
-    private Distance distance;
-    private Distance rear_distance;
+    public Distance distance;
+    public Distance rear_distance;
     private Telemetry telemetry;
     private double MAX_DRIVE_SPEED = 1;
     private boolean left_strafe = false;
@@ -59,6 +59,8 @@ public class MecaTank extends Subsystem {
     private boolean fast_drive = false;
     private double target = 0;
 
+    private boolean update_distance = true;
+
     private boolean front_distance = true;
     public static double a = 0.6;
     private boolean auto_move = false;
@@ -87,6 +89,10 @@ public class MecaTank extends Subsystem {
         this.telemetry = telemetry;
 
     }
+    public boolean isFrontDistance(){
+        return front_distance;
+    }
+
     public MecaTank(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer, TrafficLight trafficLight){
         frontLeft = hardwareMap.get(DcMotor.class, RobotConstants.fl);
         frontRight = hardwareMap.get(DcMotor.class, RobotConstants.fr);
@@ -111,7 +117,14 @@ public class MecaTank extends Subsystem {
     public void setDistanceType(boolean front){
         this.front_distance = front;
     }
-
+    public void mountFrontDistance(Distance distance){
+        update_distance = false;
+        this.distance = distance;
+    }
+    public void mountRearDistance(Distance distance){
+        update_distance = false;
+        this.rear_distance = distance;
+    }
     private double sameSignSqrt(double number) {
         return Math.copySign(Math.sqrt(Math.abs(number)), number);
     }
@@ -234,14 +247,14 @@ public class MecaTank extends Subsystem {
 
     }
     public void LivePIDToDistance(double distance){
-//        if (target != distance){
+        if (target != distance){
             previousError = 0;
             integral = 0;
             distance_to_target = distance - getDistance();
             starting_motion_profile_time = timer.time();
             starting_pos = getDistance();
-            fast_drive = false;
-//        }
+        }
+        fast_drive = false;
         auto_move = true;
         target = distance;
 
@@ -275,9 +288,12 @@ public class MecaTank extends Subsystem {
 
     @Override
     public void update() {
-        distance.update();
+        if(update_distance) {
+            distance.update();
+            rear_distance.update();
+        }
         trafficLight.update();
-        rear_distance.update();
+
 
         if(force_exit){
             auto_move = false;
@@ -381,8 +397,8 @@ public class MecaTank extends Subsystem {
     @Override
     public void telemetry() {
         trafficLight.telemetry();;
-        distance.telemetry();
-        rear_distance.telemetry();
+//        distance.telemetry();
+//        rear_distance.telemetry();
         if(RobotConstants.imu_init) telemetry.addData("Robot Heading", getHeading());
         telemetry.addData("Front Right Motor Power", frontRight.getPower());
         telemetry.addData("Front Left Motor Power", frontLeft.getPower());

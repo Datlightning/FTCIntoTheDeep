@@ -32,10 +32,9 @@ public class Auto4Specimen extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initAuto();
         Pose2d beginPose = new Pose2d(10, -64, Math.toRadians(90));
-        drive = new MecanumDrive(hardwareMap, beginPose);
-        drive.mountTrafficLight(trafficLight);
+        initAuto(beginPose);
+
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
 
         TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)

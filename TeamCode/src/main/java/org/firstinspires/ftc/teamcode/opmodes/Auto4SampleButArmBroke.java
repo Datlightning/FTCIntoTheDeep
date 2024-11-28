@@ -26,13 +26,11 @@ import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 public class Auto4SampleButArmBroke extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
-        initAuto();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
 
         Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
-        drive = new MecanumDrive(hardwareMap, beginPose);
-        drive.mountTrafficLight(trafficLight);
+        initAuto(beginPose);
 
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(true)
@@ -101,15 +99,15 @@ public class Auto4SampleButArmBroke extends NGAutoOpMode {
                         trafficLight.updateAction(),
                         new SequentialAction(
                                 scoreSpecimen,
-                                new InstantAction(() -> intake.moveClaw(0.73)),
+                                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                                 new InstantAction(() -> intake.moveWrist(1)),
                                 new SleepAction(1),
                                 firstSample,
                                 drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                                 new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                                 new SleepAction(0.6),
-                                intake.grab(1),
-                                intake.grab(0.73),
+                                intake.grab(RobotConstants.claw_closed),
+                                intake.grab(RobotConstants.claw_floor_pickup),
                                 scoreFirstSample,
                                 new SleepAction(1),
 
@@ -118,8 +116,8 @@ public class Auto4SampleButArmBroke extends NGAutoOpMode {
                                 secondSample,
                                 drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
 
-                                intake.grab(1),
-                                intake.grab(0.73),
+                                intake.grab(RobotConstants.claw_closed),
+                                intake.grab(RobotConstants.claw_floor_pickup),
                                 scoreSecondSample,
                                 new SleepAction(1),
                                 new InstantAction(() -> intake.moveClaw(0.88)),
@@ -127,7 +125,7 @@ public class Auto4SampleButArmBroke extends NGAutoOpMode {
                                 drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                                 new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                                 new SleepAction(0.3),
-                                intake.grab(1)
+                                intake.grab(RobotConstants.claw_closed)
                                 ,scoreThirdSample,
                                 intake.armAction(0)
                         )

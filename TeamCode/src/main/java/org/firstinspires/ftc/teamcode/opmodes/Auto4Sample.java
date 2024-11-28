@@ -27,26 +27,25 @@ public class Auto4Sample extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initAuto();
-        Pose2d beginPose = new Pose2d(-34, -64, Math.toRadians(0));
-        MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
-        drive.mountTrafficLight(trafficLight);
+        Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
+        initAuto(beginPose);
 
 
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(-48, -51, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
+                .splineToSplineHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
-                .splineToLinearHeading(new Pose2d(-49, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-18,40));
+                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
+                .splineToLinearHeading(new Pose2d(-48, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-18,40));
 
 
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-48, -53, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
@@ -56,7 +55,7 @@ public class Auto4Sample extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-47, -51, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(225));
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
@@ -65,7 +64,7 @@ public class Auto4Sample extends NGAutoOpMode {
                 .splineToConstantHeading(new Vector2d(-58,-25), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,15));
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-46, -53, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,22));
+                .splineToLinearHeading(new Pose2d(-51, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,22));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -78,7 +77,7 @@ public class Auto4Sample extends NGAutoOpMode {
         Action thirdSample = thirdSamplePath.build();
         Action scoreThirdSample = scoreThirdSamplePath.build();
         Action park = parkPath.build();
-
+        intake.distance.setOn(true);
         intake.moveArm(0);
         while(intake.arm.isBusy()){
             intake.update();
@@ -99,13 +98,13 @@ public class Auto4Sample extends NGAutoOpMode {
                                         intake.raiseArm()
                                 ),
                                 intake.score(),
-                                new InstantAction(() -> intake.moveClaw(0.73)),
+                                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                                 new ParallelAction(
                                         new SequentialAction(intake.armAction(0, 800), firstSample),
                                         intake.armAction(0),
                                         intake.slideAction(0)
                                 ),
-                                collectSampleAndScore(scoreFirstSample, 0.73),
+                                collectSampleAndScore(scoreFirstSample, RobotConstants.claw_floor_pickup),
 
                                 new ParallelAction(
                                         new SequentialAction(intake.armAction(0, 800), secondSample),
@@ -115,7 +114,7 @@ public class Auto4Sample extends NGAutoOpMode {
                                 collectSampleAndScore(scoreSecondSample, 0.88),
                                 intake.armAction(0,800),
                                 new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                                collectSampleAndScore(scoreThirdSample, 0.73)
+                                collectSampleAndScore(scoreThirdSample, RobotConstants.claw_floor_pickup)
                         )
                 )
         );

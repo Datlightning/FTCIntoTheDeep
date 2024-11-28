@@ -100,7 +100,6 @@ public class Control {
             return DIRECTION * (V_MAX - CURRENT_DECEL_TIME * DECEL_MAX);
         }
     }
-
     public static double motionProfile(double V_MAX, double ACCEL_MAX, double DECEL_MAX, double DISTANCE, double time) {
         double ACCEL_TIME = V_MAX / ACCEL_MAX;
         double DECEL_TIME = V_MAX / DECEL_MAX;
@@ -136,6 +135,28 @@ public class Control {
             );
         }
     }
+
+    public static double motionProfileTime(double V_MAX, double ACCEL_MAX, double DECEL_MAX, double DISTANCE) {
+        double ACCEL_TIME = V_MAX / ACCEL_MAX;
+        double DECEL_TIME = V_MAX / DECEL_MAX;
+        int DIRECTION = DISTANCE < 0 ? -1 : 1;
+        DISTANCE = Math.abs(DISTANCE);
+
+        double MIN_X = 0.5 * ACCEL_MAX * Math.pow(ACCEL_TIME, 2) + 0.5 * DECEL_MAX * Math.pow(DECEL_TIME, 2);
+        double CRUISE_TIME = 0;
+
+        if (MIN_X > DISTANCE) {
+            ACCEL_TIME = Math.sqrt(2 * DISTANCE * DECEL_MAX / (ACCEL_MAX * ACCEL_MAX + ACCEL_MAX * DECEL_MAX));
+            DECEL_TIME = (ACCEL_MAX / DECEL_MAX) * ACCEL_TIME;
+            V_MAX = ACCEL_TIME * ACCEL_MAX;
+        } else {
+            CRUISE_TIME = (DISTANCE - MIN_X) / V_MAX;
+        }
+
+        return ACCEL_TIME + CRUISE_TIME + DECEL_TIME;
+
+    }
+
     public static int motionProfile(double maxAcceleration, double maxVelocity, int distance, double elapsedTime) {
         // Track whether the distance is positive or negative
         int direction = distance < 0 ? -1 : 1;
@@ -203,7 +224,42 @@ public class Control {
             return direction * (int) Math.round(position);
         }
     }
-      public static double motionProfileVelo(double maxAcceleration, double maxVelocity, int distance, double elapsedTime){
+
+    public static double motionProfileTime(double maxAcceleration, double maxVelocity, int distance) {
+        // Track whether the distance is positive or negative
+        int direction = distance < 0 ? -1 : 1;
+        distance = Math.abs(distance);  // Work with absolute distance
+
+        // Calculate the time it takes to accelerate to max velocity
+        double accelerationDt = maxVelocity / maxAcceleration;
+
+        // If we can't accelerate to max velocity in the given distance, adjust accordingly
+        double halfwayDistance = distance / 2.0;
+        double accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+        if (accelerationDistance > halfwayDistance) {
+            accelerationDt = Math.sqrt(halfwayDistance / (0.5 * maxAcceleration));
+        }
+
+        accelerationDistance = 0.5 * maxAcceleration * Math.pow(accelerationDt, 2);
+
+        // Recalculate max velocity based on the adjusted acceleration time
+        maxVelocity = maxAcceleration * accelerationDt;
+
+        // Deceleration happens at the same rate as acceleration
+        double decelerationDt = accelerationDt;
+
+        // Calculate the distance covered during the cruise (at max velocity)
+        double cruiseDistance = distance - 2 * accelerationDistance;
+        double cruiseDt = cruiseDistance / maxVelocity;
+        double decelerationTime = accelerationDt + cruiseDt;
+
+        // Total time for the motion profile (acceleration + cruise + deceleration)
+        return accelerationDt + cruiseDt + decelerationDt;
+    }
+
+
+    public static double motionProfileVelo(double maxAcceleration, double maxVelocity, int distance, double elapsedTime){
 // Track whether the distance is positive or negative
         int direction = distance < 0 ? -1 : 1;
         distance = Math.abs(distance);  // Work with absolute distance

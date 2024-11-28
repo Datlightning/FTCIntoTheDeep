@@ -38,8 +38,12 @@ public class DriveTesting extends TestingOpMode {
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             mecaTank.setDistanceType(front_distance);
             if(!pid_on) {
+                mecaTank.distance.setOn(false);
+                mecaTank.rear_distance.setOn(false);
                 mecaTank.forceExit();
             }else{
+                mecaTank.distance.setOn(true);
+                mecaTank.rear_distance.setOn(true);
                 if(fast_drive){
                     mecaTank.DrivePastDistance(distance, speed);
                 }else if(static_pid){

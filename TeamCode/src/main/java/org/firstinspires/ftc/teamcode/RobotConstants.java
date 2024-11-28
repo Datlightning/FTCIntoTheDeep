@@ -9,8 +9,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 @Config
 public class RobotConstants {
     //horizontal slides1
-    public static double claw_fully_open = 0.8, claw_closed = 1, claw_open=0.9, claw_flat = 0.57;
-    public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 102, specimen_deliver = 60;//update the 0 and 90 degrees as well.
+    public static double claw_fully_open = 0.75, claw_closed = 1, claw_open=0.9, claw_flat = 0.57, claw_floor_pickup = 0.73, inside_pickup_closed = 0.85, inside_pickup_open = 0.95;
+    public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 108, specimen_deliver = 60;//update the 0 and 90 degrees as well.
     public static double TOO_FAR = 3.8, TOO_CLOSE = 2, GIVE_UP = 6, TARGET = 2.9;
     public static Intake intake;
     public static int ARM_LIMIT = 1600;

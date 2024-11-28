@@ -69,6 +69,7 @@ public class DiffyClaw extends Subsystem {
     }
     public void moveClaw(double claw_position){
         this.claw_position = claw_position;
+        claw.setPosition(constrainClaw(claw_position));
     }
     @Override
     public void update() {
@@ -77,7 +78,6 @@ public class DiffyClaw extends Subsystem {
         claw_position = constrainClaw(claw_position);
         left.setPosition((wrist_angle/SERVO_1_REAL_RANGE) - (claw_angle/SERVO_1_REAL_RANGE) + OFFSET);
         right.setPosition(1 - (wrist_angle/SERVO_2_REAL_RANGE) - (claw_angle/SERVO_2_REAL_RANGE) - OFFSET);
-        claw.setPosition(claw_position);
     }
 
 

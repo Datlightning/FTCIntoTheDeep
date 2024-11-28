@@ -19,14 +19,10 @@ public class NGMotor extends Subsystem {
     public static double P = 0.0005, I = 0.0002, D = 0;
     public static double F = 0;
     double error, lastError;
-    boolean direction = true;
     private boolean reversed_encoder = false;
     public boolean manual = false;
-    private double powerReduction = 1;
-    private double conversion = -1;
     private boolean reached = false;
     private boolean useMotionProfile = false;
-    private double minPower = 0;
     private int distance = 0;
     private ElapsedTime timer;
     private double time_passed = 0, time_stop = 0, time_started = 0;
@@ -37,9 +33,6 @@ public class NGMotor extends Subsystem {
     private double max_integral_component = 0.3;
     private double out = 0;
     private double completed_time = 0;
-    private double MAX_POWER = 1;
-    private int SLOW_POS = 0;
-    private boolean SLOW = false;
     private int reached_range = 10;
     private double integralSum = 0;
 
@@ -48,6 +41,12 @@ public class NGMotor extends Subsystem {
 
     private double MAX_DECEL = -1;
 
+    private double manual_power_time = 0;
+    private boolean waiting_for_manual = false;
+
+    private boolean exit_with_time = false;
+
+    private double motion_profile_exit_time = 0;
 
 
     Telemetry telemetry;
@@ -64,6 +63,9 @@ public class NGMotor extends Subsystem {
 
         timer = new ElapsedTime();
 
+    }
+    public void setExitWithTime(boolean on){
+        exit_with_time = on;
     }
     public void setZeroPowerBehaviour(DcMotor.ZeroPowerBehavior zeroPower){
         pid_motor.setZeroPowerBehavior(zeroPower);
@@ -184,12 +186,15 @@ public class NGMotor extends Subsystem {
     public void setManualPower(double power){
         if(power != 0){
             manual = true;
+            waiting_for_manual = false;
             setPower(power);
         }
-        if(power == 0 && manual){
-            move_async(pid_motor.getCurrentPosition());
-            manual = false;
+        if(power == 0 && manual && !waiting_for_manual){
             setPower(0);
+    //            move_async(pid_motor.getCurrentPosition());
+            manual_power_time = timer.time();
+            waiting_for_manual = true;
+//            manual = false;
 
         }
     }
@@ -219,18 +224,20 @@ public class NGMotor extends Subsystem {
     public void move_async(int target) {
         target = Math.min(target, maxHardstop);
         target = Math.max(target, minHardstop);
-
         if(targetPos != target){
             reached = false;
             integralSum = 0;
+            if(MAX_DECEL == -1){
+                motion_profile_exit_time =  Control.motionProfileTime(MAX_ACCEL, MAX_VEL, distance);
+            }else{
+                motion_profile_exit_time = Control.motionProfileTime(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance);
+            }
             time_stop = timer.seconds();
             time_started = timer.seconds();
             distance = target - getCurrentPosition();
             startPos = getCurrentPosition();
             telemetry.addData("Distnace", distance);
             telemetry.addData("Target", target);
-
-
         }
         targetPos = target;
 
@@ -242,6 +249,12 @@ public class NGMotor extends Subsystem {
     }
 
     public void update() {
+        if(waiting_for_manual && timer.time() - manual_power_time > 0.1){
+            waiting_for_manual = false;
+            manual = false;
+            move_async(targetPos);
+            targetPos = pid_motor.getCurrentPosition();
+        }
         if(manual){
             return;
         }
@@ -253,6 +266,7 @@ public class NGMotor extends Subsystem {
 //        telemetry.addData(name + " D", D);
 //        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
+
         if(useMotionProfile){
             if(MAX_DECEL == -1){
                 error = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
@@ -290,9 +304,8 @@ public class NGMotor extends Subsystem {
 // Feedforward term
         out += F;
 // Check if the target has been reached (based on an error threshold)
-        if(Math.abs(getCurrentPosition() - targetPos) < 10) {
-            reached = true;
-        }
+        reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range;
+
 // Set motor power output
         pid_motor.setPower(out);
 // Update lastError for the next iteration
@@ -300,9 +313,6 @@ public class NGMotor extends Subsystem {
         time_stop = timer.seconds();
     }
 
-    public void setMaxPower(double power) {
-        MAX_POWER = power;
-    }
 
 
 

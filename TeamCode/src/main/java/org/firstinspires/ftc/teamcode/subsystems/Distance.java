@@ -16,13 +16,13 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 @Config
 public class Distance extends Subsystem {
     private DistanceSensor sensorDistance;
-
-    private double offset = 0;
     private double past_distance_reading = 0;
     private double current_dist = 0;
     private double filtered_position = 0;
     public static double filter_value = 0.65;
     private double delay = 0;
+
+    private boolean on = false;
     private ElapsedTime timer;
     private String name = "";
     Telemetry telemetry;
@@ -44,21 +44,25 @@ public class Distance extends Subsystem {
     public double getDist() {
         return sensorDistance.getDistance(DistanceUnit.INCH);
     }
-    public double getDistFromRobotEdge(){
-        return getDist() - offset;
-    }
-    public void setOffset(double offset){
-        this.offset = offset;
-    }
     public void setFilter(double filter){
         filter_value = filter;
     }
+    public void setOn(boolean on){
+        this.on = on;
+    }
     @Override
     public void telemetry() {
+        telemetry.addData(name + " is on: ", on);
+        if(!on){
+            return;
+        }
         telemetry.addData(name + " Distance (in)", getDist());
         telemetry.addData(name + " Filtered Distance (in)", getFilteredDist());
     }
     public void update(){
+        if(!on){
+            return;
+        }
         if(timer.seconds() - delay > 0.005){
             past_distance_reading = current_dist;
             current_dist = getDist();

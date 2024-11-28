@@ -98,7 +98,6 @@ public class IntakeTesting extends TestingOpMode {
 
 
 
-            intake.update();
             intake.distance.setFilter(DISTANCE_FILTER);
 
             intake.slides.setMax(slide_hard_stop);
@@ -167,6 +166,7 @@ public class IntakeTesting extends TestingOpMode {
             telemetry.addData("Target Distance", distance);
             mecaTank.telemetry();
             mecaTank.update();
+            intake.update();
 
             telemetry.addData("Slide Predicted Distance", intake.calculateSlidePositionForFloorPickup(intake.distance.getFilteredDist()));
             intake.telemetry();
