@@ -97,7 +97,7 @@ public class Control {
             return DIRECTION * V_MAX;
         } else {
             double CURRENT_DECEL_TIME = time - ACCEL_TIME - CRUISE_TIME;
-            return DIRECTION * (V_MAX - CURRENT_DECEL_TIME * DECEL_MAX);
+            return DIRECTION * (V_MAX - (CURRENT_DECEL_TIME * DECEL_MAX));
         }
     }
     public static double motionProfile(double V_MAX, double ACCEL_MAX, double DECEL_MAX, double DISTANCE, double time) {
@@ -135,7 +135,6 @@ public class Control {
             );
         }
     }
-
     public static double motionProfileTime(double V_MAX, double ACCEL_MAX, double DECEL_MAX, double DISTANCE) {
         double ACCEL_TIME = V_MAX / ACCEL_MAX;
         double DECEL_TIME = V_MAX / DECEL_MAX;
@@ -156,7 +155,6 @@ public class Control {
         return ACCEL_TIME + CRUISE_TIME + DECEL_TIME;
 
     }
-
     public static int motionProfile(double maxAcceleration, double maxVelocity, int distance, double elapsedTime) {
         // Track whether the distance is positive or negative
         int direction = distance < 0 ? -1 : 1;
@@ -224,7 +222,6 @@ public class Control {
             return direction * (int) Math.round(position);
         }
     }
-
     public static double motionProfileTime(double maxAcceleration, double maxVelocity, int distance) {
         // Track whether the distance is positive or negative
         int direction = distance < 0 ? -1 : 1;

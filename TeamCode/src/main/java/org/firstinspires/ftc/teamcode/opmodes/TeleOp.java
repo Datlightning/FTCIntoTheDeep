@@ -11,24 +11,32 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.BulkRead;
+import org.firstinspires.ftc.teamcode.library.MultiClick;
+import org.firstinspires.ftc.teamcode.subsystems.Camera;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
-
+//TODO: Make the PID with distance great again tm
+//TODO: Make the camera move slides to auto align maybe
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp
 @Config
 public class TeleOp extends LinearOpMode {
     Intake intake;
     MecaTank mecaTank;
 
+    Camera camera;
     Distance distance;
 
     Distance rear_distance;
 
     TrafficLight trafficLight;
 
+    MultiClick multiClick;
+    BulkRead bulkRead;
+    ElapsedTime timer;
+    Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
     private enum INTAKE_POSITIONS {
         START,
         LOWER_CLAW,
@@ -36,7 +44,6 @@ public class TeleOp extends LinearOpMode {
         EXTEND,
         FOLD,
         CLOSE_AND_FOLD,
-        RETRACT_TO_LEAVE,
         RETRACT_TO_LEAVE_2,
         FOLD_IN,
         FOLD_IN_2,
@@ -45,71 +52,45 @@ public class TeleOp extends LinearOpMode {
         PICK_UP_FLOOR,
         GRAB_FLOOR,
         RAISE_CLAW,
-         DROP_ARM, SCORE_SPECMEN, RELEASE, FOLD_IN_AFTER_SPECIMEN, RAISE_ARM_FOR_SPECIMEN, GRAB_FLOOR_SPECIMEN, REVERSE, FORWARD, EXIT_FLOOR_PICKUP_SEQ, RAISE_ARM
+        DROP_ARM,
+        SCORE_SPECMEN,
+        RELEASE,
+        FOLD_IN_AFTER_SPECIMEN,
+        RAISE_ARM_FOR_SPECIMEN,
+        GRAB_FLOOR_SPECIMEN,
+        REVERSE,
+        FORWARD,
+        EXIT_FLOOR_PICKUP_SEQ,
+        RAISE_ARM
     }
-
-
-    public static boolean player2 = false;
-    public static double target_height = 3;
-    boolean move_next = false;
-    boolean move_next2 = false;
-    boolean move_next3 = false;
-
-    boolean drive_pid_on = false;
-    public static int offset = 0;
-
-
-    public static boolean telemetry_on = false;
-
-
-    double lastTapTimeA = 0;
-
-    int tapsA = 0;
-    int current_tapsA = 0;
-
-    double lastTapTimeX = 0;
-
-    int tapsX = 0;
-    int current_tapsX = 0;
-
-    double lastTapTimeY = 0;
-
-    int tapsY = 0;
-    int current_tapsY = 0;
-
-    double lastTapTimeDpadRight = 0;
-
-    int tapsDpadRight = 0;
-    int current_tapsDpadRight = 0;
-
-
-
-
-    double lastTapTimeLeftBumper = 0;
-
-    int tapsLeftBumper = 0;
-    int current_tapsLeftBumper = 0;
-
-    public static double current_closed = 0.95;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
 
     INTAKE_POSITIONS previous_position = INTAKE_POSITIONS.START;
     INTAKE_POSITIONS next_position2 = INTAKE_POSITIONS.START;
     INTAKE_POSITIONS next_position3 = INTAKE_POSITIONS.START;
-    ElapsedTime timer;
-    Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
+    boolean move_next = false;
+    boolean move_next2 = false;
+    boolean move_next3 = false;
+
+    boolean camera_align = false;
+
+
+    public static boolean player2 = false;
+    public static double target_height = 3;
+    boolean drive_pid_on = false;
+    public static int offset = 0;
+    public static boolean telemetry_on = false;
     double current_time = 0;
     double delay = 0;
-
-    BulkRead bulkRead;
-    public static boolean player_2_on = false;
-
+    public static boolean player_2_on = true;
     private boolean waiting_for_distance = false;
     double distance_wait = 0;
-
     private boolean claw_turning = false;
 
+    private boolean maintain_level = false;
+    private double level_grace_period = 0;
+    private boolean reset_claw = false;
 
 
 
@@ -118,6 +99,7 @@ public class TeleOp extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         timer = new ElapsedTime();
+        multiClick = new MultiClick();
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
@@ -125,7 +107,7 @@ public class TeleOp extends LinearOpMode {
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         mecaTank = new MecaTank(hardwareMap, telemetry, timer, trafficLight);
-
+        camera = new Camera(hardwareMap, telemetry);
         mecaTank.mountFrontDistance(distance);
         mecaTank.mountRearDistance(rear_distance);
         intake.mountDistance(distance);
@@ -139,7 +121,8 @@ public class TeleOp extends LinearOpMode {
             intake.calculateOffset();
             offset = intake.getOffset();
         }
-
+        camera.init();
+        camera.useInsidePick(intake.isInsidePick());
         currentGamepad1 = new Gamepad();
         currentGamepad2 = new Gamepad();
         previousGamepad1 = new Gamepad();
@@ -152,7 +135,7 @@ public class TeleOp extends LinearOpMode {
         mecaTank.init();
         ElapsedTime loopTimer = new ElapsedTime();
         waitForStart();
-        intake.moveArm(250);
+        camera.stopCamera();
         while (!isStopRequested() && opModeIsActive()) {
             loopTimer.reset();
             bulkRead.clearCache();
@@ -164,21 +147,35 @@ public class TeleOp extends LinearOpMode {
 
             intake.setTargetHeight(target_height);
 
-            if(getRuntime() - lastTapTimeLeftBumper > 0.3) {
-                current_tapsLeftBumper = tapsLeftBumper;
-                lastTapTimeLeftBumper = getRuntime();
-                tapsLeftBumper = 0;
+            boolean left_bumper2 = currentGamepad2.left_bumper && !previousGamepad2.left_bumper;
+            multiClick.update("left_bumper", getRuntime(), left_bumper2);
 
-            }
-            boolean left_bumper2 = currentGamepad2.left_bumper;
-
-            if(left_bumper2){
-                tapsLeftBumper += 1;
-                lastTapTimeLeftBumper = getRuntime();
-            }
-            if(tapsLeftBumper == 2){
-                tapsLeftBumper = 0;
+            if(multiClick.getTaps("left_bumper") == 3){
+                multiClick.clearTaps("left_bumper");
                 intake.calculateOffset();
+            }
+            boolean right_bumper2 = currentGamepad2.right_bumper && !previousGamepad2.right_bumper;
+            multiClick.update("right_bumper", getRuntime(), right_bumper2);
+            if(multiClick.getTaps("right_bumper") == 3){
+                multiClick.clearTaps("right_bumper");
+                reset_claw = !reset_claw;
+                intake.setInsidePick(false);
+                if(!reset_claw){
+                    trafficLight.red(false);
+                    RobotConstants.updateClawClosed(intake.diffyClaw.claw.getPosition());
+                }
+            }
+            if(multiClick.getTaps("right_bumper") == 1){
+                multiClick.clearTaps("right_bumper");
+                if(camera.isCameraOn()){
+                    intake.turnClaw(camera.getYellow()[0]);
+                    camera_align = true;
+                }
+            }
+
+            if(reset_claw){
+                trafficLight.red(true);
+                intake.moveClaw(gamepad1.right_stick_x + RobotConstants.claw_closed);
             }
 
             boolean b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
@@ -197,92 +194,76 @@ public class TeleOp extends LinearOpMode {
 
 
             }
-            if(getRuntime() - lastTapTimeDpadRight > 0.3) {
-                current_tapsDpadRight = tapsDpadRight;
-                lastTapTimeDpadRight = getRuntime();
-                tapsDpadRight = 0;
-
-            }
-            boolean dpad_right =  (player2 &&  currentGamepad2.dpad_right && !previousGamepad2.dpad_right) || (currentGamepad1.dpad_right && !previousGamepad1.dpad_right);
-
-            if(dpad_right){
-                tapsDpadRight += 1;
-                lastTapTimeDpadRight = getRuntime();
-            }
 
             player2 = !currentGamepad1.dpad_left && player_2_on;
 
             if(currentGamepad2.left_trigger != 0){
-                intake.turnClaw(currentGamepad2.left_trigger * 90);
+                intake.turnClaw(currentGamepad2.left_trigger * -90);
                 claw_turning = true;
+                camera_align = false;
             }else if(currentGamepad2.right_trigger != 0){
-                intake.turnClaw(currentGamepad2.right_trigger * -90);
+                intake.turnClaw(currentGamepad2.right_trigger * 90);
                 claw_turning = true;
-            }else if(claw_turning){
+                camera_align = false;
+            }else if(claw_turning && !camera_align){
                 claw_turning = false;
                 intake.turnClaw(0);
             }
 
-            if(current_tapsDpadRight == 1){
+            boolean dpad_right =  (player2 &&  currentGamepad2.dpad_right && !previousGamepad2.dpad_right) || (currentGamepad1.dpad_right && !previousGamepad1.dpad_right);
+            multiClick.update("dpad_right", getRuntime(), dpad_right);
+            if(multiClick.getTaps("dpad_right") == 1){
                 intake.toggleClaw();
-                current_tapsDpadRight = 0;
-            }else if(current_tapsDpadRight > 1){
+                multiClick.clearTaps("dpad_right");
+            }else if(multiClick.getTaps("dpad_right") > 1){
                 intake.toggleInsidePick();
-                current_tapsDpadRight = 0;
+                camera.useInsidePick(intake.isInsidePick());
 
+                multiClick.clearTaps("dpad_right");
             }
+
+
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
 
-            if(getRuntime() - lastTapTimeA > 0.3) {
-                current_tapsA = tapsA;
-                lastTapTimeA = getRuntime();
-                tapsA = 0;
-
-            }
             boolean a = (player2  && currentGamepad2.a && !previousGamepad2.a) || ( currentGamepad1.a && !previousGamepad1.a);
-
-            if(a){
-                tapsA += 1;
-                lastTapTimeA = getRuntime();
-            }
-
-            if (move_next || current_tapsA > 0) {
-                trafficLight.flashGreen(0.5, current_tapsA);
-
+            multiClick.update("a", getRuntime(), a);
+            if (move_next || multiClick.getTaps("a") > 0) {
+                trafficLight.flashGreen(0.5, multiClick.getTaps("a"));
                 // Move forward if single tap, move backward if double tap
-                if (current_tapsA == 1 || move_next) {
+                if (multiClick.getTaps("a") == 1 || move_next) {
                     telemetry.addLine("progress forward");
                     position = next_position;  // Move forward
-                } else if (current_tapsA == 2) {
+                } else if (multiClick.getTaps("a") == 2) {
                     telemetry.addLine("run.");
                     position = previous_position;  // Move backward
                 }
-                current_tapsA = 0;
-
+                multiClick.clearTaps("a");
                 switch (position) {
                     case START:
                         move_next = false;
                         intake.plowClaw();
-                        intake.moveWrist(30);
-                        intake.moveArm(250);
+                        intake.moveWrist(90);
+                        intake.moveArm(180 + (intake.isInsidePick() ? 70 : 0));
                         intake.moveSlides(150);
                         intake.slides.setMax(1000);
                         intake.setFourBar(false);
                         intake.enableLevel(false);
+                        maintain_level = false;
+                        camera.startCamera();
 
                         next_position = INTAKE_POSITIONS.LOWER_CLAW;
                         previous_position = INTAKE_POSITIONS.START; // Set previous position for double tap
                         break;
 
                     case LOWER_CLAW:
-                        intake.moveWrist(90);
+                        intake.moveWrist(135);
                         intake.plowClaw();
-                        intake.moveArm(250);
                         intake.setTargetAngle(90);
                         intake.setFourBar(true);
                         intake.arm.setUseMotionProfile(false);
                         intake.slides.setUseMotionProfile(false);
                         intake.enableLevel(true);
+                        maintain_level = true;
                         next_position = INTAKE_POSITIONS.DROP_ARM;
                         previous_position = INTAKE_POSITIONS.START;
                         break;
@@ -290,6 +271,7 @@ public class TeleOp extends LinearOpMode {
                     case DROP_ARM:
                         intake.useFastPID(true);
                         intake.enableLevel(false);
+                        maintain_level =false;
                         intake.setFourBar(true);
                         intake.arm.setManualPower(-0.4);
                         delay = 0.3;
@@ -312,6 +294,7 @@ public class TeleOp extends LinearOpMode {
                         intake.closeClaw();
                         next_position = INTAKE_POSITIONS.RAISE_ARM;
                         intake.slides.setMax(1400);
+                        intake.moveArm(intake.arm.getCurrentPosition() + 50);
                         intake.enableLevel(false);
 
                         previous_position = INTAKE_POSITIONS.LOWER_CLAW;
@@ -322,19 +305,21 @@ public class TeleOp extends LinearOpMode {
                         move_next = true;
                         intake.slides.setMax(1400);
                         current_time = timer.seconds();
-                        intake.moveWrist(90);
+//                        intake.moveWrist(180);
                         intake.useFastPID(true);
                         intake.slides.setUseMotionProfile(true);
-                        intake.moveArm(250);
+                        intake.moveArm(350);
                         intake.setFourBar(false);
                         next_position = INTAKE_POSITIONS.FOLD;
                         previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
 
                     case FOLD:
-                        if (intake.arm.getCurrentPosition() <= 200) {
+                        if (intake.arm.isBusy()) {
                             break;
                         }
+                        intake.moveArm(300);
+
                         move_next = false;
                         intake.arm.setUseMotionProfile(true);
                         intake.slides.setUseMotionProfile(true);
@@ -342,6 +327,7 @@ public class TeleOp extends LinearOpMode {
                         intake.useFastPID(false);
                         intake.moveWrist(90);
                         intake.moveSlides(0);
+                        camera.stopCamera();
                         next_position = INTAKE_POSITIONS.TURN_ARM;
                         previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
@@ -422,17 +408,7 @@ public class TeleOp extends LinearOpMode {
             }
 
 
-            boolean x = (player2 && currentGamepad2.x && !previousGamepad2.x) || ( currentGamepad1.x && !previousGamepad1.x);
 
-            if(x){
-                tapsX += 1;
-                lastTapTimeX = getRuntime();
-            }
-            if(getRuntime() - lastTapTimeX > 0.3) {
-                current_tapsX = tapsX;
-                lastTapTimeX = getRuntime();
-                tapsX = 0;
-            }
             if(position.equals(INTAKE_POSITIONS.GRAB_FLOOR) || position.equals(INTAKE_POSITIONS.GRAB_FLOOR_SPECIMEN)){
                 distance.setOn(true);
                 if(distance.getFilteredDist() > RobotConstants.TOO_CLOSE && distance.getFilteredDist() < RobotConstants.TOO_FAR){
@@ -461,11 +437,12 @@ public class TeleOp extends LinearOpMode {
             telemetry.addData("Intake Position", position);
 
 
+            boolean x = (player2 && currentGamepad2.x && !previousGamepad2.x) || ( currentGamepad1.x && !previousGamepad1.x);
+            multiClick.update("x", getRuntime(), x);
+            if (multiClick.getTaps("x") > 0 || move_next2) {
+                trafficLight.flashGreen(0.5, multiClick.getTaps("x"));
 
-            if (current_tapsX > 0 || move_next2) {
-                trafficLight.flashGreen(0.5, current_tapsX);
-
-                if(current_tapsX > 1){
+                if(multiClick.getTaps("x") > 1){
                     distance.setOn(true);
                     mecaTank.setDistanceType(true);
                     if(mecaTank.getDistance() > 12){
@@ -479,6 +456,8 @@ public class TeleOp extends LinearOpMode {
                 else {
                     intake.enableLevel(false);
                     intake.setFourBar(false);
+                    intake.setInsidePick(false);
+                    camera.useInsidePick(false);
 
                     mecaTank.setMaxPower(1);
                     intake.slides.setMax(1400);
@@ -524,7 +503,7 @@ public class TeleOp extends LinearOpMode {
                     }
                     position = next_position2;
                 }
-                current_tapsX = 0;
+                multiClick.clearTaps("x");
 
 
                 }
@@ -537,7 +516,7 @@ public class TeleOp extends LinearOpMode {
                 intake.setSlidePower(-0.4);
             } else if (right_bumper) {
                 intake.setSlidePower(0.4);
-            }else if(currentGamepad2.right_stick_y != 0){
+            }else if(currentGamepad2.right_stick_y != 0 && !reset_claw){
                 intake.setSlidePower(-currentGamepad2.right_stick_y);
             }
             else {
@@ -546,9 +525,18 @@ public class TeleOp extends LinearOpMode {
             boolean dpad_down = currentGamepad1.dpad_down;
             boolean dpad_up = currentGamepad1.dpad_up;
             if (dpad_down) {
+                if(maintain_level){
+                    intake.incrementLevelOffset(-10);
+                }else {
                     intake.setRotationPower(-0.4);
+                }
             } else if (dpad_up) {
-                intake.setRotationPower(0.4);
+                if(maintain_level){
+                    intake.incrementLevelOffset(10);
+                }else{
+                    intake.setRotationPower(0.4);
+                }
+
             }
             else if(currentGamepad2.left_stick_y != 0){
                 intake.setRotationPower(-currentGamepad2.left_stick_y);
@@ -559,30 +547,23 @@ public class TeleOp extends LinearOpMode {
 
 
             boolean y = (player2 && currentGamepad2.y && !previousGamepad2.y) || (currentGamepad1.y && !previousGamepad1.y);
-            if(y){
-                tapsY += 1;
-                lastTapTimeY = getRuntime();
-            }
-            if(getRuntime() - lastTapTimeY > 0.3) {
-                current_tapsY = tapsY;
-                lastTapTimeY = getRuntime();
-                tapsY = 0;
+            multiClick.update("y", getRuntime(), y);
 
-            }
             if(!mecaTank.isBusy() && drive_pid_on){
                 drive_pid_on = false;
                 distance.setOn(false);
                 rear_distance.setOn(false);
             }
-            if (current_tapsY > 0 || move_next3) {
-                trafficLight.flashGreen(0.5, current_tapsY);
-                if(current_tapsY == 2){
+            if (multiClick.getTaps("y") > 0 || move_next3) {
+                trafficLight.flashGreen(0.5, multiClick.getTaps("y"));
+                if(multiClick.getTaps("y") == 2){
                     mecaTank.setDistanceType(false);
                     rear_distance.setOn(true);
                     mecaTank.LivePIDToDistance(4.5);
                     drive_pid_on = true;
 
-                }else {
+                }
+                else {
                     mecaTank.setMaxPower(1);
                     intake.slides.setMax(1400);
                     intake.enableLevel(false);
@@ -673,7 +654,7 @@ public class TeleOp extends LinearOpMode {
                     }
                     position = next_position3;
                 }
-                current_tapsY = 0;
+                multiClick.clearTaps("y");
             }
 
             if(telemetry_on) {
@@ -681,6 +662,7 @@ public class TeleOp extends LinearOpMode {
                 intake.telemetry();
                 rear_distance.telemetry();
                 distance.telemetry();
+                camera.telemetry();
             }
 
             intake.update();

@@ -150,7 +150,7 @@ public class NGMotor extends Subsystem {
     }
     @Override
     public void telemetry(){
-        telemetry.addData(name + " Power", getPower());
+        telemetry.addData(name + "'s Power", getPower());
         telemetry.addData(name + "'s Position", getCurrentPosition());
         telemetry.addData(name + "'s Target Position", targetPos);
         telemetry.addData(name + "'s Max Hardstop", maxHardstop);
@@ -225,6 +225,11 @@ public class NGMotor extends Subsystem {
         target = Math.min(target, maxHardstop);
         target = Math.max(target, minHardstop);
         if(targetPos != target){
+            if(Math.abs(targetPos - target) < 50){
+                useMotionProfile = false;
+            }else{
+                useMotionProfile = true;
+            }
             reached = false;
             integralSum = 0;
             if(MAX_DECEL == -1){
@@ -234,11 +239,12 @@ public class NGMotor extends Subsystem {
             }
             time_stop = timer.seconds();
             time_started = timer.seconds();
-            distance = target - getCurrentPosition();
             startPos = getCurrentPosition();
-            telemetry.addData("Distnace", distance);
-            telemetry.addData("Target", target);
+            distance = target - getCurrentPosition();
+
         }
+        telemetry.addData(name + "'s Distance", distance);
+        telemetry.addData(name + "'s Target", target);
         targetPos = target;
 
     }
@@ -252,7 +258,7 @@ public class NGMotor extends Subsystem {
         if(waiting_for_manual && timer.time() - manual_power_time > 0.1){
             waiting_for_manual = false;
             manual = false;
-            move_async(targetPos);
+            move_async(pid_motor.getCurrentPosition());
             targetPos = pid_motor.getCurrentPosition();
         }
         if(manual){
@@ -268,15 +274,19 @@ public class NGMotor extends Subsystem {
         // Obtain the encoder position and calculate the error
 
         if(useMotionProfile){
+            double motion_profile_target_pos;
+            double motion_profile_velocity;
             if(MAX_DECEL == -1){
-                error = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
-
+                 motion_profile_target_pos = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos;
+                motion_profile_velocity = Control.motionProfileVelo(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started);
+                error =  motion_profile_target_pos - getCurrentPosition();
             }else{
-                error = Control.motionProfile( MAX_VEL, MAX_ACCEL, MAX_DECEL, distance, timer.seconds() - time_started) + startPos - getCurrentPosition();
-
+                 motion_profile_target_pos = Control.motionProfile( MAX_VEL, MAX_ACCEL, MAX_DECEL, distance, timer.seconds() - time_started) + startPos;
+                motion_profile_velocity = Control.motionProfileVelo( MAX_VEL, MAX_ACCEL, MAX_DECEL, distance, timer.seconds() - time_started);
+                error =  motion_profile_target_pos - getCurrentPosition();
             }
-            telemetry.addData(name + " Expected Velocity",  Control.motionProfileVelo(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started));
-
+            telemetry.addData(name + "'s Motion Profile Target Pos", motion_profile_target_pos);
+            telemetry.addData(name + "'s Motion Profile Velocity", motion_profile_velocity);
         }else {
             error = targetPos - getCurrentPosition();
         }

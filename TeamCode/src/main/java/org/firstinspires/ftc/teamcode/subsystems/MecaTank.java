@@ -37,6 +37,7 @@ public class MecaTank extends Subsystem {
 
     private boolean fast_drive_direction = false;
 
+    private boolean use_dead_wheel = false;
     private double distance_to_target = 0;
     private double starting_motion_profile_time = 0;
 
@@ -147,6 +148,9 @@ public class MecaTank extends Subsystem {
         frontLeft.setPower(fl_power);
         backLeft.setPower(bl_power);
         backRight.setPower(br_power);
+    }
+    public void setUseDeadwheel(boolean on){
+        use_dead_wheel = on;
     }
     public double getDistance(){
         if(front_distance){

@@ -8,8 +8,23 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 @Config
 public class RobotConstants {
-    //horizontal slides1
-    public static double claw_fully_open = 0.75, claw_closed = 1, claw_open=0.9, claw_flat = 0.57, claw_floor_pickup = 0.73, inside_pickup_closed = 0.85, inside_pickup_open = 0.95;
+    public static double
+            claw_closed = 0.43,
+            claw_fully_open = claw_closed - 0.25,
+            claw_open= claw_closed - 0.15,
+            claw_flat = claw_closed - 0.43,
+            claw_floor_pickup = claw_closed - 0.27,
+            inside_pickup_closed = claw_closed - 0.15,
+            inside_pickup_open = claw_closed - 0.05;
+    public static void updateClawClosed(double position){
+        claw_closed = position;
+        claw_fully_open = position - 0.25;
+        claw_open = position - 0.15;
+        claw_flat = position - 0.43;
+        claw_floor_pickup = position - 0.27;
+        inside_pickup_closed = position - 0.15;
+        inside_pickup_open = position - 0.05;
+    }
     public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 108, specimen_deliver = 60;//update the 0 and 90 degrees as well.
     public static double TOO_FAR = 3.8, TOO_CLOSE = 2, GIVE_UP = 6, TARGET = 2.9;
     public static Intake intake;
@@ -20,7 +35,7 @@ public class RobotConstants {
     public static String left_servo = "left_servo";//ehub 3 (black tape)
     public static String right_servo = "right_servo";//ehub 1 (copious lack of black tape)
 
-
+    public static String camera = "Webcam 1";
     public static String green_led = "front_led_green";
     public static String red_led = "front_led_red";
     public static String fr = "frontRight";//chub 0 && perp deadwheel

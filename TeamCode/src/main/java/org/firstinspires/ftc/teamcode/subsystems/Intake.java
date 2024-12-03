@@ -29,13 +29,11 @@ import java.util.ArrayList;
 @Config
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
-    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.0003,0);
-
+    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
     public NGMotor arm;
 
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.004, 0.00001, 0.000003, 0.0005);
-    public static PIDFCoefficients slidesLevelPID = new PIDFCoefficients(0, 0, 0, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
     DigitalChannel magnet_sensor;
     HardwareMap hardwareMap;
     Telemetry telemetry;
@@ -49,6 +47,8 @@ public class Intake extends Subsystem {
     private boolean claw_open = false;
     private boolean wrist_open =false;
 
+    private int level_offset=  0;
+
     private boolean inside_pick_up = false;
     private boolean power_four_bar_enabled = false;
     private boolean forward_delay = false;
@@ -56,7 +56,7 @@ public class Intake extends Subsystem {
     private boolean use_fast_pid = false;
     private boolean distance_update = true;
     private boolean distance_scope = false;
-    public static int SLIDE_CURRENT_LIMIT = 10000;
+    public static int SLIDE_CURRENT_LIMIT = 8500;
     private double slide_stuck_time = 0;
     private boolean level_on = false;
     private double target_angle = 0;//To the y-axis
@@ -71,6 +71,7 @@ public class Intake extends Subsystem {
     // Adjust current threshold based on battery voltage
     public DiffyClaw diffyClaw;
 
+    public static int distance_to_camera = 225;
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
     public static int arm_at_90_ticks = 1380;
@@ -152,15 +153,15 @@ public class Intake extends Subsystem {
         use_fast_pid = on;
     }
     public void calculateOffset(){
-        arm.setAbsPower(-0.1);
-        double time_offset = timer.time();
-        while(!magnet_activated()){
-            telemetry.addData("Position",arm.getCurrentPosition());
-            telemetry.update();
-            if(timer.time() - time_offset > 2){
-                return;
-            }
-        }
+//        arm.setAbsPower(-0.1);
+//        double time_offset = timer.time();
+//        while(!magnet_activated()){
+//            telemetry.addData("Position",arm.getCurrentPosition());
+//            telemetry.update();
+//            if(timer.time() - time_offset > 2){
+//                return;
+//            }
+//        }
         arm.resetEncoder();
 //        offset = arm.getCurrentPosition();
         telemetry.addData("Offset", offset);
@@ -314,6 +315,9 @@ public class Intake extends Subsystem {
         }
         claw_open=true;
     }
+    public boolean isInsidePick(){
+        return inside_pick_up;
+    }
     public void enableLevel(boolean on){
         level_on = on;
     }
@@ -355,10 +359,10 @@ public class Intake extends Subsystem {
 //        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
 //        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 60 : 0);
+        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 70 : 0);
     }
     public void slidesStuck(){
-        if(slides.getCurrent() > 9000 ){
+        if(slides.getCurrent() > SLIDE_CURRENT_LIMIT ){
                 trafficLight.flashRed(0.5, 2);
                 arm.setManualPower(0.3);
                 slides.setManualPower(-0.2);
@@ -366,6 +370,12 @@ public class Intake extends Subsystem {
         }else{
             slides.setManualPower(0);
             arm.setManualPower(0);
+        }
+    }
+    public void incrementLevelOffset(int a){
+        level_offset += a;
+        if(level_offset < 0){
+            level_offset = 0;
         }
     }
 
@@ -381,14 +391,12 @@ public class Intake extends Subsystem {
             moveSlides(slides.getCurrentPosition());
             trafficLight.flashRed(0.5, 2);
         }
-        if(level_on){
+        if(level_on) {
 
-           arm.setUseMotionProfile(false);
-           moveArm(calculateArmPosition(slides.getCurrentPosition()));
-           slidesStuck();
-        }else{
-            arm.setUseMotionProfile(true);
+            moveArm(calculateArmPosition(slides.getCurrentPosition()) + level_offset);
+//           slidesStuck();
         }
+
         distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
 

@@ -21,7 +21,7 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
-
+//TODO: make not shit
 @Autonomous
 public class Auto4Sample extends NGAutoOpMode {
 
@@ -111,10 +111,21 @@ public class Auto4Sample extends NGAutoOpMode {
 
                                         intake.armAction(0)
                                         ),
-                                collectSampleAndScore(scoreSecondSample, 0.88),
+                                collectSampleAndScore(scoreSecondSample, RobotConstants.inside_pickup_open),
+
                                 intake.armAction(0,800),
-                                new ParallelAction(thirdSample, intake.armAction(0), intake.slideAction(0)),
-                                collectSampleAndScore(scoreThirdSample, RobotConstants.claw_floor_pickup)
+                                new ParallelAction(thirdSample, intake.armAction(250), intake.slideAction(100)),//TODO: This goes back to zero for not inside pickup but we are probably using inside pickup fr
+                                new InstantAction(() -> intake.moveWrist(180)),
+                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
+                                intake.armAction(50),
+                                intake.grab(RobotConstants.inside_pickup_closed),
+                                new ParallelAction(
+                                        intake.raiseArm(),
+                                        scoreThirdSample
+                                ),
+                                intake.score()
+
+//                                ,collectSampleAndScore(scoreThirdSample, RobotConstants.claw_floor_pickup)
                         )
                 )
         );
