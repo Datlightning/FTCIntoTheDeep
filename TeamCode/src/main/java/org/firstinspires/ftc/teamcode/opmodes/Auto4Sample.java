@@ -21,7 +21,6 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
-//TODO: make not shit
 @Autonomous
 public class Auto4Sample extends NGAutoOpMode {
 
@@ -34,8 +33,9 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
+                .afterTime(0.1, intake.raiseArm(false))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
+                .splineToSplineHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
@@ -45,26 +45,26 @@ public class Auto4Sample extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToLinearHeading(new Pose2d(-59, -37.5, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(new Pose2d(-59, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
 
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225));
+
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
-                .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToSplineHeading(new Pose2d(-53,-38.5, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
-                .splineToConstantHeading(new Vector2d(-53,-25), Math.toRadians(270), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-15,20))
-                .splineToConstantHeading(new Vector2d(-58,-25), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,15));
+                .splineToSplineHeading(new Pose2d(-50,-32, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,30))
+                .splineToConstantHeading(new Vector2d(-56,-27.25), Math.toRadians(180), new TranslationalVelConstraint(25), new ProfileAccelConstraint(-18,20));
+
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-51, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,22));
+                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -77,55 +77,40 @@ public class Auto4Sample extends NGAutoOpMode {
         Action thirdSample = thirdSamplePath.build();
         Action scoreThirdSample = scoreThirdSamplePath.build();
         Action park = parkPath.build();
-        intake.distance.setOn(true);
-        intake.moveArm(0);
-        while(intake.arm.isBusy()){
-            intake.update();
-        }
-        telemetry.addLine("Arm Lowered, ready to go");
-        telemetry.update();
 
         waitForStart();
 
 
         Actions.runBlocking(
                 new ParallelAction(
+                        intake.distance.updateAction(),
                         intake.updateAction(),
                         trafficLight.updateAction(),
                         new SequentialAction(
-                                new ParallelAction(
-                                        scoreSpecimen,
-                                        intake.raiseArm()
-                                ),
+                                scoreSpecimen,
+                                intake.raiseArm(),
                                 intake.score(),
-                                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
-                                new ParallelAction(
-                                        new SequentialAction(intake.armAction(0, 800), firstSample),
-                                        intake.armAction(0),
-                                        intake.slideAction(0)
-                                ),
+                                goToSample(firstSample),
                                 collectSampleAndScore(scoreFirstSample, RobotConstants.claw_floor_pickup),
-
+                                goToSample(secondSample),
+                                collectSampleAndScore(scoreSecondSample, RobotConstants.claw_open),
+                                intake.armAction(400,800),
+                                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_open)),
+                                new ParallelAction(thirdSample, intake.armAction(400),
+                                        new SequentialAction(intake.slideAction(200),
+                                                new InstantAction(() -> intake.turnAndRotateClaw(180,90))
+                                        )
+                                ),
+                                drive.moveUsingDistance(intake.distance, 3.7, 3.5, 4.1, 10),
+                                new InstantAction(() -> intake.arm.setExitWithTime(true)),
+                                intake.armAction(150),
+                                new InstantAction(() -> intake.arm.setExitWithTime(false)),
+                                intake.grab(RobotConstants.claw_closed),
                                 new ParallelAction(
-                                        new SequentialAction(intake.armAction(0, 800), secondSample),
-
-                                        intake.armAction(0)
-                                        ),
-                                collectSampleAndScore(scoreSecondSample, RobotConstants.inside_pickup_open),
-
-                                intake.armAction(0,800),
-                                new ParallelAction(thirdSample, intake.armAction(250), intake.slideAction(100)),//TODO: This goes back to zero for not inside pickup but we are probably using inside pickup fr
-                                new InstantAction(() -> intake.moveWrist(180)),
-                                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
-                                intake.armAction(50),
-                                intake.grab(RobotConstants.inside_pickup_closed),
-                                new ParallelAction(
-                                        intake.raiseArm(),
+                                        intake.raiseArmButNotSnagOnBasket(),
                                         scoreThirdSample
                                 ),
-                                intake.score()
-
-//                                ,collectSampleAndScore(scoreThirdSample, RobotConstants.claw_floor_pickup)
+                                intake.score(true)
                         )
                 )
         );

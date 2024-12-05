@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive.PARAMS;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.ftc.LazyImu;
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -31,11 +34,11 @@ public class MecaTank extends Subsystem {
     private double MAX_DRIVE_SPEED = 1;
     private boolean left_strafe = false;
     private boolean right_strafe = false;
-    private boolean left_lock = false;
-    private boolean right_lock = false;
     private boolean force_exit = false;
 
     private boolean fast_drive_direction = false;
+
+    public double inPerTick = 1/1836.3936507936507936507936507937;
 
     private boolean use_dead_wheel = false;
     private double distance_to_target = 0;
@@ -46,14 +49,16 @@ public class MecaTank extends Subsystem {
     private double time_stop = 0;
     double currentFilterEstimate = 0;
     double previousFilterEstimate = 0;
-    public static double kP = 0.03;  // Proportional constant
-    public static double kI = 0.01;  // Integral constant
+    public static double kP = 0.02;  // Proportional constant
+    public static double kI = 0.001;  // Integral constant
     public static double kD = 0.0005;
 
-    public static boolean  motion_profile = false;
+    public static double kP_heading = 0.13;
+    public static double kD_heading = 0.005;
+    public static boolean  motion_profile = true;
     public static double MAX_VEL = 5;
-    public static double MAX_ACCEL = 2;
-    public static double MAX_DECEL = -0.5;
+    public static double MAX_ACCEL = 0.8;
+    public static double MAX_DECEL = -0.2;
     public static double kF = -0.05;// Feedforward constant
     double previousError = 0;
     double integral = 0;
@@ -65,7 +70,10 @@ public class MecaTank extends Subsystem {
     private boolean front_distance = true;
     public static double a = 0.6;
     private boolean auto_move = false;
+    private double previousHeadingError = 0;
     double error;
+
+    double targetHeading = 0;
 
     private ElapsedTime timer;
     public MecaTank(HardwareMap hardwareMap, Telemetry telemetry){
@@ -76,9 +84,8 @@ public class MecaTank extends Subsystem {
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance);
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance);
-        if(RobotConstants.imu_init) {
-            this.imu = RobotConstants.imu;
-        }
+        imu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
+                PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
 
         backRight.setDirection(DcMotor.Direction.REVERSE);
@@ -104,9 +111,8 @@ public class MecaTank extends Subsystem {
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
 
         this.trafficLight = trafficLight;
-        if(RobotConstants.imu_init) {
-            this.imu = RobotConstants.imu;
-        }
+        imu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
+                PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
         this.timer = timer;
         backRight.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -153,10 +159,20 @@ public class MecaTank extends Subsystem {
         use_dead_wheel = on;
     }
     public double getDistance(){
+
         if(front_distance){
             return distance.getFilteredDist();
         }
         return rear_distance.getFilteredDist();
+    }
+    public double getLinearDeadwheel(){
+        return (backLeft.getCurrentPosition() * PARAMS.inPerTick);
+
+
+    }
+    public void clearLinearDeadwheel(){
+        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
     public void setPowers(double left_stick_x, double left_stick_y, double right_stick_x) {
         double heading = getHeading();  // Get robot heading
@@ -196,26 +212,8 @@ public class MecaTank extends Subsystem {
 //                return;
 //            }
         }
-        if(left_trigger != 0 && !left_lock){
-            if(right_trigger != 0){
-                right_lock = true;
-            }else{
-                right_lock = false;
-            }
-            left_strafe = true;
-        }else{
-            left_strafe = false;
-        }
-        if(right_trigger != 0 && !right_lock){
-            if(left_trigger != 0){
-                left_lock = true;
-            }else{
-                left_lock = false;
-            }
-            right_strafe = true;
-        }else{
-            right_strafe = false;
-        }
+        left_strafe = left_trigger != 0;
+        right_strafe = right_trigger != 0;
         if (left_strafe) {
             double posPower = sameSignSqrt(left_trigger);
             double negPower = sameSignSqrt(-left_trigger);
@@ -241,14 +239,6 @@ public class MecaTank extends Subsystem {
         backLeft.setPower(leftPower * MAX_DRIVE_SPEED);
         frontRight.setPower(rightPower * MAX_DRIVE_SPEED);
         backRight.setPower(rightPower * MAX_DRIVE_SPEED);
-
-
-
-
-
-
-
-
     }
     public void LivePIDToDistance(double distance){
         if (target != distance){
@@ -257,15 +247,19 @@ public class MecaTank extends Subsystem {
             distance_to_target = distance - getDistance();
             starting_motion_profile_time = timer.time();
             starting_pos = getDistance();
+            if (use_dead_wheel && !front_distance){
+                distance_to_target *= -1;
+            }
+            clearLinearDeadwheel();
+            motion_profile = !(Math.abs(distance_to_target) < 2);
         }
         fast_drive = false;
         auto_move = true;
+        targetHeading = getHeading();
         target = distance;
-
-
     }
     public void PIDToDistance(double distance){
-        if (target != distance){
+        if (target != distance || !auto_move){
             previousError = 0;
             integral = 0;
             distance_to_target = distance - getDistance();
@@ -273,7 +267,12 @@ public class MecaTank extends Subsystem {
             starting_pos = getDistance();
             auto_move = true;
             fast_drive = false;
-
+            if (use_dead_wheel && !front_distance){
+                distance_to_target *= -1;
+            }
+            clearLinearDeadwheel();
+            motion_profile = !(Math.abs(distance_to_target) < 2);
+            targetHeading = getHeading();
             target = distance;
         }
     }
@@ -284,6 +283,7 @@ public class MecaTank extends Subsystem {
             target = distance;
             fast_drive_direction = front_distance ? (getDistance() > distance) : (getDistance() < distance);
             fast_drive_speed = fast_drive_direction ? speed : -speed;
+
         }
 
     }
@@ -310,14 +310,21 @@ public class MecaTank extends Subsystem {
         // Declare variables outside of the loop for PID
 
         if (auto_move) {
-            if(fast_drive){
-                telemetry.addData("Direction", fast_drive_direction);
-                telemetry.addData("Front Distance", front_distance);
-                telemetry.addData("Reading Distance Value", getDistance());
-                telemetry.addData("Target", target);
-                telemetry.addData("Speed", fast_drive_speed);
-                boolean completed = fast_drive_direction ? (front_distance ? ( getDistance() < target) : (getDistance() > target)) : (front_distance ? (getDistance() > target) : (getDistance() < target));
-                if(completed){
+            double currentHeading = getHeading();// Get current heading (yaw)
+
+            if (fast_drive) {
+
+                telemetry.addData("Auto Drive Direction", fast_drive_direction);
+                telemetry.addData("Auto Drive Front Distance", front_distance);
+                telemetry.addData("Auto Drive Reading Distance Value", getDistance());
+                telemetry.addData("Auto Drive Target", target);
+                telemetry.addData("Auto Drive Speed", fast_drive_speed);
+                telemetry.addData("Auto Drive Target Heading", targetHeading);
+                telemetry.addData("Auto Drive Current Heading", currentHeading);
+
+                boolean completed = fast_drive_direction ? (front_distance ? (getDistance() < target) : (getDistance() > target)) : (front_distance ? (getDistance() > target) : (getDistance() < target));
+
+                if (completed) {
                     fast_drive = false;
                     auto_move = false;
                     frontLeft.setPower(0);
@@ -327,30 +334,33 @@ public class MecaTank extends Subsystem {
                     trafficLight.red(false);
                     trafficLight.green(true);
                     trafficLight.flashGreen(1, 1);
-
-                }else {
-                    trafficLight.red(true);
-                    frontLeft.setPower(fast_drive_speed);
-                    frontRight.setPower(fast_drive_speed);
-                    backLeft.setPower(fast_drive_speed);
-                    backRight.setPower(fast_drive_speed);
-                }
-
-
-            }
-            else {
-                if (motion_profile) {
-                    error = getDistance() - (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + starting_pos);
                 } else {
-                    error = getDistance() - target;
+                    trafficLight.red(true);
+                    frontLeft.setPower(fast_drive_speed );
+                    frontRight.setPower(fast_drive_speed );
+                    backLeft.setPower(fast_drive_speed );
+                    backRight.setPower(fast_drive_speed );
                 }
-                error *= front_distance ? 1 : -1;
-                telemetry.addData("weird goofy ah error", error);
 
-                // Calculate error
+            } else {
+                if(use_dead_wheel) {
+                    if(motion_profile){
+                        error = Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) - getLinearDeadwheel();
+                    }else{
+                        error = distance_to_target - getLinearDeadwheel();
+                    }
+                }else {
+                    if (motion_profile) {
+                        error = (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + starting_pos) - getDistance();
+                    } else {
+                        error = target - getDistance();
+                    }
+                    error *= front_distance ? -1 : 1;
+                }
+                telemetry.addData("Auto Drive Error", error);
+
                 double time_passed = timer.seconds() - time_stop;
 
-                // Stop condition when error is sufficiently small or auto_move is disabled
                 if (Math.abs(getDistance() - target) < 0.5) {
                     frontLeft.setPower(0);
                     backLeft.setPower(0);
@@ -365,29 +375,30 @@ public class MecaTank extends Subsystem {
                     integral = 0;       // Reset for future runs
                 } else {
                     trafficLight.red(true);
-                    // PID Calculations
-                    double errorChange = (error - previousError);
 
-                    // filter out hight frequency noise to increase derivative performance
+                    double errorChange = (error - previousError);
                     currentFilterEstimate = (a * previousFilterEstimate) + (1 - a) * errorChange;
                     previousFilterEstimate = currentFilterEstimate;
 
-                    integral += error * time_passed;  // Accumulate the error over time
+                    integral += error * time_passed;
                     double derivative = currentFilterEstimate / time_passed;
-
-                    // PID output
                     double power = kP * error + kI * integral + kD * derivative;
 
-                    // Limit power to a safe range (optional, depending on your motor controller)
                     power = Math.max(-0.5, Math.min(0.5, power));
-                    power -= kF * Math.signum(power);
-                    // Set motor power based on the PID output
-                    frontLeft.setPower(power);
-                    backLeft.setPower(power);
-                    backRight.setPower(power);
-                    frontRight.setPower(power);
+                    power -= kF * Math.signum(error);
 
-                    // Update previous error
+                    // Calculate heading correction
+                    double headingError = targetHeading - currentHeading;
+                    double headingCorrection = kP_heading * headingError +
+                            kD_heading * (headingError - previousHeadingError) / time_passed;
+                    previousHeadingError = headingError;
+
+                    // Adjust motor powers for heading correction
+                    frontLeft.setPower(power + headingCorrection);
+                    backLeft.setPower(power + headingCorrection);
+                    backRight.setPower(power - headingCorrection);
+                    frontRight.setPower(power - headingCorrection);
+
                     previousError = error;
                     time_stop = timer.seconds();
                 }

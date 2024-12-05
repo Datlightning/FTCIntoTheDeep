@@ -232,14 +232,7 @@ public class Intake extends Subsystem {
                 armAction(0)
         );
     }
-    public Action scoreLast(){
-        return new SequentialAction(
-                armAction(ARM_LIMIT,ARM_LIMIT - 50),
-                new InstantAction(this::openClaw),
-                armAction(ARM_LIMIT),
-                new InstantAction(() -> moveWrist(RobotConstants.floor_pickup_position + 0.1))
-        );
-    }
+
     public Action grab(){
         return new SequentialAction(
                 new InstantAction(this::closeClaw),
@@ -254,14 +247,45 @@ public class Intake extends Subsystem {
     }
     public Action raiseArm(){
         return new SequentialAction(
+                new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> slides.setExitWithTime(true)),
-
-                armAction(ARM_LIMIT,ARM_LIMIT - 500),
-                new InstantAction(() -> moveWrist(90)),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1250),
-                        armAction(ARM_LIMIT)
+                        armAction(ARM_LIMIT-100)
+                ),
+                new InstantAction(() -> moveWrist(30)),
+                new SleepAction(0.2)
+
+
+        );
+    }
+    public Action raiseArmButNotSnagOnBasket(){
+        return new SequentialAction(
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> arm.setExitWithTime(true)),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                new InstantAction(() -> moveWrist(180)),
+                new ParallelAction(
+                        slideAction(1250),
+                        armAction(ARM_LIMIT-100)
+                ),
+                new InstantAction(() -> moveWrist(30)),
+                new SleepAction(0.2)
+
+
+        );
+    }
+    public Action raiseArm(boolean arm_exit_with_time){
+        return new SequentialAction(
+                new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
+                new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                new InstantAction(() -> turnAndRotateClaw(90,0)),
+                new ParallelAction(
+                        slideAction(1250),
+                        armAction(ARM_LIMIT-100)
                 ),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
@@ -271,7 +295,21 @@ public class Intake extends Subsystem {
     public Action score(){
         return new SequentialAction(
                 new InstantAction(this::openClaw),
+                new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> turnClaw(0)),
+                slideAction(0)
+
+        );
+    }
+    public Action score(boolean extra_claw_clearance){
+        return new SequentialAction(
+                new InstantAction(this::openClaw),
+                new SleepAction(0.1),
+                new InstantAction(() -> turnClaw(0)),
+                new InstantAction(() -> moveWrist(extra_claw_clearance ? 100 : 90)),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0)

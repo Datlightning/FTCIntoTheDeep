@@ -27,9 +27,6 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.TankDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.ThreeDeadWheelLocalizer;
 import org.firstinspires.ftc.teamcode.roadrunner.TwoDeadWheelLocalizer;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.LocalizationTest;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.ManualFeedbackTuner;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.SplineTest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,10 +62,10 @@ public final class TuningOpModes {
                 List<Encoder> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
                 if (md.localizer instanceof MecanumDrive.DriveLocalizer) {
                     MecanumDrive.DriveLocalizer dl = (MecanumDrive.DriveLocalizer) md.localizer;
-                    leftEncs.add(dl.leftFront);
-                    leftEncs.add(dl.leftBack);
-                    rightEncs.add(dl.rightFront);
-                    rightEncs.add(dl.rightBack);
+                    leftEncs.add(dl.frontLeft);
+                    leftEncs.add(dl.backLeft);
+                    rightEncs.add(dl.frontRight);
+                    rightEncs.add(dl.backRight);
                 } else if (md.localizer instanceof ThreeDeadWheelLocalizer) {
                     ThreeDeadWheelLocalizer dl = (ThreeDeadWheelLocalizer) md.localizer;
                     parEncs.add(dl.par0);
@@ -90,12 +87,12 @@ public final class TuningOpModes {
                         MecanumDrive.PARAMS.maxProfileAccel,
                         hardwareMap.getAll(LynxModule.class),
                         Arrays.asList(
-                                md.leftFront,
-                                md.leftBack
+                                md.frontLeft,
+                                md.backLeft
                         ),
                         Arrays.asList(
-                                md.rightFront,
-                                md.rightBack
+                                md.frontRight,
+                                md.backRight
                         ),
                         leftEncs,
                         rightEncs,

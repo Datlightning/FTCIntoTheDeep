@@ -26,7 +26,7 @@ public class RobotConstants {
         inside_pickup_open = position - 0.05;
     }
     public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 108, specimen_deliver = 60;//update the 0 and 90 degrees as well.
-    public static double TOO_FAR = 3.8, TOO_CLOSE = 2, GIVE_UP = 6, TARGET = 2.9;
+    public static double TOO_FAR = 3.8, TOO_CLOSE = 2.3, GIVE_UP = 6, TARGET = 2.9;
     public static Intake intake;
     public static int ARM_LIMIT = 1600;
     public static String intakeMotor = "intake_motor";//ehub 0

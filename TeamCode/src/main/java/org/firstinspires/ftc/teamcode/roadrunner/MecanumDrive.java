@@ -7,8 +7,6 @@ import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kF;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kI;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kP;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -39,7 +37,6 @@ import com.acmerobotics.roadrunner.ftc.LynxFirmware;
 import com.acmerobotics.roadrunner.ftc.OverflowEncoder;
 import com.acmerobotics.roadrunner.ftc.PositionVelocityPair;
 import com.acmerobotics.roadrunner.ftc.RawEncoder;
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -50,17 +47,17 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.Control;
-import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
-import org.firstinspires.ftc.teamcode.roadrunner.Localizer;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.DriveCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.PoseMessage;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
+import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 import java.lang.Math;
@@ -105,6 +102,8 @@ public final class MecanumDrive {
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0; // shared with turn
+
+
     }
     public static Params PARAMS = new Params();
 
@@ -121,7 +120,7 @@ public final class MecanumDrive {
     public final AccelConstraint defaultAccelConstraint =
             new ProfileAccelConstraint(PARAMS.minProfileAccel, PARAMS.maxProfileAccel);
 
-    public final DcMotorEx leftFront, leftBack, rightBack, rightFront;
+    public final DcMotorEx frontLeft, backLeft, backRight, frontRight;
 
     public final VoltageSensor voltageSensor;
 
@@ -129,6 +128,39 @@ public final class MecanumDrive {
 
     public final Localizer localizer;
     public Pose2d pose;
+
+    public static double kF = -0.05;// Feedforward constant
+    double previousError = 0;
+    double integral = 0;
+    private boolean fast_drive = false;
+    private double target = 0;
+
+    private boolean update_distance = true;
+
+    private boolean front_distance = true;
+    public static double a = 0.6;
+    private boolean auto_move = false;
+    private boolean use_dead_wheel = false;
+    double error;
+
+    private boolean fast_drive_direction = false;
+    private boolean force_exit = false;
+
+
+    private double currentFilterEstimate = 0, previousFilterEstimate = 0;
+    private double distance_to_target = 0;
+    private double starting_motion_profile_time = 0;
+
+    private double fast_drive_speed = 0;
+    private double starting_pos = 0;
+    private double time_stop = 0;
+
+    private boolean use_motion_profile = false;
+
+    Distance distance, rear_distance;
+    ElapsedTime timer;
+
+    Telemetry telemetry;
 
     private final LinkedList<Pose2d> poseHistory = new LinkedList<>();
 
@@ -139,7 +171,7 @@ public final class MecanumDrive {
 
     TrafficLight trafficLight;
     public class DriveLocalizer implements Localizer {
-        public final Encoder leftFront, leftBack, rightBack, rightFront;
+        public final Encoder frontLeft, backLeft, backRight, frontRight;
         public final IMU imu;
 
         private int lastLeftFrontPos, lastLeftBackPos, lastRightBackPos, lastRightFrontPos;
@@ -147,10 +179,10 @@ public final class MecanumDrive {
         private boolean initialized;
 
         public DriveLocalizer() {
-            leftFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftFront));
-            leftBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftBack));
-            rightBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightBack));
-            rightFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightFront));
+            frontLeft = new OverflowEncoder(new RawEncoder(MecanumDrive.this.frontLeft));
+            backLeft = new OverflowEncoder(new RawEncoder(MecanumDrive.this.backLeft));
+            backRight = new OverflowEncoder(new RawEncoder(MecanumDrive.this.backRight));
+            frontRight = new OverflowEncoder(new RawEncoder(MecanumDrive.this.frontRight));
 
             imu = lazyImu.get();
 
@@ -160,10 +192,10 @@ public final class MecanumDrive {
 
         @Override
         public Twist2dDual<Time> update() {
-            PositionVelocityPair leftFrontPosVel = leftFront.getPositionAndVelocity();
-            PositionVelocityPair leftBackPosVel = leftBack.getPositionAndVelocity();
-            PositionVelocityPair rightBackPosVel = rightBack.getPositionAndVelocity();
-            PositionVelocityPair rightFrontPosVel = rightFront.getPositionAndVelocity();
+            PositionVelocityPair leftFrontPosVel = frontLeft.getPositionAndVelocity();
+            PositionVelocityPair leftBackPosVel = backLeft.getPositionAndVelocity();
+            PositionVelocityPair rightBackPosVel = backRight.getPositionAndVelocity();
+            PositionVelocityPair rightFrontPosVel = frontRight.getPositionAndVelocity();
 
             YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
 
@@ -221,6 +253,21 @@ public final class MecanumDrive {
             );
         }
     }
+    public void setUseDeadwheel(boolean on){
+        use_dead_wheel = on;
+    }
+    public void mountTimer(ElapsedTime timer){
+        this.timer = timer;
+    }
+    public void mountTelemetry(Telemetry telemetry){
+        this.telemetry = telemetry;
+    }
+    public void mountFrontDistance(Distance distance){
+        this.distance = distance;
+    }
+    public void mountRearDistance(Distance distance){
+        this.rear_distance = distance;
+    }
 
     public MecanumDrive(HardwareMap hardwareMap, Pose2d pose) {
         this.pose = pose;
@@ -232,20 +279,20 @@ public final class MecanumDrive {
         }
 
 
-        leftFront = hardwareMap.get(DcMotorEx.class, RobotConstants.fl);
-        leftBack = hardwareMap.get(DcMotorEx.class, RobotConstants.bl);
-        rightBack = hardwareMap.get(DcMotorEx.class, RobotConstants.br);
-        rightFront = hardwareMap.get(DcMotorEx.class, RobotConstants.fr);
+        frontLeft = hardwareMap.get(DcMotorEx.class, RobotConstants.fl);
+        backLeft = hardwareMap.get(DcMotorEx.class, RobotConstants.bl);
+        backRight = hardwareMap.get(DcMotorEx.class, RobotConstants.br);
+        frontRight = hardwareMap.get(DcMotorEx.class, RobotConstants.fr);
 
-        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightBack.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
-        leftBack.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
 
 
         lazyImu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
@@ -256,7 +303,6 @@ public final class MecanumDrive {
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
         localizer = new TwoDeadWheelLocalizer(hardwareMap, lazyImu.get(), PARAMS.inPerTick);
-
         FlightRecorder.write("MECANUM_PARAMS", PARAMS);
     }
     public void mountTrafficLight(TrafficLight light){
@@ -271,11 +317,16 @@ public final class MecanumDrive {
             maxPowerMag = Math.max(maxPowerMag, power.value());
         }
 
-        leftFront.setPower(wheelVels.leftFront.get(0) / maxPowerMag);
-        leftBack.setPower(wheelVels.leftBack.get(0) / maxPowerMag);
-        rightBack.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
-        rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
+        frontLeft.setPower(wheelVels.leftFront.get(0) / maxPowerMag);
+        backLeft.setPower(wheelVels.leftBack.get(0) / maxPowerMag);
+        backRight.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
+        frontRight.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
     }
+
+
+
+
+
     public Action moveUsingDistance(Distance distance){
         return new MoveUsingDistanceAction(distance);
     }
@@ -290,6 +341,12 @@ public final class MecanumDrive {
     public Action moveUsingDistance(Distance distance, double target, double speed, boolean front){
         return new MoveUsingDistanceAction(distance, target, speed, front);
     }
+
+    private double sameSignSqrt(double number) {
+        return Math.copySign(Math.sqrt(Math.abs(number)), number);
+    }
+
+
 
 
     public class MoveUsingDistanceAction implements Action {
@@ -316,6 +373,8 @@ public final class MecanumDrive {
         private double SPEED = 0;
         private boolean fast = false;
         private boolean front_distance = true;
+
+        private boolean use_motion_profile = false;
         private boolean fast_drive_direction;
 
         public MoveUsingDistanceAction(Distance distance){
@@ -369,6 +428,7 @@ public final class MecanumDrive {
             this.SPEED = fast_drive_direction ? speed : -speed;
 
         }
+
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if(first){
@@ -376,9 +436,12 @@ public final class MecanumDrive {
                 first = false;
                 currentTime = timer.seconds();
                 distance_to_target = target - distance.getFilteredDist();
+                use_dead_wheel = !(Math.abs(distance_to_target) < 2);
                 starting_motion_profile_time = timer.seconds();
                 start_position = distance.getFilteredDist();
                 time_stop = timer.seconds();
+                distance.setOn(true);
+
 
             }
 
@@ -386,47 +449,52 @@ public final class MecanumDrive {
             if(fast){
                 boolean completed = fast_drive_direction ? (front_distance ? ( distance.getFilteredDist() < target) : (distance.getFilteredDist() > target)) : (front_distance ? (distance.getFilteredDist() > target) : (distance.getFilteredDist() < target));
                 if(completed){
-                    leftFront.setPower(0);
-                    leftBack.setPower(0);
-                    rightBack.setPower(0);
-                    rightFront.setPower(0);
+                    frontLeft.setPower(0);
+                    backLeft.setPower(0);
+                    backRight.setPower(0);
+                    frontRight.setPower(0);
                     trafficLight.red(false);
                     trafficLight.green(true);
                     trafficLight.flashGreen(1, 1);
+                    distance.setOn(false);
                     return false;
                 }
                 trafficLight.red(true);
-                leftFront.setPower(SPEED);
-                rightFront.setPower(SPEED);
-                leftBack.setPower(SPEED);
-                rightBack.setPower(SPEED);
+                frontLeft.setPower(SPEED);
+                frontRight.setPower(SPEED);
+                backLeft.setPower(SPEED);
+                backRight.setPower(SPEED);
 
 
             }
             double time_passed = timer.seconds() - time_stop;
-
-            double error = distance.getFilteredDist() - (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + start_position);
-            error *= front_distance ? 1 : -1;
+            double error;
+            if (use_motion_profile) {
+                error = (Control.motionProfile(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance_to_target, timer.seconds() - starting_motion_profile_time) + starting_pos) - distance.getFilteredDist();
+            } else {
+                error = target - distance.getFilteredDist();
+            }
+            error *= front_distance ? -1 : 1;
             double real_error = distance.getFilteredDist() - target;
             telemetryPacket.put("Distance", distance.getDist());
             telemetryPacket.put("Error", error);
             telemetryPacket.put("Time", timer.time(TimeUnit.SECONDS) - currentTime);
             telemetryPacket.put("Active", !(timer.time(TimeUnit.SECONDS) - currentTime > 0.2 && (Math.abs(error) < 0.5)));
             if(distance.getFilteredDist() > GIVE_UP){
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
                 trafficLight.flashOffred(0.5, 2);
 
                 return false;
             }
             if ((Math.abs(real_error) < 0.5 || timer.time(TimeUnit.SECONDS) - currentTime > 1 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))) {
 
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
                 trafficLight.red(false);
                 trafficLight.green(true);
                 trafficLight.flashGreen(1, 1);
@@ -445,10 +513,10 @@ public final class MecanumDrive {
             power = Math.max(-1.0, Math.min(1.0, power));
             power -= kF * Math.signum(power);
 // Set motor power proportionally to the error
-            leftFront.setPower(power);
-            leftBack.setPower(power);
-            rightBack.setPower(power);
-            rightFront.setPower(power);
+            frontLeft.setPower(power);
+            backLeft.setPower(power);
+            backRight.setPower(power);
+            frontRight.setPower(power);
 
             time_stop = timer.seconds();
 
@@ -457,7 +525,6 @@ public final class MecanumDrive {
 
         }
     }
-
     public final class FollowTrajectoryAction implements Action {
         public final TimeTrajectory timeTrajectory;
         private double beginTs = -1;
@@ -490,10 +557,10 @@ public final class MecanumDrive {
             }
 
             if (t >= timeTrajectory.duration) {
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
 
                 return false;
             }
@@ -523,10 +590,10 @@ public final class MecanumDrive {
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
 
-            leftFront.setPower(leftFrontPower);
-            leftBack.setPower(leftBackPower);
-            rightBack.setPower(rightBackPower);
-            rightFront.setPower(rightFrontPower);
+            frontLeft.setPower(leftFrontPower);
+            backLeft.setPower(leftBackPower);
+            backRight.setPower(rightBackPower);
+            frontRight.setPower(rightFrontPower);
 
             p.put("x", pose.position.x);
             p.put("y", pose.position.y);
@@ -571,7 +638,6 @@ public final class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
-
     public final class TurnAction implements Action {
         private final TimeTurn turn;
 
@@ -592,10 +658,10 @@ public final class MecanumDrive {
             }
 
             if (t >= turn.duration) {
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
 
                 return false;
             }
@@ -624,10 +690,10 @@ public final class MecanumDrive {
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
 
-            leftFront.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
-            leftBack.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
-            rightBack.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
-            rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
+            frontLeft.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
+            backLeft.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
+            backRight.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
+            frontRight.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
 
             Canvas c = p.fieldOverlay();
             drawPoseHistory(c);
@@ -650,7 +716,6 @@ public final class MecanumDrive {
             c.fillCircle(turn.beginPose.position.x, turn.beginPose.position.y, 2);
         }
     }
-
     public PoseVelocity2d updatePoseEstimate() {
         Twist2dDual<Time> twist = localizer.update();
         pose = pose.plus(twist.value());
@@ -664,7 +729,6 @@ public final class MecanumDrive {
 
         return twist.velocity().value();
     }
-
     private void drawPoseHistory(Canvas c) {
         double[] xPoints = new double[poseHistory.size()];
         double[] yPoints = new double[poseHistory.size()];

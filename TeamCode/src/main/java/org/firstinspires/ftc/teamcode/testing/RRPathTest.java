@@ -135,7 +135,7 @@ public class RRPathTest extends TestingOpMode {
                                     intake.raiseArm(),
                                     scoreThirdSample
                             ),
-                            intake.scoreLast(),
+                            intake.score(),
                             intake.armAction(1250, 1350),
                             new ParallelAction(
                                 intake.slideAction(0),

@@ -61,7 +61,7 @@ public class TeleOp extends LinearOpMode {
         REVERSE,
         FORWARD,
         EXIT_FLOOR_PICKUP_SEQ,
-        RAISE_ARM
+        LOWER_SLIDES_BEFORE_FOLD, RAISE_ARM
     }
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -286,7 +286,7 @@ public class TeleOp extends LinearOpMode {
                             intake.arm.setManualPower(-0.4);
                             break;
                         }
-                        move_next = false;
+                        move_next = true;
                         intake.setFourBar(false);
 
                         mecaTank.setMaxPower(1);
@@ -302,7 +302,7 @@ public class TeleOp extends LinearOpMode {
 
                     case RAISE_ARM:
 
-                        move_next = true;
+                        move_next = false;
                         intake.slides.setMax(1400);
                         current_time = timer.seconds();
 //                        intake.moveWrist(180);
@@ -315,7 +315,7 @@ public class TeleOp extends LinearOpMode {
                         break;
 
                     case FOLD:
-                        if (intake.arm.isBusy()) {
+                        if (intake.arm.isBusy() || intake.slides.isBusy()) {
                             break;
                         }
                         intake.moveArm(300);
@@ -331,7 +331,10 @@ public class TeleOp extends LinearOpMode {
                         next_position = INTAKE_POSITIONS.TURN_ARM;
                         previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
                         break;
-
+                    case LOWER_SLIDES_BEFORE_FOLD:
+                        intake.moveSlides(0);
+                        next_position = INTAKE_POSITIONS.FOLD;
+                        move_next = true;
                     case TURN_ARM:
                         intake.moveArm(ARM_LIMIT );
                         intake.moveWrist(120);
@@ -351,7 +354,7 @@ public class TeleOp extends LinearOpMode {
                         current_time = timer.time();
                         delay = 0.7;
                         next_position = INTAKE_POSITIONS.TURN_CLAW;
-                        previous_position = INTAKE_POSITIONS.FOLD;
+                        previous_position = INTAKE_POSITIONS.LOWER_SLIDES_BEFORE_FOLD;
                         break;
 
                     case TURN_CLAW:
@@ -620,9 +623,7 @@ public class TeleOp extends LinearOpMode {
                             }
                             mecaTank.setDistanceType(false);
                             rear_distance.setOn(true);
-
-
-                            mecaTank.DrivePastDistance(9, 0.15);
+                            mecaTank.DrivePastDistance(10, 0.3);
                             drive_pid_on = true;
                             next_position3 = INTAKE_POSITIONS.RELEASE;
                             break;

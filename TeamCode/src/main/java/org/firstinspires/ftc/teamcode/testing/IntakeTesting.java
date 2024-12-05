@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
 public class IntakeTesting extends TestingOpMode {
     Intake intake;
     TrafficLight trafficLight;
-    public static double claw_position = 0.85;
+    public static double claw_position = RobotConstants.claw_closed;
     public static double wrist_angle = 0;
     public static double claw_angle = 0;
     public static double rotation_power = 0;
