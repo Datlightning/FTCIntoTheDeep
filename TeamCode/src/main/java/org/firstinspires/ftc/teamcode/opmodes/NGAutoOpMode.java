@@ -38,10 +38,14 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         intake.moveClaw(RobotConstants.claw_closed);
     }
     public Action raiseArmForSpecimen(){
-        return new ParallelAction(
-                intake.slideAction(150),
-                intake.armAction(ARM_LIMIT),
-                new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver))
+        return new SequentialAction(
+                new InstantAction(() -> intake.arm.setExitWithTime(true)),
+                new InstantAction(() -> intake.slides.setExitWithTime(true)),
+                intake.armAction(ARM_LIMIT - 100, 100),
+                new ParallelAction(
+                        intake.armAction(ARM_LIMIT - 100),
+                        intake.slideAction(200)
+                )
         );
     }
     public Action eternalAction(){
@@ -89,7 +93,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     public Action openClawAfterDistance(double distance, Distance sensor){
         return new SequentialAction(
           sensor.waitAction(distance),
-          new InstantAction(() -> intake.openClaw())
+          new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup))
         );
     }
     public Action telemetryLine(String string){

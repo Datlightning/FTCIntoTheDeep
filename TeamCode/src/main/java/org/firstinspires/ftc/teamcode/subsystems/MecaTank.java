@@ -53,8 +53,8 @@ public class MecaTank extends Subsystem {
     public static double kI = 0.001;  // Integral constant
     public static double kD = 0.0005;
 
-    public static double kP_heading = 0.13;
-    public static double kD_heading = 0.005;
+    public static double kP_heading = 0.04;
+    public static double kD_heading = 0.002;
     public static boolean  motion_profile = true;
     public static double MAX_VEL = 5;
     public static double MAX_ACCEL = 0.8;
@@ -255,6 +255,7 @@ public class MecaTank extends Subsystem {
         }
         fast_drive = false;
         auto_move = true;
+        imu.get().resetYaw();
         targetHeading = getHeading();
         target = distance;
     }
@@ -272,6 +273,7 @@ public class MecaTank extends Subsystem {
             }
             clearLinearDeadwheel();
             motion_profile = !(Math.abs(distance_to_target) < 2);
+            imu.get().resetYaw();
             targetHeading = getHeading();
             target = distance;
         }
@@ -311,16 +313,16 @@ public class MecaTank extends Subsystem {
 
         if (auto_move) {
             double currentHeading = getHeading();// Get current heading (yaw)
-
+            telemetry.addData("Auto Drive Direction", fast_drive_direction);
+            telemetry.addData("Auto Drive Front Distance", front_distance);
+            telemetry.addData("Auto Drive Reading Distance Value", getDistance());
+            telemetry.addData("Auto Drive Target", target);
+            telemetry.addData("Auto Drive Speed", fast_drive_speed);
+            telemetry.addData("Auto Drive Target Heading", targetHeading);
+            telemetry.addData("Auto Drive Current Heading", currentHeading);
             if (fast_drive) {
 
-                telemetry.addData("Auto Drive Direction", fast_drive_direction);
-                telemetry.addData("Auto Drive Front Distance", front_distance);
-                telemetry.addData("Auto Drive Reading Distance Value", getDistance());
-                telemetry.addData("Auto Drive Target", target);
-                telemetry.addData("Auto Drive Speed", fast_drive_speed);
-                telemetry.addData("Auto Drive Target Heading", targetHeading);
-                telemetry.addData("Auto Drive Current Heading", currentHeading);
+
 
                 boolean completed = fast_drive_direction ? (front_distance ? (getDistance() < target) : (getDistance() > target)) : (front_distance ? (getDistance() > target) : (getDistance() < target));
 
@@ -388,7 +390,7 @@ public class MecaTank extends Subsystem {
                     power -= kF * Math.signum(error);
 
                     // Calculate heading correction
-                    double headingError = targetHeading - currentHeading;
+                    double headingError = currentHeading - targetHeading;
                     double headingCorrection = kP_heading * headingError +
                             kD_heading * (headingError - previousHeadingError) / time_passed;
                     previousHeadingError = headingError;
@@ -414,7 +416,7 @@ public class MecaTank extends Subsystem {
         trafficLight.telemetry();;
 //        distance.telemetry();
 //        rear_distance.telemetry();
-        if(RobotConstants.imu_init) telemetry.addData("Robot Heading", getHeading());
+        telemetry.addData("Robot Heading", getHeading());
         telemetry.addData("Front Right Motor Power", frontRight.getPower());
         telemetry.addData("Front Left Motor Power", frontLeft.getPower());
         telemetry.addData("Back Right Motor Power", backRight.getPower());

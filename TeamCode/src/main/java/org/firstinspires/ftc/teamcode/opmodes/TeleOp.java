@@ -169,6 +169,7 @@ public class TeleOp extends LinearOpMode {
                 multiClick.clearTaps("right_bumper");
                 if(camera.isCameraOn()){
                     intake.turnClaw(camera.getYellow()[0]);
+                    intake.moveSlides(intake.slides.getCurrentPosition() - 225);
                     camera_align = true;
                 }
             }
@@ -243,7 +244,7 @@ public class TeleOp extends LinearOpMode {
                         move_next = false;
                         intake.plowClaw();
                         intake.moveWrist(90);
-                        intake.moveArm(180 + (intake.isInsidePick() ? 70 : 0));
+                        intake.moveArm(180 + (intake.isInsidePick() ? 70 : 30));
                         intake.moveSlides(150);
                         intake.slides.setMax(1000);
                         intake.setFourBar(false);
@@ -335,7 +336,7 @@ public class TeleOp extends LinearOpMode {
                         move_next = true;
                         break;
                     case TURN_ARM:
-                        intake.moveArm(ARM_LIMIT );
+                        intake.moveArm(ARM_LIMIT - 100);
                         intake.moveWrist(120);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.EXTEND;
@@ -613,7 +614,7 @@ public class TeleOp extends LinearOpMode {
                             }
                             intake.moveSlides(0);
 
-                            intake.moveArm(ARM_LIMIT );
+                            intake.moveArm(ARM_LIMIT + 50);
                             next_position3 = INTAKE_POSITIONS.REVERSE;
                             move_next3 = true;
                         case REVERSE:
@@ -622,7 +623,7 @@ public class TeleOp extends LinearOpMode {
                             }
                             mecaTank.setDistanceType(false);
                             rear_distance.setOn(true);
-                            mecaTank.DrivePastDistance(10, 0.3);
+                            mecaTank.DrivePastDistance(10, 0.4);
                             drive_pid_on = true;
                             next_position3 = INTAKE_POSITIONS.RELEASE;
                             break;
