@@ -85,10 +85,33 @@ public class Distance extends Subsystem {
 
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            telemetryPacket.put("Filtered Distance", getFilteredDist());
+            telemetryPacket.put(name + " Filtered Distance", getFilteredDist());
             update();
             return true;
         }
+    }
+    public class waitAction implements Action {
+        double target_distance = 0;
+        boolean first= true;
+        boolean direction = true;
+        public waitAction(double target_distance){
+            this.target_distance = target_distance;
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(first){
+                setOn(true);
+                direction = getDist() < target_distance;
+                first = false;
+            }
+            telemetryPacket.put(name + " Filtered Distance In Wait Action", getFilteredDist());
+            boolean exit = direction ? getFilteredDist() < target_distance : getFilteredDist() > target_distance;
+            setOn(exit);
+            return exit;
+        }
+    }
+    public Action waitAction(double target){
+        return new waitAction(target);
     }
     public Action updateAction(){
         return new updateAction();

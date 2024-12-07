@@ -32,42 +32,42 @@ public class Auto1Specimen extends NGAutoOpMode {
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .setReversed(true)
                 .strafeTo(new Vector2d(-9, -58))
-                .splineToSplineHeading(new Pose2d(0, -32, Math.toRadians(270)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
+                .splineToSplineHeading(new Pose2d(-6, -32, Math.toRadians(270)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
 
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
-                .afterDisp(7.2, new InstantAction(() -> intake.openClaw()))
-                .splineTo(new Vector2d(0, -43), Math.toRadians(270))
+//                .afterDisp(7.2, new InstantAction(() -> intake.openClaw()))
+                .splineTo(new Vector2d(-6, -43), Math.toRadians(270))
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .afterTime(0.1, intake.slideAction(0))
                 .afterTime(0.1, intake.armAction(0))
                 .stopAndAdd( new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)))
-                .splineTo(new Vector2d(-48, -39), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
+                .splineTo(new Vector2d(-48, -40), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,50));
 
 
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-55, -58, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .splineToLinearHeading(new Pose2d(-61, -40, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(new Pose2d(-61, -40, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,35));
 
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-55, -58, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
-                .splineToSplineHeading(new Pose2d(-50,-32, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,30))
-                .splineToConstantHeading(new Vector2d(-56,-28.25), Math.toRadians(180), new TranslationalVelConstraint(25), new ProfileAccelConstraint(-18,20));
+                .splineToSplineHeading(new Pose2d(-50,-32, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-16,30))
+                .splineToConstantHeading(new Vector2d(-53,-29.5), Math.toRadians(180), new TranslationalVelConstraint(25), new ProfileAccelConstraint(-18,20));
 
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(new Pose2d(-56, -58, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,28));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -80,13 +80,14 @@ public class Auto1Specimen extends NGAutoOpMode {
         Action thirdSample = thirdSamplePath.build();
         Action scoreThirdSample = scoreThirdSamplePath.build();
         Action park = parkPath.build();
-
+        rear_distance.setOn(true);
         waitForStart();
 
 
         Actions.runBlocking(
                 new ParallelAction(
                         intake.distance.updateAction(),
+                        rear_distance.updateAction(),
                         intake.updateAction(),
                         trafficLight.updateAction(),
                         new SequentialAction(
@@ -101,12 +102,11 @@ public class Auto1Specimen extends NGAutoOpMode {
                                     scoreSpecimen
                                 ),
                                 intake.slideAction(0),
-                                firstSample,
-//                                eternalAction(),
                                 new ParallelAction(
-                                        intake.armAction(0),
-                                        intake.slideAction(0)
+                                        firstSample,
+                                        openClawAfterDistance(7.5, rear_distance)
                                 ),
+
                                 collectSampleAndScore(scoreFirstSample, RobotConstants.claw_floor_pickup),
                                 goToSample(secondSample),
                                 collectSampleAndScore(scoreSecondSample, RobotConstants.claw_open),

@@ -225,18 +225,18 @@ public class TeleOp extends LinearOpMode {
 
             mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
 
-            boolean a = (player2  && currentGamepad2.a && !previousGamepad2.a) || ( currentGamepad1.a && !previousGamepad1.a);
-            multiClick.update("a", getRuntime(), a);
-            if (move_next || multiClick.getTaps("a") > 0) {
+            multiClick.update("a", getRuntime(),  ( currentGamepad1.a && !previousGamepad1.a));
+            multiClick.update("a2", getRuntime(), (player2  && currentGamepad2.a && !previousGamepad2.a));
+
+            if (move_next || multiClick.getTaps("a") > 0 || multiClick.getTaps("a2") > 0) {
                 trafficLight.flashGreen(0.5, multiClick.getTaps("a"));
                 // Move forward if single tap, move backward if double tap
-                if (multiClick.getTaps("a") == 1 || move_next) {
-                    telemetry.addLine("progress forward");
+                if (multiClick.getTaps("a") == 1 || move_next || multiClick.getTaps("a2") == 1) {
                     position = next_position;  // Move forward
-                } else if (multiClick.getTaps("a") == 2) {
-                    telemetry.addLine("run.");
+                } else if (multiClick.getTaps("a") == 2 || multiClick.getTaps("a2") == 3) {
                     position = previous_position;  // Move backward
                 }
+                multiClick.clearTaps("a2");
                 multiClick.clearTaps("a");
                 switch (position) {
                     case START:
@@ -294,47 +294,46 @@ public class TeleOp extends LinearOpMode {
                         intake.closeClaw();
                         next_position = INTAKE_POSITIONS.RAISE_ARM;
                         intake.slides.setMax(1400);
-                        intake.moveArm(intake.arm.getCurrentPosition() + 50);
                         intake.enableLevel(false);
-
+                        current_time = timer.time();
+                        delay = 0.3;
                         previous_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
 
                     case RAISE_ARM:
-
+                        if(timer.time() - current_time < delay){
+                            break;
+                        }
                         move_next = false;
                         intake.slides.setMax(1400);
                         current_time = timer.seconds();
+                        intake.enableLevel(false);
 //                        intake.moveWrist(180);
                         intake.useFastPID(true);
                         intake.slides.setUseMotionProfile(true);
                         intake.moveArm(350);
                         intake.setFourBar(false);
                         next_position = INTAKE_POSITIONS.FOLD;
-                        previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
+                        previous_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
 
                     case FOLD:
-                        if (intake.arm.isBusy() || intake.slides.isBusy()) {
-                            break;
-                        }
                         intake.moveArm(300);
-
                         move_next = false;
                         intake.arm.setUseMotionProfile(true);
                         intake.slides.setUseMotionProfile(true);
-
                         intake.useFastPID(false);
                         intake.moveWrist(90);
                         intake.moveSlides(0);
                         camera.stopCamera();
                         next_position = INTAKE_POSITIONS.TURN_ARM;
-                        previous_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;
+                        previous_position = INTAKE_POSITIONS.RAISE_ARM;
                         break;
                     case LOWER_SLIDES_BEFORE_FOLD:
                         intake.moveSlides(0);
                         next_position = INTAKE_POSITIONS.FOLD;
                         move_next = true;
+                        break;
                     case TURN_ARM:
                         intake.moveArm(ARM_LIMIT );
                         intake.moveWrist(120);

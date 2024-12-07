@@ -30,6 +30,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        RobotConstants.auto_transfer = true;
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         intake.init();
         intake.slides.setReachedRange(30);
@@ -50,10 +51,17 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     public Action scoreSpecimen(Distance rear_distance){
         return new SequentialAction(
                 drive.moveUsingDistance(rear_distance, 4.5, 4, 4.8, false),
-                intake.slideAction(50),
-                drive.moveUsingDistance(rear_distance, 9, 0.15, false),
-                intake.grab(RobotConstants.claw_fully_open),
-                new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position - 10))
+                intake.slideAction(0)
+        );
+    }
+    public Action newScoreSpecimen(Action action, Distance rear_distance){
+        return new SequentialAction(
+                intake.slideAction(0),
+                new ParallelAction(
+                        openClawAfterDistance(7.5, rear_distance),
+                        action
+
+                )
         );
     }
     public Action collectSampleAndScore(Action sampleScore, double ending_claw_pos){
@@ -72,10 +80,23 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
-                        new SequentialAction(intake.armAction(0, 1000), sample),
+                        sample,
                         intake.armAction(0),
                         intake.slideAction(0)
                 )
+        );
+    }
+    public Action openClawAfterDistance(double distance, Distance sensor){
+        return new SequentialAction(
+          sensor.waitAction(distance),
+          new InstantAction(() -> intake.openClaw())
+        );
+    }
+    public Action telemetryLine(String string){
+        return new SequentialAction(
+                new InstantAction(() -> telemetry.addLine(string)),
+                new InstantAction(() ->
+                telemetry.update())
         );
     }
 

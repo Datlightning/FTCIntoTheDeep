@@ -436,7 +436,7 @@ public final class MecanumDrive {
                 first = false;
                 currentTime = timer.seconds();
                 distance_to_target = target - distance.getFilteredDist();
-                use_dead_wheel = !(Math.abs(distance_to_target) < 2);
+                use_motion_profile = !(Math.abs(distance_to_target) < 2);
                 starting_motion_profile_time = timer.seconds();
                 start_position = distance.getFilteredDist();
                 time_stop = timer.seconds();

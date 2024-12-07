@@ -294,7 +294,7 @@ public class Intake extends Subsystem {
     }
     public Action score(){
         return new SequentialAction(
-                new InstantAction(this::openClaw),
+                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
                 new InstantAction(() -> arm.setExitWithTime(false)),
@@ -397,7 +397,7 @@ public class Intake extends Subsystem {
 //        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
 //        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 70 : 0);
+        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 70 : 15);
     }
     public void slidesStuck(){
         if(slides.getCurrent() > SLIDE_CURRENT_LIMIT ){

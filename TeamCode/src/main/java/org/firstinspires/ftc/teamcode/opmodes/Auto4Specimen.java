@@ -39,11 +39,13 @@ public class Auto4Specimen extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(false)
-                .splineToConstantHeading(new Vector2d(10, -34.5), Math.toRadians(90));
+                .strafeTo(new Vector2d(10, -58))
+                .splineToSplineHeading(new Pose2d(6, -32, Math.toRadians(270)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30))
         TrajectoryActionBuilder throwFirstSamplePath = scoreFirstSpecimenPath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToConstantHeading(new Vector2d(36, -46), Math.toRadians(0))
-                .splineToConstantHeading(new Vector2d(48, -34.5), Math.toRadians(90));
+                .splineTo(new Vector2d(6, -43), Math.toRadians(0))
+                .splineTo(new Vector2d(36, -46), Math.toRadians(0))
+                .splineTo(new Vector2d(48, -34.5), Math.toRadians(90));
         TrajectoryActionBuilder throwSecondSamplePath = throwFirstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(52, -40), Math.toRadians(0))
@@ -57,21 +59,21 @@ public class Auto4Specimen extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreSecondSpecimenPath = clearThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(10, -34.5, Math.toRadians(270)), Math.toRadians(90));
+                .splineToLinearHeading(new Pose2d(10, -32, Math.toRadians(270)), Math.toRadians(90));
         TrajectoryActionBuilder pickThirdSpecimenPath = scoreSecondSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .splineToLinearHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(0));
 
         TrajectoryActionBuilder scoreThirdSpecimenPath = pickThirdSpecimenPath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(10, -34.5, Math.toRadians(270)), Math.toRadians(90));
+                .splineToLinearHeading(new Pose2d(13, -32, Math.toRadians(270)), Math.toRadians(90));
         TrajectoryActionBuilder pickFourthSpecimenPath = scoreThirdSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .splineToLinearHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(0));
 
         TrajectoryActionBuilder scoreFourthSpecimenPath = pickFourthSpecimenPath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(10, -34.5, Math.toRadians(270)), Math.toRadians(90));
+                .splineToLinearHeading(new Pose2d(16, -32, Math.toRadians(270)), Math.toRadians(90));
 
         Action scoreFirstSpecimen = scoreFirstSpecimenPath.build();
         Action throwFirstSample = throwFirstSamplePath.build();
@@ -90,26 +92,29 @@ public class Auto4Specimen extends NGAutoOpMode {
                     raiseArmForSpecimen(),
                     scoreSpecimen(rear_distance),
                     throwFirstSample,
-                    drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
+
+                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                     intake.yeetSample(),
                     throwSecondSample,
-                    drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
+
+                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, RobotConstants.GIVE_UP),
                     intake.yeetSample(),
                     clearThirdSample,
+
                     trafficLight.warnHuman(),
-                    drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
-                    new ParallelAction(scoreSecondSpecimen,trafficLight.disable()),
-                    raiseArmForSpecimen(),
-                    scoreSpecimen(rear_distance),
+                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
+                    intake.grab(RobotConstants.claw_closed),
+                    new ParallelAction(scoreSecondSpecimen,trafficLight.disable(),raiseArmForSpecimen()),
                     pickThirdSpecimen,
                     trafficLight.warnHuman(),
-                    drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
-                    new ParallelAction(scoreThirdSpecimen,trafficLight.disable()),
+                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
+                    intake.grab(RobotConstants.claw_closed),
+                    new ParallelAction(scoreThirdSpecimen,trafficLight.disable(),raiseArmForSpecimen()),
                     raiseArmForSpecimen(),
                     scoreSpecimen(rear_distance),
                     pickFourthSpecimen,
                     trafficLight.warnHuman(),
-                    drive.moveUsingDistance(intake.distance, 2, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
+                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     new ParallelAction(scoreFourthSpecimen,trafficLight.disable()),
                     raiseArmForSpecimen(),
                     scoreSpecimen(rear_distance)
@@ -188,5 +193,10 @@ public class Auto4Specimen extends NGAutoOpMode {
 
 
     }
-
+    public Action driveAndGrab(){
+        return new SequentialAction(
+                drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
+                intake.grab(RobotConstants.claw_closed)
+            );
+    }
 }
