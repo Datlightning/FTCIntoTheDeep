@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 @Config
-@Disabled
+//@Disabled
 @TeleOp
 public class IndividualWheelTesting extends TestingOpMode {
     private ElapsedTime time = new ElapsedTime();

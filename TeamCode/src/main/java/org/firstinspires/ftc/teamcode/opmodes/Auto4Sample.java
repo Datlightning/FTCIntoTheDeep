@@ -29,13 +29,13 @@ public class Auto4Sample extends NGAutoOpMode {
         Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
         initAuto(beginPose);
 
-
+        Pose2d basket = new Pose2d(-51, -53, Math.toRadians(45));
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .afterTime(0.1, intake.raiseArm(false))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
+                .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40));
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
@@ -45,7 +45,7 @@ public class Auto4Sample extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(basket, Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
@@ -55,16 +55,16 @@ public class Auto4Sample extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(basket, Math.toRadians(225));
 
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
-                .splineToSplineHeading(new Pose2d(-50,-32, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,30))
-                .splineToConstantHeading(new Vector2d(-56,-27.25), Math.toRadians(180), new TranslationalVelConstraint(25), new ProfileAccelConstraint(-18,20));
+                .splineToSplineHeading(new Pose2d(-50,-33, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,30))
+                .splineToConstantHeading(new Vector2d(-56,-27), Math.toRadians(180), new TranslationalVelConstraint(25), new ProfileAccelConstraint(-12,20));
 
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-54, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -101,9 +101,9 @@ public class Auto4Sample extends NGAutoOpMode {
                                                 new InstantAction(() -> intake.turnAndRotateClaw(180,90))
                                         )
                                 ),
-                                drive.moveUsingDistance(intake.distance, 3.7, 3.5, 4.1, 10),
+                                drive.moveUsingDistance(intake.distance, 3.3, 2.7, 3.7, 10),
                                 new InstantAction(() -> intake.arm.setExitWithTime(true)),
-                                intake.armAction(150),
+                                intake.armAction(50),
                                 new InstantAction(() -> intake.arm.setExitWithTime(false)),
                                 intake.grab(RobotConstants.claw_closed),
                                 new ParallelAction(

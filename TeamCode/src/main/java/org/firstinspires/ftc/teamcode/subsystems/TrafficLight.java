@@ -186,13 +186,13 @@ public class TrafficLight extends Subsystem {
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if(stage == 0 && !wait){
                 wait = true;
-                delay = 0.5;
+                delay = 0.25;
                 green(true);
                 current_time = timer.time();
             }else if(stage == 1 && !wait){
                 wait = true;
                 red(true);
-                delay = 0.25;
+                delay = 0.125;
                 current_time = timer.time();
             }else if(stage == 2 && !wait){
                 wait = true;

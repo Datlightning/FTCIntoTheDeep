@@ -153,15 +153,16 @@ public class Intake extends Subsystem {
         use_fast_pid = on;
     }
     public void calculateOffset(){
-//        arm.setAbsPower(-0.1);
-//        double time_offset = timer.time();
-//        while(!magnet_activated()){
-//            telemetry.addData("Position",arm.getCurrentPosition());
-//            telemetry.update();
-//            if(timer.time() - time_offset > 2){
-//                return;
-//            }
-//        }
+        arm.setAbsPower(-0.1);
+
+        double time_offset = timer.time();
+        while(!magnet_activated()){
+            telemetry.addData("Position",arm.getCurrentPosition());
+            telemetry.update();
+            if(timer.time() - time_offset > 1){
+                return;
+            }
+        }
         arm.resetEncoder();
 //        offset = arm.getCurrentPosition();
         telemetry.addData("Offset", offset);

@@ -34,7 +34,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         intake.init();
         intake.slides.setReachedRange(30);
-        intake.calculateOffset();
+//        intake.calculateOffset();
         intake.moveClaw(RobotConstants.claw_closed);
     }
     public Action raiseArmForSpecimen(){
@@ -44,7 +44,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 intake.armAction(ARM_LIMIT - 100, 100),
                 new ParallelAction(
                         intake.armAction(ARM_LIMIT - 100),
-                        intake.slideAction(200)
+                        intake.slideAction(100)
                 )
         );
     }
@@ -84,8 +84,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
-                        sample,
-                        intake.armAction(0),
+                        new SequentialAction(intake.armAction(0, 1000), sample),
                         intake.slideAction(0)
                 )
         );

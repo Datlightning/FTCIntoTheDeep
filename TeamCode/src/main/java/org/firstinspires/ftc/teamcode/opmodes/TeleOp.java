@@ -118,7 +118,7 @@ public class TeleOp extends LinearOpMode {
         }else {
             intake.init();
             sleep(200);
-            intake.calculateOffset();
+//            intake.calculateOffset();
             offset = intake.getOffset();
         }
         camera.init();

@@ -163,11 +163,16 @@ public class IntakeTesting extends TestingOpMode {
             if(distance_scope) {
                 trafficLight.green(intake.distance.getFilteredDist() < 12);
             }
+            intake.distance.setOn(true);
+            mecaTank.rear_distance.setOn(true);
             telemetry.addData("Target Distance", distance);
             mecaTank.telemetry();
             mecaTank.update();
             intake.update();
-
+            intake.distance.update();
+            intake.distance.telemetry();
+            mecaTank.rear_distance.update();
+            mecaTank.rear_distance.telemetry();
             telemetry.addData("Slide Predicted Distance", intake.calculateSlidePositionForFloorPickup(intake.distance.getFilteredDist()));
             intake.telemetry();
             telemetry.update();
