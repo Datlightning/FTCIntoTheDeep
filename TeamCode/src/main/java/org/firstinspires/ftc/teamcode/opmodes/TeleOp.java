@@ -61,7 +61,7 @@ public class TeleOp extends LinearOpMode {
         REVERSE,
         FORWARD,
         EXIT_FLOOR_PICKUP_SEQ,
-        LOWER_SLIDES_BEFORE_FOLD, RAISE_ARM
+        LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, RAISE_ARM
     }
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -133,6 +133,7 @@ public class TeleOp extends LinearOpMode {
         intake.slides.setUseMotionProfile(true);
 
         mecaTank.init();
+//        intake.moveArm(180);
         ElapsedTime loopTimer = new ElapsedTime();
         waitForStart();
         camera.stopCamera();
@@ -241,21 +242,28 @@ public class TeleOp extends LinearOpMode {
                 multiClick.clearTaps("a");
                 switch (position) {
                     case START:
-                        move_next = false;
+                        move_next = true;
                         intake.plowClaw();
                         intake.moveWrist(90);
                         intake.moveArm(180 + (intake.isInsidePick() ? 70 : 30));
-                        intake.moveSlides(150);
                         intake.slides.setMax(1000);
                         intake.setFourBar(false);
                         intake.enableLevel(false);
                         maintain_level = false;
                         camera.startCamera();
 
-                        next_position = INTAKE_POSITIONS.LOWER_CLAW;
+                        next_position = INTAKE_POSITIONS.EXTEND_SLIDE_AFTER_START_ARM_RAISE;
                         previous_position = INTAKE_POSITIONS.START; // Set previous position for double tap
                         break;
-
+                    case EXTEND_SLIDE_AFTER_START_ARM_RAISE:
+                        if(intake.arm.isBusy()){
+                            break;
+                        }
+                        move_next = false;
+                        intake.moveSlides(150);
+                        next_position = INTAKE_POSITIONS.LOWER_CLAW;
+                        previous_position = INTAKE_POSITIONS.START;
+                        break;
                     case LOWER_CLAW:
                         intake.moveWrist(135);
                         intake.plowClaw();
@@ -461,19 +469,23 @@ public class TeleOp extends LinearOpMode {
                     intake.setFourBar(false);
                     intake.setInsidePick(false);
                     camera.useInsidePick(false);
+                    move_next3 = false;
+                    move_next = false;
 
                     mecaTank.setMaxPower(1);
                     intake.slides.setMax(1400);
 
                     switch (position) {
                         case PICK_UP_FLOOR:
-                            if (!intake.slides.isBusy()) {
+                            if(intake.slides.isBusy()){
+                                break;
+                            }
                                 distance.setOn(true);
                                 intake.setDistanceScoping(true);
                                 intake.moveArm(0);
                                 next_position2 = INTAKE_POSITIONS.GRAB_FLOOR;
                                 move_next2 = false;
-                            }
+
                             break;
 //
                         case GRAB_FLOOR:
@@ -499,7 +511,6 @@ public class TeleOp extends LinearOpMode {
                             intake.moveSlides(0);
                             intake.moveWrist(RobotConstants.floor_pickup_position);
                             intake.moveClaw(RobotConstants.claw_fully_open);
-
                             next_position2 = INTAKE_POSITIONS.PICK_UP_FLOOR;
                             move_next2 = true;
                             break;
@@ -573,16 +584,19 @@ public class TeleOp extends LinearOpMode {
 
                     switch (position) {
                         case PICK_UP_FLOOR:
-                            if (!intake.slides.isBusy()) {
+                            if(intake.slides.isBusy()){
+                                break;
+                            }
                                 intake.setDistanceScoping(true);
                                 mecaTank.setDistanceType(true);
                                 distance.setOn(true);
                                 intake.moveArm(0);
                                 next_position3 = INTAKE_POSITIONS.GRAB_FLOOR_SPECIMEN;
                                 move_next3 = false;
-                            }
+
                             break;
                         case GRAB_FLOOR_SPECIMEN:
+
                             if (!mecaTank.isBusy()) {
                                 intake.setDistanceScoping(false);
                                 distance.setOn(false);
@@ -597,7 +611,7 @@ public class TeleOp extends LinearOpMode {
                         case RAISE_ARM_FOR_SPECIMEN:
                             if (timer.time() - current_time > delay) {
                                 move_next3 = false;
-                                intake.moveArm(ARM_LIMIT - 100);
+                                intake.moveArm(ARM_LIMIT);
                                 intake.moveSlides(200);
                                 intake.moveWrist(RobotConstants.specimen_deliver);
                                 next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;

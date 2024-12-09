@@ -41,9 +41,9 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 new InstantAction(() -> intake.arm.setExitWithTime(true)),
                 new InstantAction(() -> intake.slides.setExitWithTime(true)),
-                intake.armAction(ARM_LIMIT - 100, 100),
+                intake.armAction(ARM_LIMIT , 100),
                 new ParallelAction(
-                        intake.armAction(ARM_LIMIT - 100),
+                        intake.armAction(ARM_LIMIT ),
                         intake.slideAction(100)
                 )
         );

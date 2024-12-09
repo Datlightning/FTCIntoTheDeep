@@ -39,7 +39,7 @@ public class Auto1Specimen extends NGAutoOpMode {
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .setReversed(true)
-                .splineToConstantHeading(new Vector2d(-6,-34), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
+                .splineToConstantHeading(new Vector2d(-6,-34.5), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
 
         TrajectoryActionBuilder firstSamplePath = scoreSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
@@ -55,7 +55,7 @@ public class Auto1Specimen extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreFirstSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53, -56, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
@@ -65,7 +65,7 @@ public class Auto1Specimen extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreSecondSamplePath = secondSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53, -56, Math.toRadians(45)), Math.toRadians(225));
+                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225));
 
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
@@ -74,7 +74,7 @@ public class Auto1Specimen extends NGAutoOpMode {
 
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-53, -56, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32));
+                .splineToLinearHeading(new Pose2d(-55, -57, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32));
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -100,9 +100,9 @@ public class Auto1Specimen extends NGAutoOpMode {
                         new SequentialAction(
                                 new ParallelAction(
                                     new SequentialAction(
-                                            intake.armAction(ARM_LIMIT - 100, 100),
+                                            intake.armAction(ARM_LIMIT, 100),
                                             new ParallelAction(
-                                                    intake.armAction(ARM_LIMIT - 100),
+                                                    intake.armAction(ARM_LIMIT ),
                                                     intake.slideAction(200)
                                             )
                                     ),
