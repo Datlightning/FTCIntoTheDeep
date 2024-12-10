@@ -1,11 +1,14 @@
 package org.firstinspires.ftc.teamcode.library;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class MultiClick {
+    private boolean enable_telemetry = false;
     private static final double TAP_THRESHOLD = 0.3;
-
+    Telemetry telemetry;
     // Each button will store taps and last tap time.
     private static class ButtonState {
         int taps;
@@ -18,6 +21,13 @@ public class MultiClick {
             this.currentTaps = 0;
         }
     }
+    public void enableTelemetry(boolean on){
+        this.enable_telemetry = on;
+    }
+    public MultiClick(Telemetry telemetry){
+        this.telemetry = telemetry;
+    }
+
 
     private final Map<String, ButtonState> buttonStates = new HashMap<>();
 
@@ -34,6 +44,9 @@ public class MultiClick {
 
         // Detect a button press (i.e., current press is true, previous press is false)
         if (buttonPressed) {
+            if(enable_telemetry) {
+                telemetry.addData(buttonId + " presses: ", state.taps);
+            }
             state.taps += 1;
             state.lastTapTime = currentTime;
         }

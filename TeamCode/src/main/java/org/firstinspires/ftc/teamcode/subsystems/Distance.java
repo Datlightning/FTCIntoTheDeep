@@ -50,6 +50,9 @@ public class Distance extends Subsystem {
     public void setOn(boolean on){
         this.on = on;
     }
+    public boolean isOn(){
+        return on;
+    }
     @Override
     public void telemetry() {
         telemetry.addData(name + " is on: ", on);

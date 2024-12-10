@@ -11,7 +11,7 @@ public class RobotConstants {
     public static double
             claw_closed = 0.43,
             claw_fully_open = claw_closed - 0.25,
-            claw_open= claw_closed - 0.15,
+            claw_open= claw_closed - 0.12,
             claw_flat = claw_closed - 0.43,
             claw_floor_pickup = claw_closed - 0.27,
             inside_pickup_closed = claw_closed - 0.15,
@@ -19,7 +19,7 @@ public class RobotConstants {
     public static void updateClawClosed(double position){
         claw_closed = position;
         claw_fully_open = position - 0.25;
-        claw_open = position - 0.15;
+        claw_open = position - 0.12;
         claw_flat = position - 0.43;
         claw_floor_pickup = position - 0.27;
         inside_pickup_closed = position - 0.15;

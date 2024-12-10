@@ -62,6 +62,9 @@ public class IntakeTesting extends TestingOpMode {
 
     public static boolean distance_scope = false;
     private boolean past_distance_scope = false;
+
+    public static boolean lower_arm_until_0_velo = false;
+    public static double lower_arm_speed = -0.4;
     ElapsedTime timer;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -88,6 +91,10 @@ public class IntakeTesting extends TestingOpMode {
             if(arm_position != past_arm_position){
                 intake.moveArm(arm_position);
 
+            }
+            if(lower_arm_until_0_velo){
+                lower_arm_until_0_velo = false;
+                intake.moveArmUntilZeroSpeed(lower_arm_speed);
             }
             if(slide_position != past_slide_position){
                 intake.moveSlides(slide_position);

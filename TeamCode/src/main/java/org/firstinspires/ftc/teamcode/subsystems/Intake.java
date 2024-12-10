@@ -31,7 +31,7 @@ public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
     public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
     public NGMotor arm;
-
+    private double claw_offset = 0;
     public NGMotor slides;
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
     DigitalChannel magnet_sensor;
@@ -56,7 +56,12 @@ public class Intake extends Subsystem {
     private boolean use_fast_pid = false;
     private boolean distance_update = true;
     private boolean distance_scope = false;
+
+    private boolean use_velo = false;
+    private double use_velo_power = 0;
     public static int SLIDE_CURRENT_LIMIT = 8500;
+
+    public static double VELO_THRESHOLD = 0;
     private double slide_stuck_time = 0;
     private boolean level_on = false;
     private double target_angle = 0;//To the y-axis
@@ -127,6 +132,9 @@ public class Intake extends Subsystem {
         distance_update = false;
         this.distance = distance;
     }
+    public void setClawOffset(double offset){
+        claw_offset = offset;
+    }
     public void setInsidePick(boolean on){
         inside_pick_up = on;
         if(claw_open){
@@ -153,13 +161,13 @@ public class Intake extends Subsystem {
         use_fast_pid = on;
     }
     public void calculateOffset(){
-        arm.setAbsPower(-0.1);
+        arm.setAbsPower(-0.3);
 
         double time_offset = timer.time();
         while(!magnet_activated()){
             telemetry.addData("Position",arm.getCurrentPosition());
             telemetry.update();
-            if(timer.time() - time_offset > 1){
+            if(timer.time() - time_offset > 1.2){
                 return;
             }
         }
@@ -180,15 +188,29 @@ public class Intake extends Subsystem {
         this.target_angle = target_angle;
     }
     public void moveArm(int targetPosition){
+        if(arm.getCurrentPosition() > ARM_LIMIT - 400 && targetPosition < 200 && slides.getCurrentPosition() > 300){
+            trafficLight.flashRed(1,1);
+            return;
+        }
         arm.move_async(targetPosition + offset);
     }
+    public void moveArmUntilZeroSpeed(double power){
+        use_velo = true;
+        use_velo_power = power;
 
+    }
 
+    public void useVelo(boolean on){
+        use_velo = on;
+    }
+    public boolean getVeloOn(){
+        return use_velo;
+    }
     public void moveWrist(double wristAngle){
         diffyClaw.setWristAngle(wristAngle);
     }
     public void moveClaw(double clawPosition){
-        diffyClaw.moveClaw(clawPosition);
+        diffyClaw.moveClaw(clawPosition + claw_offset);
     }
     public void turnClaw(double clawAngle){
         diffyClaw.setClawAngle(-clawAngle);
@@ -209,9 +231,9 @@ public class Intake extends Subsystem {
     }
     public void openClaw() {
         if(inside_pick_up){
-            diffyClaw.moveClaw(RobotConstants.inside_pickup_open);
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_open + claw_offset);
         }else {
-            diffyClaw.moveClaw(RobotConstants.claw_open);
+            diffyClaw.moveClaw(RobotConstants.claw_open + claw_offset);
         }
         claw_open=true;
     }
@@ -340,17 +362,17 @@ public class Intake extends Subsystem {
     }
     public void closeClaw() {
         if(inside_pick_up){
-            diffyClaw.moveClaw(RobotConstants.inside_pickup_closed);
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_closed + claw_offset);
         }else {
-            diffyClaw.moveClaw(RobotConstants.claw_closed);
+            diffyClaw.moveClaw(RobotConstants.claw_closed + claw_offset);
         }
         claw_open=false;
     }
     public void plowClaw(){
         if(inside_pick_up){
-            diffyClaw.moveClaw(RobotConstants.inside_pickup_open);
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_open + claw_offset);
         }else {
-            diffyClaw.moveClaw(RobotConstants.claw_open);
+            diffyClaw.moveClaw(RobotConstants.claw_open + claw_offset);
         }
         claw_open=true;
     }
@@ -414,15 +436,23 @@ public class Intake extends Subsystem {
     public void incrementLevelOffset(int a){
         level_offset += a;
         if(level_offset < 0){
-            level_offset = 0;
+            if(a < 0) {
+                level_offset -= a;
+            }
         }
     }
-
+    public void absIncrementLevelOffset(int a){
+        level_offset += a;
+    }
+    public int getLevelOffset(){
+        return level_offset;
+    }
 
     @Override
     public void update() {
         diffyClaw.update();
         trafficLight.update();
+
         if(distance_scope) {
             trafficLight.green(distance.getFilteredDist() < 10);
         }
@@ -438,7 +468,12 @@ public class Intake extends Subsystem {
 
         distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-
+        if(use_velo){
+            use_velo = arm.getVelocity() >= VELO_THRESHOLD;
+            arm.setManualPower(use_velo_power);
+        }else{
+            arm.setManualPower(0);
+        }
         if(arm.getCurrentPosition() > 330 || use_fast_pid){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
 
@@ -478,7 +513,7 @@ public class Intake extends Subsystem {
         slides.setUseMotionProfile(true);
         slides.setMax(1400);
         arm.setMax(ARM_LIMIT);
-        arm.setMin(-10);
+        arm.setMin(-1000);
         slides.setMaxAcceleration(9000);
         slides.setMaxVelocity(12000);
         slides.setMaxDeceleration(3000);
