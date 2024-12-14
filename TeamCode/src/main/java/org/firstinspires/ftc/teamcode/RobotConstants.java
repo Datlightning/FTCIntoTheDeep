@@ -11,7 +11,7 @@ public class RobotConstants {
     public static double
             claw_closed = 0.43,
             claw_fully_open = claw_closed - 0.25,
-            claw_open= claw_closed - 0.12,
+            claw_open= claw_closed - 0.15,
             claw_flat = claw_closed - 0.43,
             claw_floor_pickup = claw_closed - 0.27,
             inside_pickup_closed = claw_closed - 0.15,
@@ -26,11 +26,11 @@ public class RobotConstants {
         inside_pickup_open = position - 0.05;
     }
     public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 100, specimen_deliver = 60;//update the 0 and 90 degrees as well.
-    public static double TOO_FAR = 3.8, TOO_CLOSE = 2.3, GIVE_UP = 6, TARGET = 2.9;
+    public static double TOO_FAR = 3.8, TOO_CLOSE = 2.3, GIVE_UP = 4.3, TARGET = 2.9;
     public static Intake intake;
     public static int ARM_LIMIT = 1600;
     public static String intakeMotor = "intake_motor";//ehub 0
-    public static String slidesMotor = "slide_motor";//ehub 1
+    public static String slidesMotor = "slide_motor";//ehub 1 taped togethwr with encoder
     public static String claw_servo = "claw_servo";//ehub 4 (yellow servo connector)
     public static String left_servo = "left_servo";//ehub 3 (black tape)
     public static String right_servo = "right_servo";//ehub 1 (copious lack of black tape)

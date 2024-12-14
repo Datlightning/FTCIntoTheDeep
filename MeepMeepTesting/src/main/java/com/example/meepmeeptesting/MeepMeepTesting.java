@@ -26,26 +26,15 @@ public class MeepMeepTesting {
                 return new MinMax(-30,50);
             }
         };
-        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(10, -64 , Math.toRadians(270)))
-                .setReversed(true)
-                .splineToConstantHeading(new Vector2d(0,-42), Math.toRadians(90))
-                .setReversed(true)
-                .waitSeconds(1)
-                .splineToConstantHeading(new Vector2d(10, -42), Math.toRadians(270))
-                .splineToConstantHeading(new Vector2d(30, -42), Math.toRadians(0))
-                .splineToSplineHeading(new Pose2d(36, -20, Math.toRadians(0)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-14,20))
-                .splineToSplineHeading(new Pose2d(44, -10, Math.toRadians(0)), Math.toRadians(270), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-14,40))
-                .splineToConstantHeading(new Vector2d(48, -52), Math.toRadians(270), null, highMode)
-                .splineToConstantHeading(new Vector2d(46, -12), 0, null, highMode)
-                .splineToConstantHeading(new Vector2d(55, -10), Math.toRadians(270), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-14,40))
-                .splineToConstantHeading(new Vector2d(55, -54), Math.toRadians(270), null, highMode)
-                .splineToConstantHeading(new Vector2d(25, -58), Math.toRadians(180), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,40))
-//                .splineToLinearHeading(new Pose2d(10, -32, Math.toRadians(270)), Math.toRadians(90))
-//                .splineToSplineHeading(new Pose2d(10, -42, Math.toRadians(270)), Math.toRadians(270))
-//                .splineToSplineHeading(new Pose2d(28, -58, Math.toRadians(0)), Math.toRadians(0))
-
-
-
+        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-33, -64 , Math.toRadians(0)))
+                        .setReversed(true)
+//                .splineToLinearHeading(new Pose2d(-52, -54, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40))
+//                        .waitSeconds(1)
+                        .setTangent(Math.toRadians(135))
+                .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
+                .splineToSplineHeading(new Pose2d(-52, -54, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
+                //                .splineToSplineHeading(new Pose2d(-50,-33, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(35), new ProfileAccelConstraint(-12,30))
+//                .splineToConstantHeading(new Vector2d(-56,-27), Math.toRadians(180), new TranslationalVelConstraint(15), new ProfileAccelConstraint(-8,20))
                 .build());
 
         meepMeep.setBackground(MeepMeep.Background.FIELD_INTO_THE_DEEP_OFFICIAL )

@@ -61,6 +61,7 @@ public class Intake extends Subsystem {
     private double use_velo_power = 0;
     public static int SLIDE_CURRENT_LIMIT = 8500;
 
+    private boolean previous_magnet_on = false;
     public static double VELO_THRESHOLD = 0;
     private double slide_stuck_time = 0;
     private boolean level_on = false;
@@ -272,11 +273,11 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                armAction(ARM_LIMIT-150,ARM_LIMIT - 500),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
-                        slideAction(1250),
-                        armAction(ARM_LIMIT-100)
+                        slideAction(1300),
+                        armAction(ARM_LIMIT-150)
                 ),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
@@ -288,11 +289,11 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                armAction(ARM_LIMIT-150,ARM_LIMIT - 500),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
-                        slideAction(1250),
-                        armAction(ARM_LIMIT-100)
+                        slideAction(1300),
+                        armAction(ARM_LIMIT-150)
                 ),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
@@ -307,7 +308,7 @@ public class Intake extends Subsystem {
                 armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
-                        slideAction(1250),
+                        slideAction(1300),
                         armAction(ARM_LIMIT-100)
                 ),
                 new InstantAction(() -> moveWrist(30)),
@@ -333,6 +334,7 @@ public class Intake extends Subsystem {
                 new SleepAction(0.1),
                 new InstantAction(() -> turnClaw(0)),
                 new InstantAction(() -> moveWrist(extra_claw_clearance ? 100 : 90)),
+                new SleepAction(extra_claw_clearance ? 0.4 : 0),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0)
@@ -452,6 +454,11 @@ public class Intake extends Subsystem {
     public void update() {
         diffyClaw.update();
         trafficLight.update();
+
+        if(magnet_activated() && !previous_magnet_on){
+            arm.resetEncoder();
+        }
+        previous_magnet_on = magnet_activated();
 
         if(distance_scope) {
             trafficLight.green(distance.getFilteredDist() < 10);

@@ -25,6 +25,8 @@ public class Distance extends Subsystem {
     private boolean on = false;
     private ElapsedTime timer;
     private String name = "";
+
+    private int calls_per_loop = 0;
     Telemetry telemetry;
     public Distance(HardwareMap hardwareMap, Telemetry telemetry, String name){
         this.telemetry = telemetry;
@@ -42,7 +44,14 @@ public class Distance extends Subsystem {
 
     }
     public double getDist() {
+        calls_per_loop += 1;
         return sensorDistance.getDistance(DistanceUnit.INCH);
+    }
+    public int getCalls(){
+        return calls_per_loop;
+    }
+    public void clearCalls(){
+        calls_per_loop = 0;
     }
     public void setFilter(double filter){
         filter_value = filter;
