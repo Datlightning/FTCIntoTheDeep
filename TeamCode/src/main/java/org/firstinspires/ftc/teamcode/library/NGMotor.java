@@ -314,7 +314,7 @@ public class NGMotor extends Subsystem {
 // Feedforward term
         out += F;
 // Check if the target has been reached (based on an error threshold)
-        reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range;
+        reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range && Math.abs(out) < 0.3;
 
 // Set motor power output
         pid_motor.setPower(out);

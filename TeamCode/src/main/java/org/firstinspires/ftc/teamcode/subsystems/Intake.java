@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+import static org.firstinspires.ftc.teamcode.RobotConstants.intake;
 
 import androidx.annotation.NonNull;
 
@@ -273,13 +274,13 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                armAction(ARM_LIMIT-150,ARM_LIMIT - 500),
+                armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
-                        slideAction(1300),
+                        slideAction(1350),
                         armAction(ARM_LIMIT-150)
                 ),
-                new InstantAction(() -> moveWrist(30)),
+                new InstantAction(() -> moveWrist(35)),
                 new SleepAction(0.2)
 
 
@@ -289,7 +290,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                armAction(ARM_LIMIT-150,ARM_LIMIT - 500),
+                armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
                         slideAction(1300),
@@ -321,6 +322,8 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
+                new InstantAction(() -> arm.setExitWithTime(true)),
+//                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> turnClaw(0)),
@@ -335,6 +338,8 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> turnClaw(0)),
                 new InstantAction(() -> moveWrist(extra_claw_clearance ? 100 : 90)),
                 new SleepAction(extra_claw_clearance ? 0.4 : 0),
+                new InstantAction(() -> arm.setExitWithTime(true)),
+//                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0)

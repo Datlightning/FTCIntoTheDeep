@@ -27,12 +27,18 @@ public class MeepMeepTesting {
             }
         };
         myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(-33, -64 , Math.toRadians(0)))
-                        .setReversed(true)
 //                .splineToLinearHeading(new Pose2d(-52, -54, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-22,40))
 //                        .waitSeconds(1)
-                        .setTangent(Math.toRadians(135))
-                .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
-                .splineToSplineHeading(new Pose2d(-52, -54, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
+                        .setReversed(true)
+                .splineToLinearHeading(new Pose2d(-57, -61, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30))
+                .setReversed(false)
+
+                .splineToSplineHeading(new Pose2d(-48.5,-38.25, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(15))
+                .splineToConstantHeading(new Vector2d(-56.5,-31.25), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,22))
+                .setReversed(true)
+                        .setTangent(Math.toRadians(270))
+                .splineToSplineHeading(new Pose2d(-52, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
+                .splineToConstantHeading(new Vector2d(-58, -62), Math.toRadians(225), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
                 //                .splineToSplineHeading(new Pose2d(-50,-33, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(35), new ProfileAccelConstraint(-12,30))
 //                .splineToConstantHeading(new Vector2d(-56,-27), Math.toRadians(180), new TranslationalVelConstraint(15), new ProfileAccelConstraint(-8,20))
                 .build());

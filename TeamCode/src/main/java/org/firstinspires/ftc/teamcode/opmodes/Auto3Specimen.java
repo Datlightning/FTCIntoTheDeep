@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.MinMax;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.ProfileAccelConstraint;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
@@ -48,6 +49,13 @@ public class Auto3Specimen extends NGAutoOpMode {
             }
         };
 
+        FailoverAction pickupAfterDistance1 = new FailoverAction(pickupAfterDistance(RobotConstants.TOO_FAR, intake.distance), new InstantAction(() -> intake.distance.setOn(false)), false);
+
+        FailoverAction pickupAfterDistance2 = new FailoverAction(pickupAfterDistance(RobotConstants.TOO_FAR, intake.distance), new InstantAction(() -> intake.distance.setOn(false)), false);
+
+        FailoverAction pickupAfterDistance3 = new FailoverAction(intake.distance.waitAction(4),new InstantAction(() -> intake.distance.setOn(false)), false );
+
+
         TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .setReversed(true)
@@ -61,32 +69,44 @@ public class Auto3Specimen extends NGAutoOpMode {
                 .splineToConstantHeading(new Vector2d(46, -15), 0, null, highMode)
                 .splineToConstantHeading(new Vector2d(54, -15), Math.toRadians(270), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-14,40))
                  .splineToConstantHeading(new Vector2d(53, -54), Math.toRadians(270), null, highMode)
-                 .splineToConstantHeading(new Vector2d(25, -64), Math.toRadians(180), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,40)) ;
-         TrajectoryActionBuilder moveForward1 = clearSamples.endTrajectory().fresh()
-                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30));
+                .afterTime(0.1, new InstantAction(pickupAfterDistance1::enable))
+                .splineToConstantHeading(new Vector2d(25, -64), Math.toRadians(180), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,40));
 
-        TrajectoryActionBuilder scoreSecondSpecimenPath = moveForward1.endTrajectory().fresh()
+         TrajectoryActionBuilder moveForward1 = clearSamples.endTrajectory().fresh()
+                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30))
+                .stopAndAdd(new InstantAction(pickupAfterDistance1::failover));
+
+        TrajectoryActionBuilder scoreSecondSpecimenPath = clearSamples.endTrajectory().fresh()
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .splineToLinearHeading(new Pose2d(2, -30.5, Math.toRadians(270)), Math.toRadians(90), null,smartScore);
+
         TrajectoryActionBuilder pickThirdSpecimenPath = scoreSecondSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .splineToSplineHeading(new Pose2d(2, -42, Math.toRadians(270)), Math.toRadians(270))
+                .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
                 .splineToSplineHeading(new Pose2d(25, -64, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,40));
-        TrajectoryActionBuilder moveForward2 = pickThirdSpecimenPath.endTrajectory().fresh()
-                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30));
 
-        TrajectoryActionBuilder scoreThirdSpecimenPath = moveForward2.endTrajectory().fresh()
+        TrajectoryActionBuilder moveForward2 = pickThirdSpecimenPath.endTrajectory().fresh()
+                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30))
+                .stopAndAdd(new InstantAction(pickupAfterDistance2::failover));
+
+        TrajectoryActionBuilder scoreThirdSpecimenPath = pickThirdSpecimenPath.endTrajectory().fresh()
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .splineToLinearHeading(new Pose2d(7, -30.5, Math.toRadians(270)), Math.toRadians(90), null, smartScore);
+
         TrajectoryActionBuilder pickFourthSpecimenPath = scoreThirdSpecimenPath.endTrajectory().fresh()
                 .setReversed(false)
                 .splineToSplineHeading(new Pose2d(7, -42, Math.toRadians(270)), Math.toRadians(270))
+                .afterTime(0.1, new InstantAction(pickupAfterDistance3::enable))
                 .splineToSplineHeading(new Pose2d(25, -64, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,40));
+
         TrajectoryActionBuilder moveForward3 = pickFourthSpecimenPath.endTrajectory().fresh()
-                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30));
-        TrajectoryActionBuilder scoreFourthSpecimenPath = moveForward3.endTrajectory().fresh()
+                .lineToX(42, new TranslationalVelConstraint(50), new ProfileAccelConstraint(-7,30))
+                .stopAndAdd(new InstantAction(pickupAfterDistance3::failover));
+
+        TrajectoryActionBuilder scoreFourthSpecimenPath = pickFourthSpecimenPath.endTrajectory().fresh()
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
                 .splineToLinearHeading(new Pose2d(10, -35, Math.toRadians(270)), Math.toRadians(90));
@@ -95,15 +115,15 @@ public class Auto3Specimen extends NGAutoOpMode {
                 .splineToConstantHeading(new Vector2d(40,-40), Math.toRadians(0));
 
         Action clearSampleAction = clearSamples.build();
-        Action scoreFirstSpecimen = scoreFirstSpecimenPath.build();
-        Action scoreSecondSpecimen = scoreSecondSpecimenPath.build();
+        FailoverAction scoreFirstSpecimen = new FailoverAction(scoreFirstSpecimenPath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
+        FailoverAction scoreSecondSpecimen = new FailoverAction(scoreSecondSpecimenPath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         Action pickThirdSpecimen = pickThirdSpecimenPath.build();
-        Action scoreThirdSpecimen = scoreThirdSpecimenPath.build();
+        FailoverAction scoreThirdSpecimen = new FailoverAction(scoreThirdSpecimenPath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         Action pickFourthSpecimen = pickFourthSpecimenPath.build();
-        Action scoreFourthSpecimen = scoreFourthSpecimenPath.build();
-        Action moveForwardAction1= moveForward1.build();
-        Action moveForwardAction2 = moveForward2.build();
-        Action moveForwardAction3 = moveForward3.build();
+        Action scoreFourthSpecimen =  scoreFourthSpecimenPath.build();
+        FailoverAction moveForwardAction1= new FailoverAction(moveForward1.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
+        FailoverAction moveForwardAction2 = new FailoverAction(moveForward2.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
+        FailoverAction moveForwardAction3 = new FailoverAction(moveForward3.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         Action moveBack = moveBackPath.build();
 
 
@@ -119,13 +139,14 @@ public class Auto3Specimen extends NGAutoOpMode {
                                             intake.slideAction(100)
                                     )
                             ),
+                            afterDistance(4.5, rear_distance, new InstantAction(scoreFirstSpecimen::failover)),
                             scoreFirstSpecimen
                     ),
                     intake.slideAction(0),
                     new ParallelAction(
                         clearSampleAction,
                         new SequentialAction(
-                                openClawAfterDistance(8, rear_distance),
+                                openClawAfterDistance(8.5, rear_distance),
                                 new InstantAction(() -> intake.moveWrist(0)),
                                 intake.armAction(0)
 
@@ -133,10 +154,20 @@ public class Auto3Specimen extends NGAutoOpMode {
                     ),
                     new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                     trafficLight.warnHuman(),
+                    new ParallelAction(
                     moveForwardAction1,
+                            new SequentialAction(
+                                    pickupAfterDistance1,
+                                    new InstantAction(moveForwardAction1::failover)
+                            )
+                            ),
 //                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     intake.grab(RobotConstants.claw_closed),
-                    new ParallelAction(scoreSecondSpecimen,trafficLight.disable(),raiseArmForSpecimen()),
+                    new ParallelAction(
+                            scoreSecondSpecimen,
+                            afterDistance(4.5, rear_distance, new InstantAction(scoreSecondSpecimen::failover)),
+                            trafficLight.disable(),
+                            raiseArmForSpecimen()),
                     new InstantAction(() -> rear_distance.setOn(true)),
                     new ParallelAction(
                         intake.slideAction(0)
@@ -145,17 +176,24 @@ public class Auto3Specimen extends NGAutoOpMode {
                     new ParallelAction(
                             pickThirdSpecimen,
                             new SequentialAction(
-                                    openClawAfterDistance(8.8, rear_distance),
+                                    openClawAfterDistance(8.5, rear_distance),
                                     new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                                     intake.armAction(0)
                             )
                     ),
                 new InstantAction(() -> intake.arm.setExitWithTime(false)),
                 trafficLight.warnHuman(),
-                    moveForwardAction2,
+                    new ParallelAction(
+                        moveForwardAction2,
+                            new SequentialAction(
+                                    pickupAfterDistance2,
+                                    new InstantAction(moveForwardAction2::failover)
+                            )
+                    ),
 //                    drive.moveUsingDistance(intake.distance, RobotConstants.TARGET, RobotConstants.TOO_CLOSE, RobotConstants.TOO_FAR, 12),
                     intake.grab(RobotConstants.claw_closed),
                     new ParallelAction(
+                            afterDistance(4.5, rear_distance, new InstantAction(scoreThirdSpecimen::failover)),
                             scoreThirdSpecimen,
                             trafficLight.disable(),
                             raiseArmForSpecimen()),
@@ -167,7 +205,7 @@ public class Auto3Specimen extends NGAutoOpMode {
                     new ParallelAction(
                             pickFourthSpecimen,
                             new SequentialAction(
-                                    openClawAfterDistance(8.8, rear_distance),
+                                    openClawAfterDistance(8.5, rear_distance),
                                     new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)),
                                     intake.armAction(300),
                                     intake.slideAction(400)

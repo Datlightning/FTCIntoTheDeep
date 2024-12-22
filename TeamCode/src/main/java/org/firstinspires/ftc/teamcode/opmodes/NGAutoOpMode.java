@@ -1,9 +1,13 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+import static org.firstinspires.ftc.teamcode.RobotConstants.distance;
+
+import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
@@ -80,19 +84,70 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );
     }
+    public Action collectSampleAndScore(Action sampleScore, double ending_claw_pos, boolean use_distance_move){
+        return new SequentialAction(
+                intake.grab(RobotConstants.claw_closed),
+                new ParallelAction(
+                        new SequentialAction(
+                                new SleepAction(0.3),
+                            intake.raiseArm()
+                        ),
+                      sampleScore
+
+                ),
+                new SleepAction(0.2),
+                intake.score(),
+                new InstantAction(() -> intake.moveClaw(ending_claw_pos))
+        );
+    }
+
     public Action goToSample(Action sample){
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
+                        new InstantAction(() -> intake.distance.setOn(true)),
                         new SequentialAction(intake.armAction(0, 1000), sample),
                         intake.slideAction(0)
+
                 )
+
         );
     }
+    public Action goToSample(FailoverAction sample, FailoverAction distance){
+        return new SequentialAction(
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
+                new ParallelAction(
+                        new InstantAction(() -> intake.distance.setOn(true)),
+                        new SequentialAction(intake.armAction(0, 1000),
+                                sample),
+                                new SequentialAction(
+                                        distance,
+                                        new InstantAction(sample::failover)
+                                ),
+                        intake.slideAction(0)
+
+                )
+
+        );
+    }
+
+
     public Action openClawAfterDistance(double distance, Distance sensor){
         return new SequentialAction(
           sensor.waitAction(distance),
           new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup))
+        );
+    }
+    public Action pickupAfterDistance(double distance, Distance sensor){
+        return new SequentialAction(
+                sensor.waitAction(distance),
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_closed))
+        );
+    }
+    public Action afterDistance(double distance, Distance sensor, Action action){
+        return new SequentialAction(
+                sensor.waitAction(distance),
+                action
         );
     }
     public Action telemetryLine(String string){
@@ -101,6 +156,40 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new InstantAction(() ->
                 telemetry.update())
         );
+    }
+    public class FailoverAction implements Action{
+        private final Action mainAction;
+        private final Action failoverAction;
+        private boolean failedOver = false;
+        private boolean on = true;
+
+        public FailoverAction(Action mainAction, Action failoverAction) {
+            this.mainAction = mainAction;
+            this.failoverAction = failoverAction;
+        }
+        public FailoverAction(Action mainAction, Action failoverAction, boolean on) {
+            this.mainAction = mainAction;
+            this.on = on;
+            this.failoverAction = failoverAction;
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if (!on){
+                return true;
+            }
+            if (failedOver) {
+                return failoverAction.run(telemetryPacket);
+            }
+
+            return mainAction.run(telemetryPacket);
+        }
+        public void enable(){
+            on = true;
+        }
+        public void failover() {
+            failedOver = true;
+        }
     }
 
 }

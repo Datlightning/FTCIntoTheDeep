@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.roadrunner;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_ACCEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_DECEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_VEL;
-import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kF;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kI;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.kP;
 
@@ -57,7 +56,6 @@ import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.PoseMessage;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
-import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 import java.lang.Math;
@@ -377,6 +375,8 @@ public final class MecanumDrive {
         private boolean use_motion_profile = false;
         private boolean fast_drive_direction;
 
+        private double power = 0;
+
         public MoveUsingDistanceAction(Distance distance){
             this.distance = distance;
             target = RobotConstants.TARGET;  // Midpoint distance
@@ -434,14 +434,22 @@ public final class MecanumDrive {
             if(first){
                 timer.reset();
                 first = false;
+                distance.setOn(true);
                 currentTime = timer.seconds();
                 distance_to_target = target - distance.getFilteredDist();
                 use_motion_profile = !(Math.abs(distance_to_target) < 2);
                 starting_motion_profile_time = timer.seconds();
                 start_position = distance.getFilteredDist();
                 time_stop = timer.seconds();
-                distance.setOn(true);
+                if(distance.getDist() > GIVE_UP){
+                    frontLeft.setPower(0);
+                    backLeft.setPower(0);
+                    backRight.setPower(0);
+                    frontRight.setPower(0);
+                    trafficLight.flashOffred(0.5, 2);
 
+                    return false;
+                }
 
             }
 
@@ -480,16 +488,10 @@ public final class MecanumDrive {
             telemetryPacket.put("Error", error);
             telemetryPacket.put("Time", timer.time(TimeUnit.SECONDS) - currentTime);
             telemetryPacket.put("Active", !(timer.time(TimeUnit.SECONDS) - currentTime > 0.2 && (Math.abs(error) < 0.5)));
-            if(distance.getFilteredDist() > GIVE_UP){
-                frontLeft.setPower(0);
-                backLeft.setPower(0);
-                backRight.setPower(0);
-                frontRight.setPower(0);
-                trafficLight.flashOffred(0.5, 2);
 
-                return false;
-            }
-            if ((Math.abs(real_error) < 0.5 || timer.time(TimeUnit.SECONDS) - currentTime > 1 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))) {
+            if (timer.time(TimeUnit.SECONDS) - currentTime > 1 || (Math.abs(power) < 0.3 &&
+                    (Math.abs(real_error) < 0.5 || (distance.getDist() > TOO_CLOSE && distance.getDist() < TOO_FAR))
+            )) {
 
                 frontLeft.setPower(0);
                 backLeft.setPower(0);
@@ -507,7 +509,7 @@ public final class MecanumDrive {
             // filter out hight frequency noise to increase derivative performance
             integral += error * time_passed;  // Accumulate the error over time
             // PID output
-            double power = kP * error + kI * integral;
+            power = kP * error + kI * integral;
 
             // Limit power to a safe range (optional, depending on your motor controller)
             power = Math.max(-1.0, Math.min(1.0, power));
@@ -530,7 +532,6 @@ public final class MecanumDrive {
         private double beginTs = -1;
 
         private final double[] xPoints, yPoints;
-
         public FollowTrajectoryAction(TimeTrajectory t) {
             timeTrajectory = t;
 
@@ -556,7 +557,7 @@ public final class MecanumDrive {
                 t = Actions.now() - beginTs;
             }
 
-            if (t >= timeTrajectory.duration) {
+            if (t >= timeTrajectory.duration ) {
                 frontLeft.setPower(0);
                 backLeft.setPower(0);
                 backRight.setPower(0);
@@ -564,11 +565,10 @@ public final class MecanumDrive {
 
                 return false;
             }
-
             Pose2dDual<Time> txWorldTarget = timeTrajectory.get(t);
             targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
-
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            Pose2d error = txWorldTarget.value().minusExp(pose);
 
             PoseVelocity2dDual<Time> command = new HolonomicController(
                     PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain,
@@ -599,7 +599,6 @@ public final class MecanumDrive {
             p.put("y", pose.position.y);
             p.put("heading (deg)", Math.toDegrees(pose.heading.toDouble()));
 
-            Pose2d error = txWorldTarget.value().minusExp(pose);
             p.put("xError", error.position.x);
             p.put("yError", error.position.y);
 
@@ -638,6 +637,118 @@ public final class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
+    public final class FollowTrajectoryActionClosely implements Action {
+        public final TimeTrajectory timeTrajectory;
+        private double beginTs = -1;
+
+        private final double[] xPoints, yPoints;
+        public FollowTrajectoryActionClosely(TimeTrajectory t) {
+            timeTrajectory = t;
+
+            List<Double> disps = com.acmerobotics.roadrunner.Math.range(
+                    0, t.path.length(),
+                    Math.max(2, (int) Math.ceil(t.path.length() / 2)));
+            xPoints = new double[disps.size()];
+            yPoints = new double[disps.size()];
+            for (int i = 0; i < disps.size(); i++) {
+                Pose2d p = t.path.get(disps.get(i), 1).value();
+                xPoints[i] = p.position.x;
+                yPoints[i] = p.position.y;
+            }
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket p) {
+            double t;
+            if (beginTs < 0) {
+                beginTs = Actions.now();
+                t = 0;
+            } else {
+                t = Actions.now() - beginTs;
+            }
+
+            Pose2dDual<Time> txWorldTarget = timeTrajectory.get(t);
+            targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
+            PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            Pose2d error = txWorldTarget.value().minusExp(pose);
+            if ((t >= timeTrajectory.duration && error.position.norm() < 2 && robotVelRobot.linearVel.norm() < 0.5)
+                    || t >= timeTrajectory.duration + 1) {
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
+                return false;
+            }
+
+
+            PoseVelocity2dDual<Time> command = new HolonomicController(
+                    PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain,
+                    PARAMS.axialVelGain, PARAMS.lateralVelGain, PARAMS.headingVelGain
+            )
+                    .compute(txWorldTarget, pose, robotVelRobot);
+            driveCommandWriter.write(new DriveCommandMessage(command));
+
+            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(command);
+            double voltage = voltageSensor.getVoltage();
+
+            final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
+                    PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
+            double leftFrontPower = feedforward.compute(wheelVels.leftFront) / voltage;
+            double leftBackPower = feedforward.compute(wheelVels.leftBack) / voltage;
+            double rightBackPower = feedforward.compute(wheelVels.rightBack) / voltage;
+            double rightFrontPower = feedforward.compute(wheelVels.rightFront) / voltage;
+            mecanumCommandWriter.write(new MecanumCommandMessage(
+                    voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
+            ));
+
+            frontLeft.setPower(leftFrontPower);
+            backLeft.setPower(leftBackPower);
+            backRight.setPower(rightBackPower);
+            frontRight.setPower(rightFrontPower);
+
+            p.put("x", pose.position.x);
+            p.put("y", pose.position.y);
+            p.put("heading (deg)", Math.toDegrees(pose.heading.toDouble()));
+
+            p.put("xError", error.position.x);
+            p.put("yError", error.position.y);
+
+//            if(Math.abs(error.position.x) > ERROR_THRESHOLD || Math.abs(error.position.y) > ERROR_THRESHOLD){
+//                leftFront.setPower(0);
+//                leftBack.setPower(0);
+//                rightBack.setPower(0);
+//                rightFront.setPower(0);
+//                return false;
+//            }
+
+
+            p.put("headingError (deg)", Math.toDegrees(error.heading.toDouble()));
+
+            // only draw when active; only one drive action should be active at a time
+            Canvas c = p.fieldOverlay();
+            drawPoseHistory(c);
+
+            c.setStroke("#4CAF50");
+            Drawing.drawRobot(c, txWorldTarget.value());
+
+            c.setStroke("#3F51B5");
+            Drawing.drawRobot(c, pose);
+
+            c.setStroke("#4CAF50FF");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+
+            return true;
+        }
+
+        @Override
+        public void preview(Canvas c) {
+            c.setStroke("#4CAF507A");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+        }
+    }
+
     public final class TurnAction implements Action {
         private final TimeTurn turn;
 
@@ -761,4 +872,20 @@ public final class MecanumDrive {
                 defaultVelConstraint, defaultAccelConstraint
         );
     }
+    public TrajectoryActionBuilder closeActionBuilder(Pose2d beginPose) {
+        return new TrajectoryActionBuilder(
+                TurnAction::new,
+                FollowTrajectoryActionClosely::new,
+                new TrajectoryBuilderParams(
+                        1e-6,
+                        new ProfileParams(
+                                0.25, 0.1, 1e-2
+                        )
+                ),
+                beginPose, 0.0,
+                defaultTurnConstraints,
+                defaultVelConstraint, defaultAccelConstraint
+        );
+    }
+
 }
