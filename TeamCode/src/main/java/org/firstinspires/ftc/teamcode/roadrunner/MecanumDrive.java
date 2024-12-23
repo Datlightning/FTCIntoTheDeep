@@ -251,21 +251,7 @@ public final class MecanumDrive {
             );
         }
     }
-    public void setUseDeadwheel(boolean on){
-        use_dead_wheel = on;
-    }
-    public void mountTimer(ElapsedTime timer){
-        this.timer = timer;
-    }
-    public void mountTelemetry(Telemetry telemetry){
-        this.telemetry = telemetry;
-    }
-    public void mountFrontDistance(Distance distance){
-        this.distance = distance;
-    }
-    public void mountRearDistance(Distance distance){
-        this.rear_distance = distance;
-    }
+
 
     public MecanumDrive(HardwareMap hardwareMap, Pose2d pose) {
         this.pose = pose;
@@ -830,7 +816,7 @@ public final class MecanumDrive {
     public PoseVelocity2d updatePoseEstimate() {
         Twist2dDual<Time> twist = localizer.update();
         pose = pose.plus(twist.value());
-
+        RobotConstants.pose = pose;
         poseHistory.add(pose);
         while (poseHistory.size() > 100) {
             poseHistory.removeFirst();

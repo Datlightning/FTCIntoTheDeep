@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.ftc.LazyImu;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 
@@ -25,12 +26,15 @@ public class RobotConstants {
         inside_pickup_closed = position - 0.15;
         inside_pickup_open = position - 0.05;
     }
+    public static Pose2d pose = new Pose2d(0,0,0);
     public static double wrist_folded = 0, wrist_extended=30, floor_pickup_position = 100, specimen_deliver = 60;//update the 0 and 90 degrees as well.
     public static double TOO_FAR = 3.8, TOO_CLOSE = 2.3, GIVE_UP = 4.3, TARGET = 2.9;
     public static Intake intake;
     public static int ARM_LIMIT = 1600;
     public static String intakeMotor = "intake_motor";//ehub 0
     public static String slidesMotor = "slide_motor";//ehub 1 taped togethwr with encoder
+
+    public static String riggingMotor = "rigging_motor";
     public static String claw_servo = "claw_servo";//ehub 4 (yellow servo connector)
     public static String left_servo = "left_servo";//ehub 3 (black tape)
     public static String right_servo = "right_servo";//ehub 1 (copious lack of black tape)

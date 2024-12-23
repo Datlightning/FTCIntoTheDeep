@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 @Config
 public class MecaTank extends Subsystem {
     private DcMotor frontLeft, frontRight, backLeft, backRight;
-    private RobotConstants config;
 
     public  TrafficLight trafficLight;
     private LazyImu imu; // IMU for field-centric control
@@ -37,8 +36,6 @@ public class MecaTank extends Subsystem {
     private boolean force_exit = false;
 
     private boolean fast_drive_direction = false;
-
-    public double inPerTick = 1/1836.3936507936507936507936507937;
 
     private boolean use_dead_wheel = false;
     private double distance_to_target = 0;

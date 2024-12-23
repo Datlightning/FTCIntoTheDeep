@@ -23,6 +23,8 @@ public class NGMotor extends Subsystem {
     public boolean manual = false;
     private boolean reached = false;
     private boolean useMotionProfile = false;
+
+    private boolean motionProfileOverride = false;
     private int distance = 0;
     private ElapsedTime timer;
     private double time_passed = 0, time_stop = 0, time_started = 0;
@@ -46,6 +48,8 @@ public class NGMotor extends Subsystem {
 
     private boolean exit_with_time = false;
 
+    private double compensation_power = 0;
+
     private double motion_profile_exit_time = 0;
 
 
@@ -63,6 +67,9 @@ public class NGMotor extends Subsystem {
 
         timer = new ElapsedTime();
 
+    }
+    public void addPower(double power){
+        compensation_power = power;
     }
     public void setExitWithTime(boolean on){
         exit_with_time = on;
@@ -208,7 +215,7 @@ public class NGMotor extends Subsystem {
 
     }
     public void setUseMotionProfile(boolean on){
-        useMotionProfile = on;
+        motionProfileOverride = on;
     }
     public void setReversedEncoder(boolean reversed){
         this.reversed_encoder = reversed;
@@ -249,7 +256,21 @@ public class NGMotor extends Subsystem {
 
     }
 
-
+    public void move_sync(int target_position){
+        move_async(target_position);
+        while (isBusy()){
+            update();
+        }
+        return;
+    }
+    public void move_sync(int target_position, BulkRead bulkRead){
+        move_async(target_position);
+        while (isBusy()){
+            bulkRead.clearCache();
+            update();
+        }
+        return;
+    }
     public double getPower(){
         return pid_motor.getPower();
     }
@@ -273,7 +294,7 @@ public class NGMotor extends Subsystem {
 //        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
 
-        if(useMotionProfile){
+        if(useMotionProfile && !motionProfileOverride){
             double motion_profile_target_pos;
             double motion_profile_velocity;
             if(MAX_DECEL == -1){
@@ -313,6 +334,7 @@ public class NGMotor extends Subsystem {
         }
 // Feedforward term
         out += F;
+        out += compensation_power;
 // Check if the target has been reached (based on an error threshold)
         reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range && Math.abs(out) < 0.3;
 

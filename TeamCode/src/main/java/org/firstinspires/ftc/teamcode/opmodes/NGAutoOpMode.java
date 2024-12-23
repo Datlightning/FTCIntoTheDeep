@@ -35,6 +35,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         drive.mountTrafficLight(trafficLight);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         RobotConstants.auto_transfer = true;
+        intake.mountMecanumDrive(drive);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         intake.init();
         intake.slides.setReachedRange(30);

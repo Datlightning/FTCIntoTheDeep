@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+import static org.firstinspires.ftc.teamcode.RobotConstants.pose;
 import static org.firstinspires.ftc.teamcode.RobotConstants.right_servo;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -13,9 +14,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.library.MultiClick;
+import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
+import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 //TODO: Make the PID with distance great again tm
@@ -34,6 +37,9 @@ public class TeleOp extends LinearOpMode {
     TrafficLight trafficLight;
 
     MultiClick multiClick;
+
+    Rigging rigging;
+    MecanumDrive mecanumDrive;
     BulkRead bulkRead;
     ElapsedTime timer;
     Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
@@ -105,13 +111,16 @@ public class TeleOp extends LinearOpMode {
 
         timer = new ElapsedTime();
         multiClick = new MultiClick(telemetry);
+        mecanumDrive = new MecanumDrive(hardwareMap, RobotConstants.pose);
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
 
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
+        intake.mountMecanumDrive(mecanumDrive);
         mecaTank = new MecaTank(hardwareMap, telemetry, timer, trafficLight);
+        rigging = new Rigging(hardwareMap, telemetry);
 //        camera = new Camera(hardwareMap, telemetry);
         mecaTank.mountFrontDistance(distance);
         mecaTank.mountRearDistance(rear_distance);
@@ -175,7 +184,6 @@ public class TeleOp extends LinearOpMode {
                 if(!reset_claw){
                     trafficLight.green(false);
                     trafficLight.red(false);
-//                    RobotConstants.updateClawClosed(intake.diffyClaw.claw.getPosition());
                 }
             }
             if(reset_claw){
@@ -184,24 +192,15 @@ public class TeleOp extends LinearOpMode {
                 trafficLight.green(false);
                 trafficLight.red(true);
             }
-//            if(multiClick.getTaps("right_bumper") == 1){
-//                multiClick.clearTaps("right_bumper");
-//                if(camera.isCameraOn()){
-//                    intake.turnClaw(camera.getYellow()[0]);
-//                    intake.moveSlides(intake.slides.getCurrentPosition() - 225);
-//                    camera_align = true;
-//                }
-//            }
+
+
 
 
 
             boolean b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
             multiClick.update("b", getRuntime(), b);
             if(multiClick.getTaps("b") == 2){
-                disable_distances = !disable_distances;
-                if(!disable_distances){
-                    trafficLight.red(false);
-                }
+                mecanumDrive.lazyImu.get().resetYaw();//TODO: Make this acc adjust
                 multiClick.clearTaps("b");
             }
             if(disable_distances){
@@ -613,7 +612,8 @@ public class TeleOp extends LinearOpMode {
             } else if (dpad_up) {
                 if(maintain_level){
                     intake.incrementLevelOffset(10);
-                }else{
+                }
+                else{
                     intake.setRotationPower(0.4);
                 }
 
@@ -749,6 +749,15 @@ public class TeleOp extends LinearOpMode {
                 multiClick.clearTaps("y");
             }
 
+            //rigging
+            if (gamepad2.dpad_up){
+                rigging.rigging_motor.setPower(1);
+            }else if(gamepad2.dpad_down){
+                rigging.rigging_motor.setPower(-1);
+            }else{
+                rigging.rigging_motor.setManualPower(0);
+            }
+
             if(telemetry_on) {
                 mecaTank.telemetry();
                 intake.telemetry();
@@ -757,6 +766,7 @@ public class TeleOp extends LinearOpMode {
 //                camera.telemetry();
             }
             multiClick.enableTelemetry(telemetry_on);
+
 
 
             intake.update();

@@ -10,6 +10,8 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
+import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -24,6 +26,7 @@ import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
+import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
 import java.util.ArrayList;
 
@@ -58,6 +61,12 @@ public class Intake extends Subsystem {
     private boolean distance_update = true;
     private boolean distance_scope = false;
 
+    private double drive_acceleration = 0;
+
+    private PoseVelocity2d past_velo;
+    private PoseVelocity2d poseVelocity2d;
+    private double accel_time = 0;
+
     private boolean use_velo = false;
     private double use_velo_power = 0;
     public static int SLIDE_CURRENT_LIMIT = 8500;
@@ -66,8 +75,11 @@ public class Intake extends Subsystem {
     public static double VELO_THRESHOLD = 0;
     private double slide_stuck_time = 0;
     private boolean level_on = false;
+
+    private boolean arm_stabilizer = false;
     private double target_angle = 0;//To the y-axis
     private double target_height = 0;//To the floor
+
 
 
     private final double[] pickup_position_1 = {100,250};//slide, motor
@@ -77,10 +89,12 @@ public class Intake extends Subsystem {
     private final double[] slide_distance_position_2 = {800,10.6};
     // Adjust current threshold based on battery voltage
     public DiffyClaw diffyClaw;
-
+    public MecanumDrive mecanumDrive;
     public static int distance_to_camera = 225;
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
+
+    public static double arm_stabilization_factor = 0;
     public static int arm_at_90_ticks = 1380;
     public static double wrist_90 = 0.27;
     public static double wrist_180 = 0.62;
@@ -92,6 +106,9 @@ public class Intake extends Subsystem {
     public static int offset = 0;
     public static int offset_distance_to_0 = 0;
     public static double DISTANCE_FILTER = 0.6;
+
+
+
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
@@ -106,6 +123,8 @@ public class Intake extends Subsystem {
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         diffyClaw = new DiffyClaw(hardwareMap, telemetry);
+        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
+
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         diffyClaw.mountTrafficLight(trafficLight);
         arm.setMin(-500);
@@ -118,6 +137,7 @@ public class Intake extends Subsystem {
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         this.timer = timer;
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
+        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
         arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor, timer);
         arm.setDirection(DcMotor.Direction.REVERSE);
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
@@ -274,12 +294,14 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
+                new InstantAction(() -> arm.setMaxVelocity(2000)),
                 armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1350),
                         armAction(ARM_LIMIT-150)
                 ),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(35)),
                 new SleepAction(0.2)
 
@@ -290,12 +312,14 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
+                new InstantAction(() -> arm.setMaxVelocity(2000)),
                 armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
                         slideAction(1300),
                         armAction(ARM_LIMIT-150)
                 ),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
 
@@ -306,12 +330,14 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
+                new InstantAction(() -> arm.setMaxVelocity(2000)),
                 armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
                         slideAction(1300),
                         armAction(ARM_LIMIT-100)
                 ),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
 
@@ -322,7 +348,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
-                new InstantAction(() -> arm.setExitWithTime(true)),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
 //                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
@@ -338,8 +364,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> turnClaw(0)),
                 new InstantAction(() -> moveWrist(extra_claw_clearance ? 100 : 90)),
                 new SleepAction(extra_claw_clearance ? 0.4 : 0),
-                new InstantAction(() -> arm.setExitWithTime(true)),
-//                armAction(ARM_LIMIT - 300),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0)
@@ -389,6 +414,10 @@ public class Intake extends Subsystem {
     public void enableLevel(boolean on){
         level_on = on;
     }
+    public void enableArmStabilizer(boolean on){
+        arm_stabilizer = on;
+    }
+
     public void turnClawMore(double turnAmount){
         turnClaw(diffyClaw.getClawAngle() + turnAmount);
     }
@@ -454,9 +483,22 @@ public class Intake extends Subsystem {
     public int getLevelOffset(){
         return level_offset;
     }
+    public void mountMecanumDrive(MecanumDrive mec){
+        this.mecanumDrive = mec;
+    }
 
     @Override
     public void update() {
+//        past_velo = poseVelocity2d;
+//        poseVelocity2d = mecanumDrive.updatePoseEstimate();
+//        double accel = 0;
+//        if (past_velo != null){
+//            double dt = timer.milliseconds() - accel_time;
+//            accel = (poseVelocity2d.linearVel.sqrNorm() - poseVelocity2d.linearVel.sqrNorm())/dt;
+//            telemetry.addData("Drive Acceleration", accel);
+//        }
+//        accel_time = timer.milliseconds();
+
         diffyClaw.update();
         trafficLight.update();
 
@@ -477,6 +519,7 @@ public class Intake extends Subsystem {
             moveArm(calculateArmPosition(slides.getCurrentPosition()) + level_offset);
 //           slidesStuck();
         }
+
 
         distance.setFilter(DISTANCE_FILTER);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
@@ -499,6 +542,11 @@ public class Intake extends Subsystem {
         if(distance_update) {
             distance.update();
         }
+//        if(arm_stabilizer){
+//            arm.addPower(arm_stabilization_factor/100000000.0 * calculateSlideLength(slides.getCurrentPosition()) * accel * arm.getCurrentPosition());
+//        }else{
+//            arm.addPower(0);
+//        }
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
         arm.update();
         slides.update();
