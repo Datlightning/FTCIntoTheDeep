@@ -48,6 +48,8 @@ public class NGMotor extends Subsystem {
 
     private boolean exit_with_time = false;
 
+    private boolean external_hardstop = false;
+
     private double compensation_power = 0;
 
     private double motion_profile_exit_time = 0;
@@ -92,6 +94,9 @@ public class NGMotor extends Subsystem {
 
         this.timer = timer;
 
+    }
+    public void setExternalDownHardstop(boolean on){
+        external_hardstop = on;
     }
     public void resetEncoder(){
         pid_motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -177,12 +182,18 @@ public class NGMotor extends Subsystem {
     public boolean exceedingConstraints(){
         boolean over_max = getCurrentPosition() > maxHardstop;
         boolean under_min = getCurrentPosition() < minHardstop;
+        if (external_hardstop && getPower() < 0){
+            return true;
+        }
         return getPower() > 0 ? over_max : under_min;
 
     }
     public boolean exceedingConstraints(double power){
         boolean over_max = getCurrentPosition() > maxHardstop;
         boolean under_min = getCurrentPosition() < minHardstop;
+        if (external_hardstop && power < 0){
+            return true;
+        }
         if (!reversed_encoder) {
             return power > 0 ? over_max : under_min;
         }
@@ -294,7 +305,7 @@ public class NGMotor extends Subsystem {
 //        telemetry.addData(name + " F", F);
         // Obtain the encoder position and calculate the error
 
-        if(useMotionProfile && !motionProfileOverride){
+        if(useMotionProfile && motionProfileOverride){
             double motion_profile_target_pos;
             double motion_profile_velocity;
             if(MAX_DECEL == -1){

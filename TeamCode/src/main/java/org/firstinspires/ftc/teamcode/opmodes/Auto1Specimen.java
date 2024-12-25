@@ -22,6 +22,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
+import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 
 @Autonomous
 public class Auto1Specimen extends NGAutoOpMode {
@@ -34,9 +35,9 @@ public class Auto1Specimen extends NGAutoOpMode {
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
         AccelConstraint pickSampleAccel = (robotPose, _path, _disp) -> {
             if (robotPose.position.y.value() < -42.0) {
-                return new MinMax(-10,22);
+                return new MinMax(-13,22);
             } else {
-                return new MinMax(-30,50);
+                return new MinMax(-30,60);
             }
         };
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
@@ -58,7 +59,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                 .afterTime(0.1, intake.slideAction(0))
                 .afterTime(0.1, intake.armAction(0))
                 .stopAndAdd( new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)))
-                .splineTo(new Vector2d(-48, -44), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,50))
+                .splineTo(new Vector2d(-48, -44), Math.toRadians(90), new TranslationalVelConstraint(60), new ProfileAccelConstraint(-10,50))
                 .afterTime(0.1, new InstantAction(pickupAfterDistance1::enable))
                 .splineTo(new Vector2d(-48, -40), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,50))
                 .stopAndAdd(new InstantAction(pickupAfterDistance1::failover));
@@ -72,7 +73,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
                 .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
-                .splineToSplineHeading(new Pose2d(-60, -44, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
+                .splineToSplineHeading(new Pose2d(-60, -44, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22))
                 .splineToSplineHeading(new Pose2d(-60, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-8,10))
                 .stopAndAdd(new InstantAction(pickupAfterDistance2::failover));
 
@@ -91,6 +92,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                 .setTangent(Math.toRadians(270))
                 .splineToSplineHeading(new Pose2d(-52, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
                 .splineToConstantHeading(new Vector2d(-58, -62), Math.toRadians(225), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-12,32));
+
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45));
@@ -115,7 +117,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                         trafficLight.updateAction(),
                         new SequentialAction(
                                 new ParallelAction(
-                                    new SequentialAction(
+                                        new SequentialAction(
                                             intake.armAction(ARM_LIMIT, 100),
                                             new ParallelAction(
                                                     intake.armAction(ARM_LIMIT),
@@ -164,7 +166,8 @@ public class Auto1Specimen extends NGAutoOpMode {
                                         intake.raiseArmButNotSnagOnBasket(),
                                         scoreThirdSample
                                 ),
-                                intake.score(true)
+                                intake.score(true),
+                                intake.armAction(0)
                         )
                 )
         );

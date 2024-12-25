@@ -27,6 +27,7 @@ public class Distance extends Subsystem {
     private String name = "";
 
     private int calls_per_loop = 0;
+    private boolean filter_on = false;
     Telemetry telemetry;
     public Distance(HardwareMap hardwareMap, Telemetry telemetry, String name){
         this.telemetry = telemetry;
@@ -73,9 +74,11 @@ public class Distance extends Subsystem {
     }
     public void update(){
         if(!on){
+            filter_on = false;
             return;
         }
         if(timer.seconds() - delay > 0.005){
+            filter_on = true;
             past_distance_reading = current_dist;
             current_dist = getDist();
             if(Math.abs(past_distance_reading - current_dist) > 1){
@@ -87,6 +90,7 @@ public class Distance extends Subsystem {
         }
     }
     public double getFilteredDist(){
+
         return filtered_position;
     }
     @Override
@@ -114,7 +118,11 @@ public class Distance extends Subsystem {
             if(first){
                 setOn(true);
                 direction = getDist() < target_distance;
+
                 first = false;
+            }
+            if(!filter_on){
+                return true;
             }
             telemetryPacket.put(name + " Filtered Distance In Wait Action", getFilteredDist());
             boolean exit = direction ? getFilteredDist() < target_distance : getFilteredDist() > target_distance;

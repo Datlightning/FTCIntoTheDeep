@@ -89,7 +89,7 @@ public class Intake extends Subsystem {
     private final double[] slide_distance_position_2 = {800,10.6};
     // Adjust current threshold based on battery voltage
     public DiffyClaw diffyClaw;
-    public MecanumDrive mecanumDrive;
+//    public MecanumDrive mecanumDrive;
     public static int distance_to_camera = 225;
     public static double feedforward_turning_point = 0;
     public static int arm_at_0_ticks = 180;
@@ -123,7 +123,7 @@ public class Intake extends Subsystem {
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
         diffyClaw = new DiffyClaw(hardwareMap, telemetry);
-        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
+//        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
 
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         diffyClaw.mountTrafficLight(trafficLight);
@@ -137,7 +137,7 @@ public class Intake extends Subsystem {
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         this.timer = timer;
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
-        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
+//        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
         arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor, timer);
         arm.setDirection(DcMotor.Direction.REVERSE);
         arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
@@ -294,7 +294,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> arm.setMaxVelocity(2000)),
+                new InstantAction(() -> arm.setMaxVelocity(3000)),
                 armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
@@ -312,7 +312,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> arm.setMaxVelocity(2000)),
+                new InstantAction(() -> arm.setMaxVelocity(3000)),
                 armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
@@ -330,7 +330,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
-                new InstantAction(() -> arm.setMaxVelocity(2000)),
+                new InstantAction(() -> arm.setMaxVelocity(3000)),
                 armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
@@ -447,7 +447,9 @@ public class Intake extends Subsystem {
         return slide_starting_length + slide_position * slide_ticks_to_inches;
     }
     public double calculateSlideLength(int slide_position){
-        telemetry.addData("SlideLength", slide_starting_length + slide_position * slide_ticks_to_inches);
+        telemetry.addData("Calculated Slide Length", slide_starting_length + slide_position * slide_ticks_to_inches);
+        telemetry.addData("Slide Length Slide Positions", slide_position);
+
 
         return Math.sqrt(Math.pow(slide_starting_length + slide_position * slide_ticks_to_inches,2) + Math.pow(slide_width,2));
     }
@@ -483,9 +485,9 @@ public class Intake extends Subsystem {
     public int getLevelOffset(){
         return level_offset;
     }
-    public void mountMecanumDrive(MecanumDrive mec){
-        this.mecanumDrive = mec;
-    }
+//    public void mountMecanumDrive(MecanumDrive mec){
+//        this.mecanumDrive = mec;
+//    }
 
     @Override
     public void update() {
@@ -530,7 +532,7 @@ public class Intake extends Subsystem {
             arm.setManualPower(0);
         }
         if(arm.getCurrentPosition() > 330 || use_fast_pid){
-            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
+            arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsPID.f);
 
         }else{
             arm.setPIDF(armsLevelPID.p, armsLevelPID.i, armsLevelPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsLevelPID.f);

@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 public abstract class NGAutoOpMode extends LinearOpMode {
@@ -28,6 +29,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     public static Intake intake;
     public static MecanumDrive drive;
     public static TrafficLight trafficLight;
+    public static Rigging rigging;
     public void initAuto(Pose2d beginPose){
         timer = new ElapsedTime();
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led, timer);
@@ -35,9 +37,13 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         drive.mountTrafficLight(trafficLight);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         RobotConstants.auto_transfer = true;
-        intake.mountMecanumDrive(drive);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
+        rigging = new Rigging(hardwareMap, telemetry, timer);
+        rigging.init();
+        rigging.reset();
+
         intake.init();
+
         intake.slides.setReachedRange(30);
 //        intake.calculateOffset();
         intake.moveClaw(RobotConstants.claw_closed);
@@ -89,12 +95,8 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 intake.grab(RobotConstants.claw_closed),
                 new ParallelAction(
-                        new SequentialAction(
-                                new SleepAction(0.3),
-                            intake.raiseArm()
-                        ),
-                      sampleScore
-
+                        intake.raiseArm(),
+                        sampleScore
                 ),
                 new SleepAction(0.2),
                 intake.score(),
@@ -119,7 +121,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
                         new InstantAction(() -> intake.distance.setOn(true)),
-                        new SequentialAction(intake.armAction(0, 1000),
+                        new SequentialAction(intake.armAction(0, 1200),
                                 sample),
                                 new SequentialAction(
                                         distance,
