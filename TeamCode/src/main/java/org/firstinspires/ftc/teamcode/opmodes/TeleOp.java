@@ -93,6 +93,8 @@ public class TeleOp extends LinearOpMode {
     double delay = 0;
 
     int rigging_position = 0;
+
+    private int deliver_position = ARM_LIMIT - 200;
     public static boolean player_2_on = true;
     private boolean waiting_for_distance = false;
     double distance_wait = 0;
@@ -151,7 +153,7 @@ public class TeleOp extends LinearOpMode {
         ElapsedTime loopTimer = new ElapsedTime();
         waitForStart();
         timer.reset();
-        rigging.unlatchHooks();
+//        rigging.unlatchHooks();
 //        camera.stopCamera();
         while (!isStopRequested() && opModeIsActive()) {
             loopTimer.reset();
@@ -174,6 +176,7 @@ public class TeleOp extends LinearOpMode {
 
             if(multiClick.getTaps("left_bumper") == 3){
                 multiClick.clearTaps("left_bumper");
+                deliver_position = ARM_LIMIT - 200;
                 intake.arm.resetEncoder();
             }
             boolean right_bumper2 = currentGamepad2.right_bumper && !previousGamepad2.right_bumper;
@@ -200,10 +203,6 @@ public class TeleOp extends LinearOpMode {
 
             boolean b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
             multiClick.update("b", getRuntime(), b);
-            if(multiClick.getTaps("b") == 2){
-                mecanumDrive.lazyImu.get().resetYaw();//TODO: Make this acc adjust
-                multiClick.clearTaps("b");
-            }
             if(disable_distances){
                 trafficLight.red(true);
             }
@@ -241,12 +240,12 @@ public class TeleOp extends LinearOpMode {
 //            player2 = !currentGamepad1.dpad_left && player_2_on; //goodbye player 2 button o7
 
             //claw rotations
-            if(currentGamepad2.left_trigger != 0){
+            if(currentGamepad2.left_trigger != 0 && intake.slides.getCurrentPosition() <= 900){
                 intake.turnClaw(currentGamepad2.left_trigger * -90);
                 claw_turning = true;
                 camera_align = false;
-            }else if(currentGamepad2.right_trigger != 0){
-                intake.turnClaw(currentGamepad2.right_trigger * 90);
+            }else if(currentGamepad2.right_trigger != 0 && intake.slides.getCurrentPosition() <= 900){
+                intake.turnClaw(currentGamepad2.right_trigger * 90 );
                 claw_turning = true;
                 camera_align = false;
             }else if(claw_turning && !camera_align){
@@ -304,7 +303,7 @@ public class TeleOp extends LinearOpMode {
                 }
                 move_next3 = false;
                 move_next2 = false;
-                move_next_override = move_next && (multiClick.getTaps("a") > 0 || multiClick.getTaps("a2") > 0);
+                move_next_override = (multiClick.getTaps("a") > 0 || multiClick.getTaps("a2") > 0);
                 multiClick.clearTaps("a2");
                 multiClick.clearTaps("a");
                 switch (position) {
@@ -417,7 +416,7 @@ public class TeleOp extends LinearOpMode {
                         move_next = true;
                         break;
                     case TURN_ARM:
-                        intake.moveArm(ARM_LIMIT - 200);
+                        intake.moveArm(deliver_position);
                         intake.moveWrist(120);
                         move_next = true;
                         next_position = INTAKE_POSITIONS.EXTEND;
@@ -453,6 +452,12 @@ public class TeleOp extends LinearOpMode {
                         intake.openClaw();
                         delay = 0.3;
                         current_time = timer.time();
+                        if (intake.arm.getCurrentPosition() - deliver_position > 50 ){
+                            deliver_position = intake.arm.getCurrentPosition();
+                            if(deliver_position > intake.arm.maxHardstop){
+                                intake.arm.setMax(deliver_position);
+                            }
+                    }
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RAISE_CLAW;
                         previous_position = INTAKE_POSITIONS.TURN_CLAW;
@@ -526,7 +531,7 @@ public class TeleOp extends LinearOpMode {
             boolean x = (player2 && currentGamepad2.x && !previousGamepad2.x) || ( currentGamepad1.x && !previousGamepad1.x);
             multiClick.update("x", getRuntime(), x);
             if (multiClick.getTaps("x") > 0 || move_next2) {
-                move_next2_override = move_next2 && multiClick.getTaps("x") > 0;
+                move_next2_override = multiClick.getTaps("x") > 0;
 
                 trafficLight.flashGreen(0.5, multiClick.getTaps("x"));
 
@@ -633,7 +638,7 @@ public class TeleOp extends LinearOpMode {
 
             }
             else if(currentGamepad2.left_stick_y != 0){
-                intake.setRotationPower(sameSignSqrt(-currentGamepad2.left_stick_y));
+                intake.setRotationPower(sameSignSqrt((-currentGamepad2.left_stick_y/(position.equals(INTAKE_POSITIONS.TURN_CLAW) ? 3.0 : 1.0))));
             }
             else {
                 intake.setRotationPower(0);
@@ -649,7 +654,7 @@ public class TeleOp extends LinearOpMode {
                 rear_distance.setOn(false);
             }
             if (multiClick.getTaps("y") > 0 || move_next3) {
-                move_next3_override = move_next3 && multiClick.getTaps("y") > 0;
+                move_next3_override = multiClick.getTaps("y") > 0;
                 move_next = false;
                 move_next2 = false;
                 trafficLight.flashGreen(0.5, multiClick.getTaps("y"));
@@ -765,9 +770,9 @@ public class TeleOp extends LinearOpMode {
 
             //rigging
             if (gamepad2.dpad_up){
-                rigging.setManualPower(1);
-            }else if(gamepad2.dpad_down){
                 rigging.setManualPower(-1);
+            }else if(gamepad2.dpad_down){
+                rigging.setManualPower(1);
             }else{
                 rigging.rigging_motor.setManualPower(0);
             }
@@ -792,6 +797,7 @@ public class TeleOp extends LinearOpMode {
 
             if(loopTimer.milliseconds() > 150 && !disable_distances && timer.seconds() > 5){
                 disable_distances = true;
+                mecaTank.forceExit();
             }
             if(disable_distances){
                 rear_distance.setOn(false);
@@ -810,6 +816,9 @@ public class TeleOp extends LinearOpMode {
     }
 
     private double sameSignSqrt(float v) {
+        return Math.copySign(Math.sqrt(Math.abs(v)), v);
+    }
+    private double sameSignSqrt(double v) {
         return Math.copySign(Math.sqrt(Math.abs(v)), v);
     }
 

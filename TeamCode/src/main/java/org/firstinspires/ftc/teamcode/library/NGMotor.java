@@ -28,9 +28,9 @@ public class NGMotor extends Subsystem {
     private int distance = 0;
     private ElapsedTime timer;
     private double time_passed = 0, time_stop = 0, time_started = 0;
-    private int maxHardstop = 10000;
+    public int maxHardstop = 10000;
     private String name = "";
-    private int minHardstop = 0;
+    public int minHardstop = 0;
     private double holding_power = 0;
     private double max_integral_component = 0.3;
     private double out = 0;
@@ -309,7 +309,7 @@ public class NGMotor extends Subsystem {
             double motion_profile_target_pos;
             double motion_profile_velocity;
             if(MAX_DECEL == -1){
-                 motion_profile_target_pos = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos;
+                motion_profile_target_pos = Control.motionProfile(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started) + startPos;
                 motion_profile_velocity = Control.motionProfileVelo(MAX_ACCEL, MAX_VEL, distance, timer.seconds() - time_started);
                 error =  motion_profile_target_pos - getCurrentPosition();
             }else{

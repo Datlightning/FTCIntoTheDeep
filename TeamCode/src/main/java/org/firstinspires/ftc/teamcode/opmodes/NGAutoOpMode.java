@@ -10,6 +10,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.NullAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
@@ -112,6 +113,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                         new SequentialAction(intake.armAction(0, 1000), sample),
                         intake.slideAction(0)
 
+
                 )
 
         );
@@ -121,12 +123,16 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
                         new InstantAction(() -> intake.distance.setOn(true)),
-                        new SequentialAction(intake.armAction(0, 1200),
-                                sample),
-                                new SequentialAction(
-                                        distance,
-                                        new InstantAction(sample::failover)
-                                ),
+                        new SequentialAction(
+                                intake.armAction(0, 1000),
+                                new ParallelAction(
+                                        new SequentialAction(
+                                                distance,
+                                                new InstantAction(sample::failover)
+                                        ),
+                                        sample
+                                )
+                        ),
                         intake.slideAction(0)
 
                 )

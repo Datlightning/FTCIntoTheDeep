@@ -295,11 +295,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(3000)),
-                armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1350),
-                        armAction(ARM_LIMIT-150)
+                        armAction(ARM_LIMIT-100)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(35)),
@@ -313,11 +313,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(3000)),
-                armAction(ARM_LIMIT-150,ARM_LIMIT - 300),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
                         slideAction(1300),
-                        armAction(ARM_LIMIT-150)
+                        armAction(ARM_LIMIT-100)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
@@ -368,6 +368,23 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0)
+
+        );
+    }
+    public Action scoreAndFold(){
+
+        return new SequentialAction(
+                new InstantAction(this::openClaw),
+                new SleepAction(0.1),
+                new InstantAction(() -> turnClaw(0)),
+                new InstantAction(() -> moveWrist(100)),
+                new SleepAction(0.4),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                slideAction(0),
+                new InstantAction(() -> moveWrist(90))
+
 
         );
     }

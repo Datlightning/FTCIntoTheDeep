@@ -23,11 +23,11 @@ public class Rigging extends Subsystem {
     private Telemetry telemetry;
 
     public static PIDCoefficients PID = new PIDCoefficients(0.005,0,0);
-    public static int unlatch_height = 4000;
-    public static int full_extend = 13000;
+    public static int unlatch_height = 6000;
+    public static int full_extend = 12400;
 
     private ElapsedTime timer;
-    public static int off_ground = 5000;
+    public static int off_ground = 5500;
 
     DigitalChannel magnet_sensor;
     public Rigging(HardwareMap hardwareMap, Telemetry telemetry){

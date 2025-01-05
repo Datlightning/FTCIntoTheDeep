@@ -43,7 +43,7 @@ public class Auto1Specimen extends NGAutoOpMode {
         TrajectoryActionBuilder scoreSpecimenPath = drive.actionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(1, new InstantAction(() -> intake.moveWrist(RobotConstants.specimen_deliver)))
-                .splineToConstantHeading(new Vector2d(-6,-35.5), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
+                .splineToConstantHeading(new Vector2d(-6,-36), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,30));
 
         FailoverAction pickupAfterDistance1 = new FailoverAction(pickupAfterDistance(RobotConstants.TOO_FAR, intake.distance), new InstantAction(() -> intake.distance.setOn(false)), false);
 
@@ -59,39 +59,39 @@ public class Auto1Specimen extends NGAutoOpMode {
                 .afterTime(0.1, intake.slideAction(0))
                 .afterTime(0.1, intake.armAction(0))
                 .stopAndAdd( new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)))
-                .splineTo(new Vector2d(-48, -44), Math.toRadians(90), new TranslationalVelConstraint(60), new ProfileAccelConstraint(-10,50))
+                .splineTo(new Vector2d(-47, -44), Math.toRadians(90), new TranslationalVelConstraint(60), new ProfileAccelConstraint(-10,50))
                 .afterTime(0.1, new InstantAction(pickupAfterDistance1::enable))
-                .splineTo(new Vector2d(-48, -40), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,50))
+                .splineTo(new Vector2d(-47, -40), Math.toRadians(90), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-10,50))
                 .stopAndAdd(new InstantAction(pickupAfterDistance1::failover));
 
         TrajectoryActionBuilder scoreFirstSamplePath = drive.closeActionBuilder(new Pose2d(-48,-43, Math.toRadians(90)))
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-58, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
+                .splineToLinearHeading(new Pose2d(-59, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
 
         TrajectoryActionBuilder secondSamplePath = scoreFirstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
                 .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
-                .splineToSplineHeading(new Pose2d(-60, -44, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22))
-                .splineToSplineHeading(new Pose2d(-60, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-8,10))
+                .splineToSplineHeading(new Pose2d(-58, -44, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,22))
+                .splineToSplineHeading(new Pose2d(-58, -39, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-8,10))
                 .stopAndAdd(new InstantAction(pickupAfterDistance2::failover));
 
         TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(new Pose2d(-60,-42, Math.toRadians(90)))
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-58, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
+                .splineToLinearHeading(new Pose2d(-59, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
 
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
-                .splineToSplineHeading(new Pose2d(-48.5, -38.25, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), pickSampleAccel)
+                .splineToSplineHeading(new Pose2d(-48.5, -34.25, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), pickSampleAccel)
                 .afterTime(0.1, new InstantAction(pickupAfterDistance3::enable))
-                .splineToConstantHeading(new Vector2d(-60,-32), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,22))
+                .splineToConstantHeading(new Vector2d(-60,-32.5), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,22))
                 .stopAndAdd(new InstantAction(pickupAfterDistance3::failover));
         TrajectoryActionBuilder scoreThirdSamplePath = thirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .setTangent(Math.toRadians(270))
                 .splineToSplineHeading(new Pose2d(-52, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
-                .splineToConstantHeading(new Vector2d(-58, -62), Math.toRadians(225), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-12,32));
+                .splineToConstantHeading(new Vector2d(-59, -62), Math.toRadians(225), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-12,32));
 
         TrajectoryActionBuilder parkPath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(true)
@@ -124,7 +124,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                                                     intake.slideAction(100)
                                             )
                                     ),
-                                    afterDistance(4.5, rear_distance, new InstantAction(scoreSpecimen::failover)),
+                                    afterDistance(5, rear_distance, new InstantAction(scoreSpecimen::failover)),
                                     scoreSpecimen
                                 ),
                                 intake.slideAction(0),
@@ -134,7 +134,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                                             pickupAfterDistance1,
                                             new InstantAction(firstSample::failover)
                                         ),
-                                        openClawAfterDistance(8.5, rear_distance)
+                                        openClawAfterDistance(7.5, rear_distance)
                                 ),
                                 collectSampleAndScore(scoreFirstSample, RobotConstants.claw_floor_pickup, false),
                                 goToSample(secondSample, pickupAfterDistance2),
@@ -166,8 +166,9 @@ public class Auto1Specimen extends NGAutoOpMode {
                                         intake.raiseArmButNotSnagOnBasket(),
                                         scoreThirdSample
                                 ),
-                                intake.score(true),
+                                intake.scoreAndFold(),
                                 intake.armAction(0)
+
                         )
                 )
         );
