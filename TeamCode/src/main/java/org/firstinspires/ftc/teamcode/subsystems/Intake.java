@@ -294,14 +294,14 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> arm.setMaxVelocity(3000)),
+                new InstantAction(() -> arm.setMaxVelocity(3500)),
                 armAction(ARM_LIMIT-100,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1350),
                         armAction(ARM_LIMIT-100)
                 ),
-                new InstantAction(() -> arm.setMaxVelocity(5000)),
+                new InstantAction(() -> arm.setMaxVelocity(8000)),
                 new InstantAction(() -> moveWrist(35)),
                 new SleepAction(0.2)
 
@@ -586,16 +586,16 @@ public class Intake extends Subsystem {
 
         arm.setMaxAcceleration(5000);
         arm.setMaxDeceleration(1500);
-        arm.setMaxVelocity(5000);
+        arm.setMaxVelocity(8000);
         arm.setUseMotionProfile(true);
 
         slides.setUseMotionProfile(true);
         slides.setMax(1400);
         arm.setMax(ARM_LIMIT);
         arm.setMin(-1000);
-        slides.setMaxAcceleration(9000);
-        slides.setMaxVelocity(12000);
-        slides.setMaxDeceleration(3000);
+        slides.setMaxAcceleration(10000);
+        slides.setMaxVelocity(18000);
+        slides.setMaxDeceleration(2000);
     }
 
     @Override

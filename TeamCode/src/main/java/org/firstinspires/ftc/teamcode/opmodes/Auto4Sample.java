@@ -45,7 +45,7 @@ public class Auto4Sample extends NGAutoOpMode {
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
-                .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40));
+                .splineToSplineHeading(new Pose2d(-58, -58, Math.toRadians(45)), Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40));
 
         TrajectoryActionBuilder secondSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(false)

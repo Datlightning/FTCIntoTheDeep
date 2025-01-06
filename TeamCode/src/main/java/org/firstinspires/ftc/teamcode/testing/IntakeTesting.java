@@ -43,14 +43,14 @@ public class IntakeTesting extends TestingOpMode {
     public static int slide_hard_stop = 1400;
     public static double claw_height = 0.75;
     public static int increment = 30;
-    public static double VEL = 3900;
-    public static double ACCEL = 3000;
-    public static double SLIDE_VEL = 10000;
+    public static double VEL = 5000;
+    public static double ACCEL = 5000;
+    public static double SLIDE_VEL = 12000;
     public static double SLIDE_ACCEL = 9000;
 
-    public static double SLIDE_DECEL = 4000;
+    public static double SLIDE_DECEL = 3000;
 
-    public static double DECEL = 1000;
+    public static double DECEL = 1500;
     MecaTank mecaTank;
     public static boolean drive_pid_on = false;
     public static boolean front_distance = true;
