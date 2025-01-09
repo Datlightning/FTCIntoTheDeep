@@ -105,6 +105,19 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         );
     }
 
+
+    public Action slideCollectSampleAndScore(Action sampleScore, double ending_claw_pos){
+        return new SequentialAction(
+                intake.grab(RobotConstants.claw_closed),
+                new ParallelAction(
+                        intake.raiseArm(),
+                        sampleScore
+                ),
+                new SleepAction(0.2),
+                intake.scoreSlidePickup(),
+                new InstantAction(() -> intake.moveClaw(ending_claw_pos))
+        );
+    }
     public Action goToSample(Action sample){
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
@@ -113,16 +126,23 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                         new SequentialAction(intake.armAction(0, 1000), sample),
                         intake.slideAction(0)
 
-
                 )
 
+        );
+    }
+    public Action goToSampleWithSlides(Action sample){
+        return new SequentialAction(
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
+                new ParallelAction(
+                        intake.slideAction(800),
+                        new SequentialAction(intake.armAction(300, 1000), sample)
+                )
         );
     }
     public Action goToSample(FailoverAction sample, FailoverAction distance){
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
                 new ParallelAction(
-                        new InstantAction(() -> intake.distance.setOn(true)),
                         new SequentialAction(
                                 intake.armAction(0, 1000),
                                 new ParallelAction(

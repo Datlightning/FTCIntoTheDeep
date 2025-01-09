@@ -174,11 +174,13 @@ public class TeleOp extends LinearOpMode {
             boolean left_bumper2 = currentGamepad2.left_bumper && !previousGamepad2.left_bumper;
             multiClick.update("left_bumper", getRuntime(), left_bumper2);
 
-            if(multiClick.getTaps("left_bumper") == 3){
+            if(multiClick.getTaps("left_bumper") == 3 && intake.magnetOnRisingEdge()){
                 multiClick.clearTaps("left_bumper");
                 deliver_position = ARM_LIMIT - 200;
                 intake.arm.resetEncoder();
             }
+          
+
             boolean right_bumper2 = currentGamepad2.right_bumper && !previousGamepad2.right_bumper;
             multiClick.update("right_bumper", getRuntime(), right_bumper2);
             if(multiClick.getTaps("right_bumper") == 3){
@@ -452,12 +454,12 @@ public class TeleOp extends LinearOpMode {
                         intake.openClaw();
                         delay = 0.3;
                         current_time = timer.time();
-                        if (intake.arm.getCurrentPosition() - deliver_position > 50 ){
+                        if (intake.arm.getCurrentPosition() - deliver_position > 0 ){
                             deliver_position = intake.arm.getCurrentPosition();
                             if(deliver_position > intake.arm.maxHardstop){
                                 intake.arm.setMax(deliver_position);
                             }
-                    }
+                        }
                         move_next = true;
                         next_position = INTAKE_POSITIONS.RAISE_CLAW;
                         previous_position = INTAKE_POSITIONS.TURN_CLAW;

@@ -179,6 +179,9 @@ public class Intake extends Subsystem {
     private boolean magnet_activated(){
         return !magnet_sensor.getState();
     }
+    public boolean magnetOnRisingEdge(){
+        return magnet_activated() && !previous_magnet_on;
+    }
     public void useFastPID(boolean on){
         use_fast_pid = on;
     }
@@ -295,11 +298,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(3500)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 300),
+                armAction(ARM_LIMIT-200,ARM_LIMIT - 1000),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1350),
-                        armAction(ARM_LIMIT-100)
+                        armAction(ARM_LIMIT-200)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
                 new InstantAction(() -> moveWrist(35)),
@@ -331,7 +334,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setMaxVelocity(3000)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 500),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 800),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
                         slideAction(1300),
@@ -355,6 +358,22 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> turnClaw(0)),
                 slideAction(0)
 
+
+        );
+    }
+    public Action scoreSlidePickup(){
+        return new SequentialAction(
+                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
+                new SleepAction(0.1),
+                new InstantAction(() -> moveWrist(90)),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
+//                armAction(ARM_LIMIT - 300),
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> turnClaw(0)),
+                slideAction(800)
+
+
         );
     }
     public Action score(boolean extra_claw_clearance){
@@ -374,7 +393,7 @@ public class Intake extends Subsystem {
     public Action scoreAndFold(){
 
         return new SequentialAction(
-                new InstantAction(this::openClaw),
+                new InstantAction(() -> moveClaw(RobotConstants.inside_pickup_open)),
                 new SleepAction(0.1),
                 new InstantAction(() -> turnClaw(0)),
                 new InstantAction(() -> moveWrist(100)),
@@ -383,7 +402,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 slideAction(0),
-                new InstantAction(() -> moveWrist(90))
+                new InstantAction(() -> moveWrist(0))
 
 
         );
@@ -521,9 +540,7 @@ public class Intake extends Subsystem {
         diffyClaw.update();
         trafficLight.update();
 
-        if(magnet_activated() && !previous_magnet_on){
-            arm.resetEncoder();
-        }
+
         previous_magnet_on = magnet_activated();
 
         if(distance_scope) {
@@ -611,7 +628,16 @@ public class Intake extends Subsystem {
     public class moveSlidesAction implements Action {
         private boolean first = true;
         private int target_pos = 0;
+        private int endpos = 0;
+        private boolean partial_motion = false;
+
+        private boolean direction_up = false;
         public moveSlidesAction(int position){
+            target_pos = position;
+        }
+        public moveSlidesAction(int position, int endpos){
+            this.endpos = endpos;
+            partial_motion = true;
             target_pos = position;
         }
         @Override
@@ -619,13 +645,23 @@ public class Intake extends Subsystem {
             if(first){
                 moveSlides(target_pos);
                 first = false;
-                return true;
+                direction_up = slides.getCurrentPosition() < endpos;
+            }
+
+            if(partial_motion){
+                if(!slides.isBusy()){
+                    return false;
+                }
+                return direction_up ? slides.getCurrentPosition() < endpos : slides.getCurrentPosition() > endpos;
             }
             return slides.isBusy();
         }
     }
     public Action slideAction(int position) {
         return new moveSlidesAction(position);
+    }
+    public Action slideAction(int position, int end_position) {
+        return new moveSlidesAction(position, end_position);
     }
     public class moveArmAction implements Action {
         private int endpos = 0;

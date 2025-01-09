@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.roadrunner;
 
+import static com.acmerobotics.roadrunner.Curves.project;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_ACCEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_DECEL;
 import static org.firstinspires.ftc.teamcode.subsystems.MecaTank.MAX_VEL;
@@ -74,13 +75,13 @@ public final class MecanumDrive {
                 RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
         // drive model parameters
-        public double inPerTick = 1/1836.3936507936507936507936507937;
-        public double lateralInPerTick = 0.0004212595819385876;
-        public double trackWidthTicks = 22363.185520415052;
+        public double inPerTick = 5.4831668225294210238794085239951e-4;
+        public double lateralInPerTick = 0.00040679477221479177;
+        public double trackWidthTicks = 22379.53673178418;
 
         // feedforward parameters (in tick units)
-        public double kS = 0.6682625481398499;
-        public double kV = 0.00011019752723761133;
+        public double kS = 0.7511267322883728;
+        public double kV = 0.00010943313374016912;
         public double kA = 0.00002;
 
         // path profile parameters (in inches)
@@ -94,7 +95,7 @@ public final class MecanumDrive {
 
         // path controller gains
         public double axialGain = 8;
-        public double lateralGain = 6;
+        public double lateralGain = 7.3;
         public double headingGain = 6; // shared with turn
 
         public double axialVelGain = 0.0;
@@ -734,6 +735,123 @@ public final class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
+    public final class FollowTrajectoryActionPP implements Action {
+        public final TimeTrajectory timeTrajectory;
+        private double beginTs = -1;
+
+        private final double[] xPoints, yPoints;
+        private double disp = 0;
+        private List<Double> disps, vel, accel;
+        public FollowTrajectoryActionPP(TimeTrajectory t) {
+            timeTrajectory = t;
+
+            List<Double> disps = com.acmerobotics.roadrunner.Math.range(
+                    0, t.path.length(),
+                    Math.max(2, (int) Math.ceil(t.path.length() / 2)));
+            xPoints = new double[disps.size()];
+            yPoints = new double[disps.size()];
+            for (int i = 0; i < disps.size(); i++) {
+                Pose2d p = t.path.get(disps.get(i), 1).value();
+                xPoints[i] = p.position.x;
+                yPoints[i] = p.position.y;
+            }
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket p) {
+            double t;
+            if (beginTs < 0) {
+                beginTs = Actions.now();
+                t = 0;
+            } else {
+                t = Actions.now() - beginTs;
+            }
+
+            if (t >= timeTrajectory.duration ) {
+                frontLeft.setPower(0);
+                backLeft.setPower(0);
+                backRight.setPower(0);
+                frontRight.setPower(0);
+
+                return false;
+            }
+            disp = project(timeTrajectory.path, pose.position, disp);
+            Pose2dDual<Arclength> temp = timeTrajectory.path.get(disp, 3);
+
+            DualNum<Time> arclength = new DisplacementProfile(disps, vel, accel).get(disp);
+            Pose2dDual<Time> txWorldTarget = temp.reparam(arclength);
+
+            targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
+            PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            Pose2d error = txWorldTarget.value().minusExp(pose);
+
+            PoseVelocity2dDual<Time> command = new HolonomicController(
+                    PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain,
+                    PARAMS.axialVelGain, PARAMS.lateralVelGain, PARAMS.headingVelGain
+            )
+                    .compute(txWorldTarget, pose, robotVelRobot);
+            driveCommandWriter.write(new DriveCommandMessage(command));
+
+            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(command);
+            double voltage = voltageSensor.getVoltage();
+
+            final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
+                    PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
+            double leftFrontPower = feedforward.compute(wheelVels.leftFront) / voltage;
+            double leftBackPower = feedforward.compute(wheelVels.leftBack) / voltage;
+            double rightBackPower = feedforward.compute(wheelVels.rightBack) / voltage;
+            double rightFrontPower = feedforward.compute(wheelVels.rightFront) / voltage;
+            mecanumCommandWriter.write(new MecanumCommandMessage(
+                    voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
+            ));
+
+            frontLeft.setPower(leftFrontPower);
+            backLeft.setPower(leftBackPower);
+            backRight.setPower(rightBackPower);
+            frontRight.setPower(rightFrontPower);
+
+            p.put("x", pose.position.x);
+            p.put("y", pose.position.y);
+            p.put("heading (deg)", Math.toDegrees(pose.heading.toDouble()));
+
+            p.put("xError", error.position.x);
+            p.put("yError", error.position.y);
+
+//            if(Math.abs(error.position.x) > ERROR_THRESHOLD || Math.abs(error.position.y) > ERROR_THRESHOLD){
+//                leftFront.setPower(0);
+//                leftBack.setPower(0);
+//                rightBack.setPower(0);
+//                rightFront.setPower(0);
+//                return false;
+//            }
+
+
+            p.put("headingError (deg)", Math.toDegrees(error.heading.toDouble()));
+
+            // only draw when active; only one drive action should be active at a time
+            Canvas c = p.fieldOverlay();
+            drawPoseHistory(c);
+
+            c.setStroke("#4CAF50");
+            Drawing.drawRobot(c, txWorldTarget.value());
+
+            c.setStroke("#3F51B5");
+            Drawing.drawRobot(c, pose);
+
+            c.setStroke("#4CAF50FF");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+
+            return true;
+        }
+
+        @Override
+        public void preview(Canvas c) {
+            c.setStroke("#4CAF507A");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+        }
+    }
 
     public final class TurnAction implements Action {
         private final TimeTurn turn;
@@ -874,4 +992,19 @@ public final class MecanumDrive {
         );
     }
 
+    public TrajectoryActionBuilder ppActionBuilder(Pose2d beginPose) {
+        return new TrajectoryActionBuilder(
+                TurnAction::new,
+                FollowTrajectoryActionPP::new,
+                new TrajectoryBuilderParams(
+                        1e-6,
+                        new ProfileParams(
+                                0.25, 0.1, 1e-2
+                        )
+                ),
+                beginPose, 0.0,
+                defaultTurnConstraints,
+                defaultVelConstraint, defaultAccelConstraint
+        );
+    }
 }

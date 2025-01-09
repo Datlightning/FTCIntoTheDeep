@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.testing_opmodes;
 
 import com.acmerobotics.roadrunner.AccelConstraint;
 import com.acmerobotics.roadrunner.Action;
@@ -17,10 +17,10 @@ import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
-import org.firstinspires.ftc.teamcode.subsystems.Rigging;
+import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 
 @Autonomous
-public class Auto4Sample extends NGAutoOpMode {
+public class Auto4SampleSlides extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
@@ -32,9 +32,6 @@ public class Auto4Sample extends NGAutoOpMode {
                 return new MinMax(-30,50);
             }
         };
-        FailoverAction pickupAfterDistance2 = new FailoverAction(pickupAfterDistance(RobotConstants.TOO_FAR - 0.2, intake.distance), new InstantAction(() -> intake.distance.setOn(false)), false);
-
-        FailoverAction pickupAfterDistance3 = new FailoverAction(pickupAfterDistance(RobotConstants.TOO_FAR - 0.2, intake.distance), new InstantAction(() -> intake.distance.setOn(false)), false);
 
 
         Pose2d basket = new Pose2d(-57.7, -57.7, Math.toRadians(45));
@@ -48,10 +45,8 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder secondSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
-                .splineToSplineHeading(new Pose2d(-48, -43, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
-                .splineToSplineHeading(new Pose2d(-48, -37, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10,10))
-                .stopAndAdd(new InstantAction(pickupAfterDistance2::failover));
+                .setTangent(Math.toRadians(45))
+                .splineToLinearHeading(new Pose2d(-48, -54, Math.toRadians(90)), Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22));
 
         TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(new Pose2d(-48, -40, Math.toRadians(90)))
                 .setReversed(true)
@@ -61,10 +56,7 @@ public class Auto4Sample extends NGAutoOpMode {
                 .setReversed(false)
                 .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
-                .splineToSplineHeading(new Pose2d(-59, -43, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
-                .afterTime(0.1, new InstantAction(pickupAfterDistance3::enable))
-                .splineToSplineHeading(new Pose2d(-59, -37, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10,10))
-                .stopAndAdd(new InstantAction(pickupAfterDistance3::failover));
+                .splineToLinearHeading(new Pose2d(-59, -54, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22));
 
 
         TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(new Pose2d(-59, -39, Math.toRadians(90)))
@@ -113,9 +105,9 @@ public class Auto4Sample extends NGAutoOpMode {
                                 ),
                                 intake.score(),
                                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
-                                goToSample(secondSample, pickupAfterDistance2),
+                                goToSampleWithSlides(secondSample),
                                 collectSampleAndScore(scoreSecondSample, RobotConstants.claw_floor_pickup, false),
-                                goToSample(thirdSample, pickupAfterDistance3),
+                                goToSampleWithSlides(thirdSample),
                                 collectSampleAndScore(scoreThirdSample, RobotConstants.inside_pickup_open, false),
                                 intake.armAction(400,800),
                                 intake.slideAction(100),

@@ -254,8 +254,10 @@ public class MeepMeepTesting {
                 .setReversed(false)
 //                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
 //                .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
-                .splineToSplineHeading(new Pose2d(-48, -43, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
-                .splineToSplineHeading(new Pose2d(-48, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-8,10))
+                .setTangent(Math.toRadians(45))
+                .splineToLinearHeading(new Pose2d(-48, -54, Math.toRadians(90)), Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
+//                .splineToSplineHeading(new Pose2d(-48, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-8,10))
+
 //                .stopAndAdd(new InstantAction(pickupAfterDistance2::failover))
 
                 .setReversed(true)
@@ -265,8 +267,9 @@ public class MeepMeepTesting {
 //                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
 //                .afterTime(0.1, new InstantAction(pickupAfterDistance3::enable))
-                .splineToSplineHeading(new Pose2d(-59, -43, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22))
-                .splineToSplineHeading(new Pose2d(-59, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,12))
+                .splineToLinearHeading(new Pose2d(-59, -54, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22))
+
+//                .splineToSplineHeading(new Pose2d(-59, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,12))
 //                .stopAndAdd(new InstantAction(pickupAfterDistance3::failover))
 
                 .setReversed(true)
