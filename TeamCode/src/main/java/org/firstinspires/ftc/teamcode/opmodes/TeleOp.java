@@ -63,7 +63,7 @@ public class TeleOp extends LinearOpMode {
         REVERSE,
         FORWARD,
         EXIT_FLOOR_PICKUP_SEQ,
-        LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, EXTEND_SLIDES_FOR_SPECIMEN, RAISE_ARM
+        LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, EXTEND_SLIDES_FOR_SPECIMEN, RETRACT_SLIDES_SPECI, RAISE_ARM
     }
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -673,11 +673,11 @@ public class TeleOp extends LinearOpMode {
                             if(intake.slides.isBusy() || move_next3_override){
                                 break;
                             }
-                            intake.moveArm(0);
+                            intake.moveArm(350);
                             next_position3 = INTAKE_POSITIONS.WALL_SPECIMEN_PICKUP;
                             move_next3 = false;
-                            intake.moveWrist(RobotConstants.wrist_folded);
-                            intake.moveClaw(0.2);
+                            intake.moveWrist(147.675);
+                            intake.moveClaw(0);
 
                             break;
                         case WALL_SPECIMEN_PICKUP:
@@ -690,8 +690,9 @@ public class TeleOp extends LinearOpMode {
                         case RAISE_ARM_FOR_SPECIMEN:
                             if (timer.time() - current_time > delay || move_next3_override) {
                                 move_next3 = false;
-                                intake.moveArm(ARM_LIMIT);
-                                intake.moveSlides(0);
+                                intake.moveWrist(0);
+                                intake.moveArm(ARM_LIMIT - 150);
+                                intake.moveSlides(200);
                                 next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;
                             }
                             break;
@@ -705,18 +706,19 @@ public class TeleOp extends LinearOpMode {
                                 break;
                             }
 
-                            intake.moveArm(ARM_LIMIT - 200);
+                            intake.moveArm(ARM_LIMIT - 150);
                             next_position3 = INTAKE_POSITIONS.EXTEND_SLIDES_FOR_SPECIMEN;
                             break;
                         case EXTEND_SLIDES_FOR_SPECIMEN:
 
-                            intake.moveSlides(200);
-                            if(disable_distances){
-                                next_position3 = INTAKE_POSITIONS.RELEASE;
-                            }else {
-                                next_position3 = INTAKE_POSITIONS.REVERSE;
-                            }
-                            move_next3 = true;
+                            intake.moveSlides(550);
+//                            if(disable_distances){
+//                                next_position3 = INTAKE_POSITIONS.RELEASE;
+//                            }else {
+//                            }
+                            next_position3 = INTAKE_POSITIONS.RELEASE;
+
+                            move_next3 = false;
                             break;
                         case REVERSE:
                             if (intake.slides.isBusy() && !move_next3_override) {
@@ -738,10 +740,21 @@ public class TeleOp extends LinearOpMode {
 
                             mecaTank.setDistanceType(true);
                             intake.openClaw();
+                            intake.moveWrist(RobotConstants.floor_pickup_position);
+                            current_time = timer.time();
+                            move_next3 = true;
+                            next_position3 = INTAKE_POSITIONS.RETRACT_SLIDES_SPECI;
+                            break;
+                        case RETRACT_SLIDES_SPECI:
+                            if(timer.time() - current_time <= delay && !move_next3_override){
+                                break;
+                            }
+                            next_position3 = INTAKE_POSITIONS.FOLD_IN_AFTER_SPECIMEN;
+
                             intake.moveSlides(0);
                             move_next3 = false;
-                            next_position3 = INTAKE_POSITIONS.FOLD_IN_AFTER_SPECIMEN;
                             break;
+
                         case FOLD_IN_AFTER_SPECIMEN:
 
                             intake.moveArm(0);
