@@ -11,7 +11,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
-@TeleOp
 @Config
 public class CameraTesting extends TestingOpMode {
     Intake intake;

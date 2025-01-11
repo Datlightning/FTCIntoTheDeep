@@ -121,12 +121,13 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 intake.grab(RobotConstants.claw_closed),
                 new ParallelAction(
-                        new SequentialAction(
-                                new ParallelAction(
-                                        intake.slideAction(200),
-                                        new InstantAction(() -> intake.moveWrist(90))
-                                ),
-                                intake.raiseArm()
+                        new ParallelAction(
+                                intake.slideAction(400),
+                                new SequentialAction(
+                                        intake.armAction(360),
+                                        new InstantAction(() -> intake.moveWrist(90)),
+                                        intake.raiseArm()
+                                )
                         ),
                         sampleScore
                 ),
@@ -135,6 +136,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );
     }
+
     public Action goToSample(Action sample){
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
@@ -158,12 +160,26 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new ParallelAction(
                         new SequentialAction(
                                 intake.armAction(240, 700),
-                                new ParallelAction(
-                                        intake.slideAction(1000),
-                                        sample
-                                )
+                                intake.slideAction(1000)
+                        ),
+                        sample
+                )
+        );
+    }
+    public Action goToSampleWithSlides(Action sample,int slide_length){
+        return new SequentialAction(
+                new InstantAction(() ->
+                {
+                    intake.moveClaw(RobotConstants.claw_flat);
+                    intake.moveWrist(180);
+                }),
 
-                        )
+                new ParallelAction(
+                        new SequentialAction(
+                                intake.armAction(240, 700),
+                                intake.slideAction(slide_length)
+                        ),
+                        sample
                 )
         );
     }

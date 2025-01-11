@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 
 @Config
-@TeleOp
 public class DiffyIntakeTest extends LinearOpMode {
     Servo leftServo;
     Servo rightServo;

@@ -25,8 +25,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 import java.util.function.DoubleSupplier;
 
-@Autonomous
-@Disabled
+
 
 public class RRPathTest extends TestingOpMode {
     Intake intake;

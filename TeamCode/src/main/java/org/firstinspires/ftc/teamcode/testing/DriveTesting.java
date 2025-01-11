@@ -12,7 +12,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 
 @Config
-@TeleOp
 //@Disabled
 public class DriveTesting extends TestingOpMode {
     MecaTank mecaTank;

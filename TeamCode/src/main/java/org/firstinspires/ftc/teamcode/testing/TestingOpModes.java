@@ -29,7 +29,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.TankDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.ThreeDeadWheelLocalizer;
 import org.firstinspires.ftc.teamcode.roadrunner.TwoDeadWheelLocalizer;
 import org.firstinspires.ftc.teamcode.roadrunner.tuning.LocalizationTest;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.ManualFeedbackTuner;
+import org.firstinspires.ftc.teamcode.roadrunner.tuning.IntakeTuning;
 import org.firstinspires.ftc.teamcode.roadrunner.tuning.ManualLateralFeedbackTuner;
 import org.firstinspires.ftc.teamcode.roadrunner.tuning.SplineTest;
 

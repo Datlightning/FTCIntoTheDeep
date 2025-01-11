@@ -9,8 +9,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import java.io.*;
 import java.net.*;
 
-@TeleOp
-@Disabled
 public class EpicWebTransferTest extends TestingOpMode {
 
     private volatile int variable1 = 0;

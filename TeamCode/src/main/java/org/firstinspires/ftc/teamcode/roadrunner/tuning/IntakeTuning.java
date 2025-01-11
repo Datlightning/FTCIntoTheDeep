@@ -9,9 +9,8 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.TankDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.ThreeDeadWheelLocalizer;
 import org.firstinspires.ftc.teamcode.roadrunner.TwoDeadWheelLocalizer;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.TuningOpModes;
 
-public final class ManualFeedbackTuner extends LinearOpMode {
+public final class IntakeTuning extends LinearOpMode {
     public static double DISTANCE = 64;
 
     @Override

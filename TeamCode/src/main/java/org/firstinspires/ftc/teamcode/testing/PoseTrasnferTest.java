@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 
-@TeleOp
 @Config
 public class PoseTrasnferTest extends TestingOpMode {
 

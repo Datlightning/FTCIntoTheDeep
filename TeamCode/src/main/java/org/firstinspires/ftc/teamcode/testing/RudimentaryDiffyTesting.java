@@ -9,7 +9,6 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-@TeleOp
 @Config
 public class RudimentaryDiffyTesting extends TestingOpMode {
     public static double left_pos = 0;

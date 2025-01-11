@@ -11,7 +11,6 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.TankDrive;
 
 @Config
-@Autonomous
 public  class StrafeTest extends LinearOpMode {
     public static double DISTANCE = 30;
     @Override

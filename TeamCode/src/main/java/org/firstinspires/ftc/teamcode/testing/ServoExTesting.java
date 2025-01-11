@@ -8,8 +8,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 @Config
-@TeleOp
-@Disabled
 public class ServoExTesting extends TestingOpMode {
     ServoImplEx servo;
     @Override

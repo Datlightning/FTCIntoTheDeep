@@ -23,7 +23,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 
 @Disabled
-@Autonomous
 public class DistanceRRPathTest extends TestingOpMode {
     Intake intake;
     @Override

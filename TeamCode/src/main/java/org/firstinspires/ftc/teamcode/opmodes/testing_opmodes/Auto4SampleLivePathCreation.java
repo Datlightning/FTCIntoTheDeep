@@ -17,10 +17,12 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.acmerobotics.roadrunner.ftc.ImuInitMessage;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 
+@Disabled
 @Autonomous
 public class Auto4SampleLivePathCreation extends NGAutoOpMode {
 

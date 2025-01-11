@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @Config
-@TeleOp(name = "Double Tap Detection", group = "TeleOp")
 public class DoubleTap extends TestingOpMode {
 
     // Variables to track tap state

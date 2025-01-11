@@ -12,7 +12,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 
 @Disabled
-@Autonomous
 public class AutoArmStabilizerTesting extends NGAutoOpMode {
     public static double DISTANCE = 64;
 

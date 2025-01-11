@@ -15,9 +15,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
 import java.util.concurrent.TimeUnit;
 
-@TeleOp
 @Config
-@Disabled
 public class PIDTuning extends TestingOpMode {
     DcMotor motor;
     double error, lastError;

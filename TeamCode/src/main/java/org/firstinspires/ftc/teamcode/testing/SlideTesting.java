@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
-@TeleOp
 public class SlideTesting extends LinearOpMode {
     Servo slide_left;
     Servo slide_right;
