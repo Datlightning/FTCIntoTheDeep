@@ -250,7 +250,9 @@ public class MeepMeepTesting {
                 .setTangent(Math.toRadians(135))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
                 .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
-
+                .splineToLinearHeading(new Pose2d(-57.5, -48, Math.toRadians(118.5)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22))
+                        .setTangent(Math.toRadians(298.5))
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36))
                 .setReversed(false)
 //                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
 //                .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))

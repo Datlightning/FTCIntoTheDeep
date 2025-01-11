@@ -62,8 +62,19 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
     public Action eternalAction(){
         return new SleepAction(30);
-    }
 
+    }
+    public class WaitUntilAction implements Action{
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            return (!gamepad1.a);
+        }
+    }
+    public Action betterEternalAction(){
+
+        return new WaitUntilAction();
+
+    }
     public Action scoreSpecimen(Distance rear_distance){
         return new SequentialAction(
                 drive.moveUsingDistance(rear_distance, 4.5, 4, 4.8, false),
@@ -110,7 +121,13 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 intake.grab(RobotConstants.claw_closed),
                 new ParallelAction(
-                        intake.raiseArm(),
+                        new SequentialAction(
+                                new ParallelAction(
+                                        intake.slideAction(200),
+                                        new InstantAction(() -> intake.moveWrist(90))
+                                ),
+                                intake.raiseArm()
+                        ),
                         sampleScore
                 ),
                 new SleepAction(0.2),
@@ -132,10 +149,21 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
     public Action goToSampleWithSlides(Action sample){
         return new SequentialAction(
-                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
+                new InstantAction(() ->
+                {
+                    intake.moveClaw(RobotConstants.claw_flat);
+                    intake.moveWrist(180);
+                }),
+
                 new ParallelAction(
-                        intake.slideAction(800),
-                        new SequentialAction(intake.armAction(300, 1000), sample)
+                        new SequentialAction(
+                                intake.armAction(240, 700),
+                                new ParallelAction(
+                                        intake.slideAction(1000),
+                                        sample
+                                )
+
+                        )
                 )
         );
     }

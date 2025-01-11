@@ -16,8 +16,8 @@ public class NGMotor extends Subsystem {
     private boolean on = true;
     public int targetPos = 0;
     private int startPos = 0;
-    public static double P = 0.0005, I = 0.0002, D = 0;
-    public static double F = 0;
+    public double P = 0.0005, I = 0.0002, D = 0;
+    public  double F = 0;
     double error, lastError;
     private boolean reversed_encoder = false;
     public boolean manual = false;
@@ -171,6 +171,11 @@ public class NGMotor extends Subsystem {
         telemetry.addData(name + " Busy Status", isBusy());
         telemetry.addData(name + "Current Draw", getCurrent());
         telemetry.addData(name + "Current Cooked", getCurrentAlert());
+        telemetry.addData(name + " P", P);
+        telemetry.addData(name + " I", I);
+        telemetry.addData(name + " D", D);
+        telemetry.addData(name + " F", F);
+
 
         telemetry.addData(name + "Velocity", getVelocity());
         telemetry.addData("Out Power", out);

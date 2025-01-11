@@ -12,10 +12,10 @@ public class RobotConstants {
     public static double
             claw_closed = 0.43,
             claw_fully_open = claw_closed - 0.25,
-            claw_open= claw_closed - 0.15,
+            claw_open= claw_closed - 0.18,
             claw_flat = claw_closed - 0.43,
-            claw_floor_pickup = claw_closed - 0.27,
-            inside_pickup_closed = claw_closed - 0.15,
+            claw_floor_pickup = claw_closed - 0.30,
+            inside_pickup_closed = claw_closed - 0.18,
             inside_pickup_open = claw_closed - 0.05;
 
     public static Pose2d pose = new Pose2d(0,0,0);

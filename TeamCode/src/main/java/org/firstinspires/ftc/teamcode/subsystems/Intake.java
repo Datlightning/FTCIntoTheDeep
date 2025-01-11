@@ -37,7 +37,7 @@ public class Intake extends Subsystem {
     public NGMotor arm;
     private double claw_offset = 0;
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.007, 0.00001, 0.000003, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.0015, 0.00007, 0.00003, 0.0005);
     DigitalChannel magnet_sensor;
     HardwareMap hardwareMap;
     Telemetry telemetry;
@@ -297,12 +297,12 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> arm.setMaxVelocity(3500)),
-                armAction(ARM_LIMIT-200,ARM_LIMIT - 1000),
+                new InstantAction(() -> arm.setMaxVelocity(6000)),
+                armAction(ARM_LIMIT-100,ARM_LIMIT - 1000),
                 new InstantAction(() -> moveWrist(115)),
                 new ParallelAction(
                         slideAction(1350),
-                        armAction(ARM_LIMIT-200)
+                        armAction(ARM_LIMIT- 100)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
                 new InstantAction(() -> moveWrist(35)),
@@ -371,7 +371,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> turnClaw(0)),
-                slideAction(800)
+                slideAction(200, 600)
 
 
         );
@@ -380,7 +380,7 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(this::openClaw),
                 new SleepAction(0.1),
-                new InstantAction(() -> turnClaw(0)),
+                new InstantAction(() -> turnClaw(90)),
                 new InstantAction(() -> moveWrist(extra_claw_clearance ? 100 : 90)),
                 new SleepAction(extra_claw_clearance ? 0.4 : 0),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
@@ -393,7 +393,7 @@ public class Intake extends Subsystem {
     public Action scoreAndFold(){
 
         return new SequentialAction(
-                new InstantAction(() -> moveClaw(RobotConstants.inside_pickup_open)),
+                new InstantAction(() -> moveClaw(RobotConstants.claw_open)),
                 new SleepAction(0.1),
                 new InstantAction(() -> turnClaw(0)),
                 new InstantAction(() -> moveWrist(100)),
@@ -610,9 +610,9 @@ public class Intake extends Subsystem {
         slides.setMax(1400);
         arm.setMax(ARM_LIMIT);
         arm.setMin(-1000);
-        slides.setMaxAcceleration(10000);
-        slides.setMaxVelocity(18000);
-        slides.setMaxDeceleration(2000);
+        slides.setMaxAcceleration(15000);
+        slides.setMaxVelocity(12000);
+        slides.setMaxDeceleration(5000);
     }
 
     @Override
