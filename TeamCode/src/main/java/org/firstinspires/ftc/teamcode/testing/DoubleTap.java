@@ -52,6 +52,9 @@ public class DoubleTap extends TestingOpMode {
                 }
                 currentTaps = 0;
             }
+            telemetry.addData("Options", gamepad1.options);
+            telemetry.addData("Start", gamepad1.start);
+            telemetry.addData("Back", gamepad1.back);
             telemetry.update();
         }
     }

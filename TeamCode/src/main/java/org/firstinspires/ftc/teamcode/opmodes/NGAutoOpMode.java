@@ -118,18 +118,25 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
 
     public Action slideCollectSampleAndScore(Action sampleScore, double ending_claw_pos){
+        Intake.moveArmAction armDown = intake.armAction(500, 260);
         return new SequentialAction(
                 intake.grab(RobotConstants.claw_closed),
                 new ParallelAction(
-                        new ParallelAction(
-                                intake.slideAction(400),
-                                new SequentialAction(
-                                        intake.armAction(360),
-                                        new InstantAction(() -> intake.moveWrist(90)),
-                                        intake.raiseArm()
-                                )
+                        new SequentialAction(
+                                    new ParallelAction(
+                                        intake.slideAction(200, 400),
+                                        new InstantAction(() -> intake.arm.setExitWithTime(true)),
+                                        armDown,
+                                        new InstantAction(() -> intake.arm.setExitWithTime(false)),
+                                        new InstantAction(() -> intake.moveWrist(90))
+                                    ),
+                                    intake.raiseArm()
+
                         ),
-                        sampleScore
+                        new SequentialAction(
+                                sampleScore,
+                                new InstantAction(armDown::cancel)
+                        )
                 ),
                 new SleepAction(0.2),
                 intake.scoreSlidePickup(),
@@ -150,6 +157,9 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         );
     }
     public Action goToSampleWithSlides(Action sample){
+        Intake.moveArmAction armDown = intake.armAction(300, 700);
+        Intake.moveArmAction armDown2 = intake.armAction(200);
+        FailoverAction sleep = new FailoverAction(new SleepAction(1.25), new NullAction());
         return new SequentialAction(
                 new InstantAction(() ->
                 {
@@ -159,10 +169,20 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
                 new ParallelAction(
                         new SequentialAction(
-                                intake.armAction(240, 700),
+
+                                armDown,
                                 intake.slideAction(1000)
                         ),
-                        sample
+                        new SequentialAction(
+                                sample,
+                                new InstantAction(() -> {intake.useFastPID(true);}),
+                                new ParallelAction(
+                                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                                        new SequentialAction(sleep, new InstantAction(armDown2::cancel))
+                                ),
+                                new InstantAction(() -> {intake.useFastPID(false);})
+                        )
+
                 )
         );
     }

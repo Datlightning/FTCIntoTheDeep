@@ -1,32 +1,26 @@
 package org.firstinspires.ftc.teamcode.testing;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.StrafeTest;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
-
-import java.lang.annotation.Target;
 
 @TeleOp
 @Config
 public class IntakeTesting extends TestingOpMode {
     Intake intake;
     TrafficLight trafficLight;
-    public static double claw_position = RobotConstants.claw_closed;
-    public static double wrist_angle = 0;
-    public static double claw_angle = 0;
+    public static double A1_claw_position = RobotConstants.claw_closed;
+    public static double A1_wrist_angle = 0;
+    public static double A1_claw_angle = 0;
     public static double rotation_power = 0;
     public static double slide_power = 0;
-    public static int arm_position = 0;
-    public static int slide_position = 0;
+    public static int A1_arm_position = 0;
+    public static int A1_slide_position = 0;
 
     private int past_arm_position = 0;
     private int past_slide_position = 0;
@@ -88,19 +82,19 @@ public class IntakeTesting extends TestingOpMode {
 
 
             mecaTank.setDistanceType(front_distance);
-            if(arm_position != past_arm_position){
-                intake.moveArm(arm_position);
+            if(A1_arm_position != past_arm_position){
+                intake.moveArm(A1_arm_position);
 
             }
             if(lower_arm_until_0_velo){
                 lower_arm_until_0_velo = false;
                 intake.moveArmUntilZeroSpeed(lower_arm_speed);
             }
-            if(slide_position != past_slide_position){
-                intake.moveSlides(slide_position);
+            if(A1_slide_position != past_slide_position){
+                intake.moveSlides(A1_slide_position);
             }
-            past_arm_position = arm_position;
-            past_slide_position = slide_position;
+            past_arm_position = A1_arm_position;
+            past_slide_position = A1_slide_position;
 
 
 
@@ -114,9 +108,9 @@ public class IntakeTesting extends TestingOpMode {
             if(controller){
                 intake.setFourBar(true);
                 intake.setTargetAngle(target_angle);
-                intake.turnClaw(claw_angle);
+                intake.turnClaw(A1_claw_angle);
             }else{
-                intake.turnAndRotateClaw(wrist_angle, claw_angle);
+                intake.turnAndRotateClaw(A1_wrist_angle, A1_claw_angle);
             }
             if(use_offset_calibrate){
                 intake.calculateOffset();
@@ -124,7 +118,7 @@ public class IntakeTesting extends TestingOpMode {
             }
                 intake.arm.enableMotor(enable_arm_motor);
 
-            intake.moveClaw(claw_position);
+            intake.moveClaw(A1_claw_position);
 
             intake.setTargetHeight(claw_height);
             intake.calculateArmPosition(intake.slides.getCurrentPosition());
@@ -149,10 +143,10 @@ public class IntakeTesting extends TestingOpMode {
 
             if(gamepad1.left_bumper){
                     intake.moveSlides(intake.slides.targetPos + increment);
-                    slide_position += increment;
+                    A1_slide_position += increment;
             }else if(gamepad1.right_bumper){
                     intake.moveSlides(intake.slides.targetPos - increment);
-                    slide_position -= increment;
+                    A1_slide_position -= increment;
             }
 
             if(!mecaTank.isBusy()){

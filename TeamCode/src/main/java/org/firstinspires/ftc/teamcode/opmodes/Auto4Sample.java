@@ -27,6 +27,7 @@ public class Auto4Sample extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
+        double INCHES_FORWARD = -2;
         initAuto(beginPose);
         AccelConstraint pickSampleAccel = (robotPose, _path, _disp) -> {
             if (robotPose.position.y.value() > -30.0) {
@@ -37,7 +38,11 @@ public class Auto4Sample extends NGAutoOpMode {
         };
 
 
-        Pose2d basket = new Pose2d(-58, -58, Math.toRadians(45));
+        Pose2d basket = new Pose2d(-57.5, -57.5 + INCHES_FORWARD, Math.toRadians(45));
+        Pose2d sample2Pickup = new Pose2d(-48, -50.5 + INCHES_FORWARD, Math.toRadians(90));
+        Pose2d sample3Pickup = new Pose2d(-59, -50.5 + INCHES_FORWARD, Math.toRadians(90));
+        Pose2d sample4Pickup = new Pose2d(-58 + INCHES_FORWARD * Math.cos(Math.toRadians(118.5)), -47 + INCHES_FORWARD * Math.sin(Math.toRadians(118.5)), Math.toRadians(118.5));
+
         TrajectoryActionBuilder firstSamplePath = drive.closeActionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
@@ -48,26 +53,28 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder secondSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
-                .splineToLinearHeading(new Pose2d(-48, -51.5, Math.toRadians(90)), Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(sample2Pickup, Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,32));
 
-        TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(new Pose2d(-48, -51.5, Math.toRadians(90)))
+        TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(sample2Pickup)
                 .setReversed(true)
+                .setTangent(Math.PI + Math.atan2(sample2Pickup.position.y - basket.position.y, sample2Pickup.position.x - basket.position.x))
                 .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
 
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(135))
-                .splineToLinearHeading(new Pose2d(-59, -51.5, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22));
+                .splineToLinearHeading(sample3Pickup, Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,32));
 
-        TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(new Pose2d(-59, -51.5, Math.toRadians(90)))
+        TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(sample3Pickup)
                 .setReversed(true)
+                .setTangent(Math.PI + Math.atan2(sample3Pickup.position.y - basket.position.y, sample3Pickup.position.x - basket.position.x))
                 .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
 
         TrajectoryActionBuilder fourthSamplePath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
-                .splineToLinearHeading(new Pose2d(-57.5, -48, Math.toRadians(118.5)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22));
-        TrajectoryActionBuilder scoreFourthSamplePath = drive.actionBuilder(new Pose2d(-57.5, -48, Math.toRadians(118.5)))
+                .splineToLinearHeading(sample4Pickup, Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,32));
+        TrajectoryActionBuilder scoreFourthSamplePath = drive.actionBuilder(sample4Pickup)
                 .setReversed(true)
                 .setTangent(Math.toRadians(298.5))
                 .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
@@ -75,7 +82,7 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder parkPath = scoreFourthSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(new Pose2d(-30, -18, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(36));
+                .splineToLinearHeading(new Pose2d(-32, -12, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(80));
 
         FailoverAction firstSample = new FailoverAction(firstSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         FailoverAction secondSample = new FailoverAction( secondSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
@@ -109,18 +116,21 @@ public class Auto4Sample extends NGAutoOpMode {
                                 slideCollectSampleAndScore(scoreSecondSample, RobotConstants.claw_flat),
                                 goToSampleWithSlides(thirdSample),
                                 slideCollectSampleAndScore(scoreThirdSample, RobotConstants.claw_flat),
-                                goToSampleWithSlides(fourthSample, 950),
+                                goToSampleWithSlides(fourthSample),
                                 slideCollectSampleAndScore(scoreFourthSample, RobotConstants.claw_open),
                                 new ParallelAction(
                                         new SequentialAction(
                                                 new SleepAction(1),
-                                            new InstantAction(() -> intake.moveWrist(0))
+                                                new InstantAction(() -> intake.moveWrist(0))
                                         ),
-                                        intake.slideAction(0),
-                                        intake.armAction(0),
+                                        new SequentialAction(
+                                            intake.slideAction(0),
+                                            intake.armAction(0)
+                                        ),
                                         park
 
                                 )
+
 
 
                         )

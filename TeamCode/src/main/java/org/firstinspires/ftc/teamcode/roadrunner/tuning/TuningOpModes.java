@@ -161,7 +161,7 @@ public final class TuningOpModes {
         manager.register(metaForClass(MecanumMotorDirectionDebugger.class), new MecanumMotorDirectionDebugger(dvf));
         manager.register(metaForClass(DeadWheelDirectionDebugger.class), new DeadWheelDirectionDebugger(dvf));
 
-        manager.register(metaForClass(IntakeTuning.class), IntakeTuning.class);
+        manager.register(metaForClass(ManualFeedbackTuner.class), ManualFeedbackTuner.class);
         manager.register(metaForClass(ManualLateralFeedbackTuner.class), ManualLateralFeedbackTuner.class);
         manager.register(metaForClass(SplineTest.class), SplineTest.class);
         manager.register(metaForClass(StrafeTest.class), StrafeTest.class);
@@ -174,7 +174,7 @@ public final class TuningOpModes {
                     LateralRampLogger.class,
                     ManualFeedforwardTuner.class,
                     MecanumMotorDirectionDebugger.class,
-                    IntakeTuning.class,
+                    ManualFeedbackTuner.class,
                     ManualLateralFeedbackTuner.class
             )) {
                 configRoot.putVariable(c.getSimpleName(), ReflectionConfig.createVariableFromClass(c));

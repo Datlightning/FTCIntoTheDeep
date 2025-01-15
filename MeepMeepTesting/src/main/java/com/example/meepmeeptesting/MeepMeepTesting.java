@@ -249,48 +249,33 @@ public class MeepMeepTesting {
 //                .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
                 .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
-                .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,40))
-                .splineToLinearHeading(new Pose2d(-57.5, -48, Math.toRadians(118.5)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22))
-                        .setTangent(Math.toRadians(298.5))
-                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36))
+                .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(24), new ProfileAccelConstraint(-10,40))
                 .setReversed(false)
-//                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-//                .afterTime(0.1, new InstantAction(pickupAfterDistance2::enable))
                 .setTangent(Math.toRadians(45))
-                .splineToLinearHeading(new Pose2d(-48, -54, Math.toRadians(90)), Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,22))
-//                .splineToSplineHeading(new Pose2d(-48, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-8,10))
 
-//                .stopAndAdd(new InstantAction(pickupAfterDistance2::failover))
-
+                .splineToLinearHeading(new Pose2d(-48, -52.5, Math.toRadians(90)), Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-12,32))
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-54.5, -59, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,30))
 
+                .setTangent(Math.PI + Math.atan2( -52.5 - basket.position.y,-48 - basket.position.x))
+
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40))
                 .setReversed(false)
-//                .stopAndAdd( new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
-//                .afterTime(0.1, new InstantAction(pickupAfterDistance3::enable))
-                .splineToLinearHeading(new Pose2d(-59, -54, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,22))
-
-//                .splineToSplineHeading(new Pose2d(-59, -35, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,12))
-//                .stopAndAdd(new InstantAction(pickupAfterDistance3::failover))
-
+                .splineToLinearHeading(new Pose2d(-59, -52.5, Math.toRadians(90)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,32))
                 .setReversed(true)
-                .splineToLinearHeading(new Pose2d(-55, -59, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(35), new ProfileAccelConstraint(-12,30))
 
+                .setTangent(Math.PI + Math.atan2( -52.5 - basket.position.y,-59 - basket.position.x))
+
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40))
                 .setReversed(false)
-                .splineToSplineHeading(new Pose2d(-52.5, -30.5, Math.toRadians(180)), Math.toRadians(90), new TranslationalVelConstraint(40), pickSampleAccel)
-//                .afterTime(0.1, new InstantAction(pickupAfterDistance4::enable))
-                .splineToConstantHeading(new Vector2d(-61,-27), Math.toRadians(180), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-10,15))
-//                .stopAndAdd(new InstantAction(pickupAfterDistance4::failover))
-
+                .setTangent(Math.toRadians(45))
+                .splineToLinearHeading(new Pose2d(-58, -47, Math.toRadians(118.5)), Math.toRadians(90), new TranslationalVelConstraint(40),  new ProfileAccelConstraint(-12,32))
                 .setReversed(true)
-                .setTangent(Math.toRadians(270))
-                .splineToSplineHeading(new Pose2d(-50, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
-                .splineToConstantHeading(new Vector2d(-57, -57), Math.toRadians(225), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-12,32))
-
+                .setTangent(Math.toRadians(298.5))
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40))
                 .setReversed(true)
-                .splineToConstantHeading(new Vector2d(-50, -59), Math.toRadians(45))
-
+                .setTangent(Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(-32, -12, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(80))
                 .build());
         sampleBot2.runAction(sampleBot.getDrive().actionBuilder(new Pose2d(-10, -66, Math.toRadians(270)))
                 .setReversed(true)

@@ -214,10 +214,10 @@ public class NGMotor extends Subsystem {
         }
         if(power == 0 && manual && !waiting_for_manual){
             setPower(0);
-    //            move_async(pid_motor.getCurrentPosition());
+            move_async_pid(pid_motor.getCurrentPosition());
             manual_power_time = timer.time();
             waiting_for_manual = true;
-//            manual = false;
+            manual = false;
 
         }
     }
@@ -242,6 +242,28 @@ public class NGMotor extends Subsystem {
     public void setAbsPower(double power){
         pid_motor.setPower(power);
 
+    }
+    public void move_async_pid(int target){
+        target = Math.min(target, maxHardstop);
+        target = Math.max(target, minHardstop);
+        if(targetPos != target){
+            useMotionProfile = false;
+            reached = false;
+            integralSum = 0;
+            if(MAX_DECEL == -1){
+                motion_profile_exit_time =  Control.motionProfileTime(MAX_ACCEL, MAX_VEL, distance);
+            }else{
+                motion_profile_exit_time = Control.motionProfileTime(MAX_VEL, MAX_ACCEL, MAX_DECEL, distance);
+            }
+            time_stop = timer.seconds();
+            time_started = timer.seconds();
+            startPos = getCurrentPosition();
+            distance = target - getCurrentPosition();
+
+        }
+        telemetry.addData(name + "'s Distance", distance);
+        telemetry.addData(name + "'s Target", target);
+        targetPos = target;
     }
 
     public void move_async(int target) {
@@ -292,12 +314,13 @@ public class NGMotor extends Subsystem {
     }
 
     public void update() {
-        if(waiting_for_manual && timer.time() - manual_power_time > 0.1){
-            waiting_for_manual = false;
-            manual = false;
-            move_async(pid_motor.getCurrentPosition());
-            targetPos = pid_motor.getCurrentPosition();
-        }
+        //temporarily disabled because is bad
+//        if(waiting_for_manual && timer.time() - manual_power_time > 0.1){
+//            waiting_for_manual = false;
+//            manual = false;
+//            move_async(pid_motor.getCurrentPosition());
+//            targetPos = pid_motor.getCurrentPosition();
+//        }
         if(manual){
             return;
         }

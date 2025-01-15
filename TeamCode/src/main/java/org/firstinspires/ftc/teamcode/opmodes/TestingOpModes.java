@@ -2,21 +2,12 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.reflection.ReflectionConfig;
-import com.acmerobotics.roadrunner.ftc.AngularRampLogger;
-import com.acmerobotics.roadrunner.ftc.ForwardRampLogger;
-import com.acmerobotics.roadrunner.ftc.LateralRampLogger;
-import com.acmerobotics.roadrunner.ftc.ManualFeedforwardTuner;
-import com.acmerobotics.roadrunner.ftc.MecanumMotorDirectionDebugger;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.IntakeTuning;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.LocalizationTest;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.ManualLateralFeedbackTuner;
-import org.firstinspires.ftc.teamcode.roadrunner.tuning.SplineTest;
 import org.firstinspires.ftc.teamcode.testing.AutoArmStabilizerTesting;
 import org.firstinspires.ftc.teamcode.testing.BigBoyTesting;
 import org.firstinspires.ftc.teamcode.testing.CameraTesting;
@@ -25,6 +16,7 @@ import org.firstinspires.ftc.teamcode.testing.DistanceRRPathTest;
 import org.firstinspires.ftc.teamcode.testing.DoubleTap;
 import org.firstinspires.ftc.teamcode.testing.DriveTesting;
 import org.firstinspires.ftc.teamcode.testing.EpicWebTransferTest;
+import org.firstinspires.ftc.teamcode.testing.IntakeTuning;
 import org.firstinspires.ftc.teamcode.testing.MotionProfileTest;
 import org.firstinspires.ftc.teamcode.testing.PIDTuning;
 import org.firstinspires.ftc.teamcode.testing.PoseTrasnferTest;
@@ -33,7 +25,6 @@ import org.firstinspires.ftc.teamcode.testing.RudimentaryDiffyTesting;
 import org.firstinspires.ftc.teamcode.testing.ServoExTesting;
 import org.firstinspires.ftc.teamcode.testing.ServoTesting;
 import org.firstinspires.ftc.teamcode.testing.SlideTesting;
-import org.firstinspires.ftc.teamcode.testing.SwerveTesting;
 import org.firstinspires.ftc.teamcode.testing.TestDataTrasnfer;
 import org.firstinspires.ftc.teamcode.testing.TrafficLightTest;
 

@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -15,7 +16,7 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 
 @Config
 public class Distance extends Subsystem {
-    private DistanceSensor sensorDistance;
+    private Rev2mDistanceSensor sensorDistance;
     private double past_distance_reading = 0;
     private double current_dist = 0;
     private double filtered_position = 0;
@@ -33,15 +34,14 @@ public class Distance extends Subsystem {
         this.telemetry = telemetry;
         timer = new ElapsedTime();
 
-        sensorDistance = hardwareMap.get(DistanceSensor.class, name);
+        sensorDistance = (Rev2mDistanceSensor) hardwareMap.get(DistanceSensor.class, name);
         this.name = name;
 
     }
     public Distance(HardwareMap hardwareMap, Telemetry telemetry, String name, ElapsedTime timer){
-        this.telemetry = telemetry;
+        this(hardwareMap, telemetry, name);
         this.timer = timer;
-        this.name = name;
-        sensorDistance = hardwareMap.get(DistanceSensor.class, name);
+
 
     }
     public double getDist() {
@@ -63,6 +63,9 @@ public class Distance extends Subsystem {
     public boolean isOn(){
         return on;
     }
+    public boolean timeout(){
+        return sensorDistance.didTimeoutOccur();
+    }
     @Override
     public void telemetry() {
         telemetry.addData(name + " is on: ", on);
@@ -70,6 +73,7 @@ public class Distance extends Subsystem {
             return;
         }
         telemetry.addData(name + " Distance (in)", getDist());
+        telemetry.addData(name + " did time out", Boolean.toString(sensorDistance.didTimeoutOccur()));
         telemetry.addData(name + " Filtered Distance (in)", getFilteredDist());
     }
     public void update(){
@@ -77,7 +81,7 @@ public class Distance extends Subsystem {
             filter_on = false;
             return;
         }
-        if(timer.seconds() - delay > 0.005){
+        if(timer.milliseconds() - delay > 50){
             filter_on = true;
             past_distance_reading = current_dist;
             current_dist = getDist();
@@ -86,7 +90,7 @@ public class Distance extends Subsystem {
             }else {
                 filtered_position = filter_value * current_dist + (1 - filter_value) * past_distance_reading;
             }
-            delay = timer.seconds();
+            delay = timer.milliseconds();
         }
     }
     public double getFilteredDist(){
@@ -118,7 +122,6 @@ public class Distance extends Subsystem {
             if(first){
                 setOn(true);
                 direction = getDist() < target_distance;
-
                 first = false;
             }
             if(!filter_on){

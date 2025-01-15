@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
-import static org.firstinspires.ftc.teamcode.RobotConstants.intake;
 
 import androidx.annotation.NonNull;
 
@@ -10,7 +9,6 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
-import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
@@ -22,13 +20,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
-import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.library.NGMotor;
-import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
-import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-
-import java.util.ArrayList;
 
 @Config
 public class Intake extends Subsystem {
@@ -37,7 +30,8 @@ public class Intake extends Subsystem {
     public NGMotor arm;
     private double claw_offset = 0;
     public NGMotor slides;
-    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.0015, 0.00007, 0.00003, 0.0005);
+    public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.0015, 0.00007, 0.00008, 0.0005);
+    public static PIDFCoefficients gunToPointSlidesPID = new PIDFCoefficients(0.004, 0.00007, 0.00003, 0.0005);
     DigitalChannel magnet_sensor;
     HardwareMap hardwareMap;
     Telemetry telemetry;
@@ -217,6 +211,9 @@ public class Intake extends Subsystem {
             trafficLight.flashRed(1,1);
             return;
         }
+        arm.move_async(targetPosition + offset);
+    }
+    public void moveArm(int targetPosition, boolean safety_is_cringe){
         arm.move_async(targetPosition + offset);
     }
     public void moveArmUntilZeroSpeed(double power){
@@ -558,7 +555,12 @@ public class Intake extends Subsystem {
 
 
         distance.setFilter(DISTANCE_FILTER);
-        slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
+        //psuedo gun to point
+        if (Math.abs(slides.getCurrentPosition() -  slides.targetPos) < 200 && slides.targetPos < 400){
+            slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
+        }else{
+            slides.setPIDF(gunToPointSlidesPID.p , gunToPointSlidesPID.i, gunToPointSlidesPID.d, gunToPointSlidesPID.f);
+        }
         if(use_velo){
             use_velo = arm.getVelocity() >= VELO_THRESHOLD;
             arm.setManualPower(use_velo_power);
@@ -670,6 +672,9 @@ public class Intake extends Subsystem {
         private int target_pos = 0;
 
         private boolean direction_up = true;
+
+        private boolean canceled = false;
+        private boolean ongoing = true;
         public moveArmAction(int position){
             target_pos = position;
         }
@@ -680,22 +685,38 @@ public class Intake extends Subsystem {
         }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if (canceled){
+                telemetryPacket.put("Canceled", true);
 
-            telemetryPacket.put("Arm Target Position", target_pos);
-            telemetryPacket.put("Arm Position", arm.getCurrentPosition());
+                ongoing = false;
+                return false;
+            }
+
             if(first){
-                moveArm(target_pos);
+                moveArm(target_pos, true);
+                telemetryPacket.put("Arm Target Position In First Statement", arm.targetPos);
+                telemetryPacket.put("Input Target Position In First Statement", target_pos);
+
                 first = false;
                 direction_up = arm.getCurrentPosition() < endpos;
             }
+            telemetryPacket.put("Arm Target Position", arm.targetPos);
+            telemetryPacket.put("Inputted Target Position", target_pos);
+            telemetryPacket.put("Arm Position", arm.getCurrentPosition());
 
             if(partial_motion){
                 if(!arm.isBusy()){
+                    ongoing = false;
                     return false;
                 }
-                return direction_up ? arm.getCurrentPosition() < endpos : arm.getCurrentPosition() > endpos;
+                ongoing = direction_up ? arm.getCurrentPosition() < endpos : arm.getCurrentPosition() > endpos;
+                return ongoing;
             }
-            return arm.isBusy();
+            ongoing = arm.isBusy();
+            return ongoing;
+        }
+        public void cancel(){
+            canceled = true;
         }
     }
     public class updateAction implements Action{
@@ -709,10 +730,10 @@ public class Intake extends Subsystem {
     public Action updateAction(){
         return new updateAction();
     }
-    public Action armAction(int position ) {
+    public moveArmAction armAction(int position ) {
         return new moveArmAction(position);
     }
-    public Action armAction(int position, int end_position) {
+    public moveArmAction armAction(int position, int end_position) {
         return new moveArmAction(position, end_position);
     }
 
