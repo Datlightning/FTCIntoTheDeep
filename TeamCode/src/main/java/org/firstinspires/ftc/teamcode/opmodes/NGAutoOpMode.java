@@ -186,6 +186,39 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 )
         );
     }
+    public Action goToSampleWithSlides(Action sample, FailoverAction delay_action){
+        Intake.moveArmAction armDown = intake.armAction(300, 700);
+        Intake.moveArmAction armDown2 = intake.armAction(200);
+        FailoverAction sleep = new FailoverAction(new SleepAction(1.25), new NullAction());
+        return new SequentialAction(
+                new InstantAction(() ->
+                {
+                    intake.moveClaw(RobotConstants.claw_flat);
+                    intake.moveWrist(180);
+                }),
+
+                new ParallelAction(
+                        new SequentialAction(
+                                delay_action,
+                                armDown,
+                                intake.slideAction(1000)
+                        ),
+                        new SequentialAction(
+                                sample,
+                                new SequentialAction(
+                                        delay_action,
+                                    new InstantAction(() -> {intake.useFastPID(true);}),
+                                    new ParallelAction(
+                                            new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                                            new SequentialAction(sleep, new InstantAction(armDown2::cancel))
+                                    ),
+                                    new InstantAction(() -> {intake.useFastPID(false);})
+                                )
+                        )
+
+                )
+        );
+    }
     public Action goToSampleWithSlides(Action sample,int slide_length){
         return new SequentialAction(
                 new InstantAction(() ->

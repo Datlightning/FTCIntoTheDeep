@@ -316,7 +316,7 @@ public class NGMotor extends Subsystem {
     public void update() {
         //temporarily disabled because is bad
 //        if(waiting_for_manual && timer.time() - manual_power_time > 0.1){
-//            waiting_for_manual = false;
+//            waiting_for_manual = false;o
 //            manual = false;
 //            move_async(pid_motor.getCurrentPosition());
 //            targetPos = pid_motor.getCurrentPosition();
