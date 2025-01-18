@@ -212,17 +212,25 @@ public class TeleOp extends LinearOpMode {
                 trafficLight.red(true);
             }
             boolean dpad_left2 = player2 && currentGamepad2.dpad_left && !previousGamepad2.dpad_left;
-            if(dpad_left2){
-                switch (rigging_position){
-                    case 0:
-                        rigging.raiseHooks();
-                        rigging_position += 1;
-                        break;
-                    case 1:
-                        rigging.rig();
-                        rigging_position = 0;
-                        break;
+            multiClick.update("dpad_left2", getRuntime(), dpad_left2);
+
+            if(multiClick.getTaps("dpad_left2") > 0){
+                if (multiClick.getTaps("dpad_left2") == 2){
+                    intake.moveWrist(90);
+                    intake.moveArm(1500);
+                }else {
+                    switch (rigging_position) {
+                        case 0:
+                            rigging.raiseHooks();
+                            rigging_position += 1;
+                            break;
+                        case 1:
+                            rigging.rig();
+                            rigging_position = 0;
+                            break;
+                    }
                 }
+                multiClick.clearTaps("dpad_left2");
             }
             if(multiClick.getTaps("b") == 3){
                 multiClick.clearTaps("b");
@@ -238,9 +246,6 @@ public class TeleOp extends LinearOpMode {
                     trafficLight.flashRed(0.4, 3);
                 }
             }
-
-
-
 
             if (b) {
                 multiClick.clearTaps("b");
@@ -263,17 +268,26 @@ public class TeleOp extends LinearOpMode {
 //            player2 = !currentGamepad1.dpad_left && player_2_on; //goodbye player 2 button o7
 
             //claw rotations
-            if(currentGamepad2.left_trigger != 0 && intake.slides.getCurrentPosition() <= 900){
-                intake.turnClaw(currentGamepad2.left_trigger * -90);
-                claw_turning = true;
-                camera_align = false;
-            }else if(currentGamepad2.right_trigger != 0 && intake.slides.getCurrentPosition() <= 900){
-                intake.turnClaw(currentGamepad2.right_trigger * 90 );
-                claw_turning = true;
-                camera_align = false;
-            }else if(claw_turning && !camera_align){
-                claw_turning = false;
-                intake.turnClaw(0);
+            if(position.equals(INTAKE_POSITIONS.SCORE_SPECMEN)){
+                if (currentGamepad2.right_trigger != 0){
+                    intake.moveWrist(specimen_deliver - currentGamepad2.right_trigger * 30);
+                }
+                else if(currentGamepad2.left_trigger != 0){
+                    intake.moveWrist(specimen_deliver - currentGamepad2.left_trigger * 30);
+                }
+            }else {
+                if (currentGamepad2.left_trigger != 0 && intake.slides.getCurrentPosition() <= 900) {
+                    intake.turnClaw(currentGamepad2.left_trigger * -90);
+                    claw_turning = true;
+                    camera_align = false;
+                } else if (currentGamepad2.right_trigger != 0 && intake.slides.getCurrentPosition() <= 900) {
+                    intake.turnClaw(currentGamepad2.right_trigger * 90);
+                    claw_turning = true;
+                    camera_align = false;
+                } else if (claw_turning && !camera_align) {
+                    claw_turning = false;
+                    intake.turnClaw(0);
+                }
             }
 
             //emergency claw reset functionality and normal claw movement
@@ -364,7 +378,7 @@ public class TeleOp extends LinearOpMode {
                         move_next = false;
                         intake.moveSlides(Math.max(150, intake.slides.getCurrentPosition()));
                         next_position = INTAKE_POSITIONS.LOWER_CLAW;
-                        previous_position = INTAKE_POSITIONS.START;
+                        previous_position = INTAKE_POSITIONS.SECOND_START;
                         break;
                     case LOWER_CLAW:
                         intake.plowClaw();
@@ -376,7 +390,7 @@ public class TeleOp extends LinearOpMode {
                         intake.enableLevel(true);
                         maintain_level = true;
                         next_position = INTAKE_POSITIONS.CLOSE_AND_FOLD;//REMOVED DROP ARM
-                        previous_position = INTAKE_POSITIONS.START;
+                        previous_position = INTAKE_POSITIONS.SECOND_START;
                         break;
                     case DROP_ARM:
                         intake.useFastPID(true);
@@ -591,6 +605,7 @@ public class TeleOp extends LinearOpMode {
                 if(multiClick.getTaps("x") > 1){
                     move_next2 = true;
                     position = INTAKE_POSITIONS.PICK_UP_FLOOR;
+
                 }
                 else {
                     intake.enableLevel(false);
@@ -743,7 +758,7 @@ public class TeleOp extends LinearOpMode {
                 move_next2 = false;
                 trafficLight.flashGreen(0.5, multiClick.getTaps("y"));
                 if(multiClick.getTaps("y") == 2){
-                   position = INTAKE_POSITIONS.PICK_UP_FLOOR;
+                   position = INTAKE_POSITIONS.PICK_UP_FLOOR_SPECIMEN;
                    move_next3 = true;
                 }
                 else {
@@ -787,7 +802,7 @@ public class TeleOp extends LinearOpMode {
 
                             next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;//change this to RELEASE if the specimen thing is not working for whatever reason
                             break;
-//                        case FORWARD:
+//                        case FORWA    RD:
 //                            if ((intake.arm.isBusy() || intake.slides.isBusy()) && !move_next3_override) break;
 //
 //                            next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;

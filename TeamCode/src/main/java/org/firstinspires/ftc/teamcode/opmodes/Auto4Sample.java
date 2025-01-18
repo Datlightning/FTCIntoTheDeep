@@ -38,10 +38,10 @@ public class Auto4Sample extends NGAutoOpMode {
         };
 
 
-        Pose2d basket = new Pose2d(-57.5, -56.5 + INCHES_FORWARD, Math.toRadians(45));
+        Pose2d basket = new Pose2d(-56.5, -55, Math.toRadians(45));
         Pose2d sample2Pickup = new Pose2d(-48, -50.5 + INCHES_FORWARD, Math.toRadians(90));
-        Pose2d sample3Pickup = new Pose2d(-59, -50.5 + INCHES_FORWARD, Math.toRadians(90));
-        Pose2d sample4Pickup = new Pose2d(-58 , -48.5 + INCHES_FORWARD, Math.toRadians(118.5));
+        Pose2d sample3Pickup = new Pose2d(-58, -50.5 + INCHES_FORWARD, Math.toRadians(90));
+        Pose2d sample4Pickup = new Pose2d(-55 , -48.5 + INCHES_FORWARD, Math.toRadians(123.5));
 
         TrajectoryActionBuilder firstSamplePath = drive.closeActionBuilder(beginPose)
                 .setReversed(true)
