@@ -27,7 +27,7 @@ public class Auto4Sample extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
-        double INCHES_FORWARD = -2.5;
+        double INCHES_FORWARD = -3.25;
         initAuto(beginPose);
         AccelConstraint pickSampleAccel = (robotPose, _path, _disp) -> {
             if (robotPose.position.y.value() > -30.0) {
@@ -38,7 +38,7 @@ public class Auto4Sample extends NGAutoOpMode {
         };
 
 
-        Pose2d basket = new Pose2d(-56.5, -55, Math.toRadians(45));
+        Pose2d basket = new Pose2d(-54, -55, Math.toRadians(45));
         Pose2d sample2Pickup = new Pose2d(-48, -50.5 + INCHES_FORWARD, Math.toRadians(90));
         Pose2d sample3Pickup = new Pose2d(-58, -50.5 + INCHES_FORWARD, Math.toRadians(90));
         Pose2d sample4Pickup = new Pose2d(-55 , -48.5 + INCHES_FORWARD, Math.toRadians(123.5));
@@ -53,7 +53,7 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder secondSamplePath = firstSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
-                .splineToLinearHeading(sample2Pickup, Math.toRadians(0), new TranslationalVelConstraint(34), new ProfileAccelConstraint(-12,32));
+                .splineToLinearHeading(sample2Pickup, Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,25));
 
         TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(sample2Pickup)
                 .setReversed(true)
@@ -63,7 +63,7 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder thirdSamplePath = scoreSecondSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(135))
-                .splineToLinearHeading(sample3Pickup, Math.toRadians(90), new TranslationalVelConstraint(34),  new ProfileAccelConstraint(-12,32));
+                .splineToLinearHeading(sample3Pickup, Math.toRadians(90), new TranslationalVelConstraint(30),  new ProfileAccelConstraint(-12,25));
 
         TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(sample3Pickup)
                 .setReversed(true)
@@ -73,16 +73,16 @@ public class Auto4Sample extends NGAutoOpMode {
         TrajectoryActionBuilder fourthSamplePath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
-                .splineToLinearHeading(sample4Pickup, Math.toRadians(90), new TranslationalVelConstraint(34),  new ProfileAccelConstraint(-12,32));
+                .splineToLinearHeading(sample4Pickup, Math.toRadians(90), new TranslationalVelConstraint(30),  new ProfileAccelConstraint(-12,25));
         TrajectoryActionBuilder scoreFourthSamplePath = drive.closeActionBuilder(sample4Pickup)
                 .setReversed(true)
                 .setTangent(Math.toRadians(298.5))
-                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,30));
 
         TrajectoryActionBuilder parkPath = scoreFourthSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(new Pose2d(-34, -18, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
+                .splineToLinearHeading(new Pose2d(-34, -22, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
 
         FailoverAction firstSample = new FailoverAction(firstSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         FailoverAction secondSample = new FailoverAction( secondSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
