@@ -50,6 +50,9 @@ public class NGMotor extends Subsystem {
 
     private boolean external_hardstop = false;
 
+    private boolean power_damp = false;
+    private double power_damp_coefficient = 0.7;
+    private double previous_power = 0;
     private double compensation_power = 0;
 
     private double motion_profile_exit_time = 0;
@@ -72,6 +75,11 @@ public class NGMotor extends Subsystem {
     }
     public void addPower(double power){
         compensation_power = power;
+    }
+
+    public void setPowerDamp(boolean on){
+        power_damp = on;
+
     }
     public void setExitWithTime(boolean on){
         exit_with_time = on;
@@ -223,7 +231,14 @@ public class NGMotor extends Subsystem {
     }
     public void setPower(double power) {
         if(!exceedingConstraints(power)) {
-            pid_motor.setPower(power + holding_power);
+            if (power_damp){
+                double new_power = power * power_damp_coefficient + previous_power * (1 - power_damp_coefficient);
+                pid_motor.setPower(new_power);
+                previous_power = new_power;
+
+            }else {
+                pid_motor.setPower(power + holding_power);
+            }
         }
         else{
             pid_motor.setPower(holding_power);
@@ -274,9 +289,10 @@ public class NGMotor extends Subsystem {
                 useMotionProfile = false;
             }else{
                 useMotionProfile = true;
+                integralSum = 0;//potentially remove this
             }
             reached = false;
-            integralSum = 0;
+//            integralSum = 0;
             if(MAX_DECEL == -1){
                 motion_profile_exit_time =  Control.motionProfileTime(MAX_ACCEL, MAX_VEL, distance);
             }else{

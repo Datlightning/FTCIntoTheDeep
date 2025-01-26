@@ -26,9 +26,11 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 @Config
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
-    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.0018,0,0.00003,0.0002);
+    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.002,0.00007,0.00001,0.0008);
+
     public NGMotor arm;
     private double claw_offset = 0;
+
     public NGMotor slides;
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.0015, 0.00007, 0.00008, 0.0005);
     public static PIDFCoefficients gunToPointSlidesPID = new PIDFCoefficients(0.004, 0.00007, 0.00003, 0.0005);
@@ -45,21 +47,17 @@ public class Intake extends Subsystem {
     private boolean claw_open = false;
     private boolean wrist_open =false;
 
+    private boolean slide_current_stop = false;
+    private double slide_current_stop_delay = 0;
     private int level_offset=  0;
 
     private boolean inside_pick_up = false;
     private boolean power_four_bar_enabled = false;
-    private boolean forward_delay = false;
-    private boolean backward_delay = false;
+
     private boolean use_fast_pid = false;
     private boolean distance_update = true;
     private boolean distance_scope = false;
 
-    private double drive_acceleration = 0;
-
-    private PoseVelocity2d past_velo;
-    private PoseVelocity2d poseVelocity2d;
-    private double accel_time = 0;
 
     private boolean use_velo = false;
     private double use_velo_power = 0;
@@ -67,7 +65,6 @@ public class Intake extends Subsystem {
 
     private boolean previous_magnet_on = false;
     public static double VELO_THRESHOLD = 0;
-    private double slide_stuck_time = 0;
     private boolean level_on = false;
 
     private boolean arm_stabilizer = false;
@@ -96,10 +93,12 @@ public class Intake extends Subsystem {
     public static double slide_starting_length = 13;
     public static double slide_starting_height = 9.125;
     public static double slide_width = 3.125;
-    public static double claw_height = 8;
+    public static double claw_height = 0;
     public static int offset = 0;
     public static int offset_distance_to_0 = 0;
     public static double DISTANCE_FILTER = 0.6;
+
+    public static boolean beta_mode = false;//for beta
 
 
 
@@ -446,6 +445,7 @@ public class Intake extends Subsystem {
     }
     public void enableLevel(boolean on){
         level_on = on;
+        arm.setPowerDamp(level_on);
     }
     public void enableArmStabilizer(boolean on){
         arm_stabilizer = on;
@@ -488,10 +488,14 @@ public class Intake extends Subsystem {
     }
     public int calculateArmPosition(int slide_position){
 
-//        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
-//        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
+        double arm_angle = Math.asin((target_height + claw_height - slide_starting_height) / (calculateSlideLength(slide_position)));
+        int arm_angle_in_ticks = (int) (arm_angle / Math.toRadians(90.0) * (arm_at_90_ticks - arm_at_0_ticks)) + arm_at_0_ticks + offset;
 
-        return (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 70 : 15);
+        if(beta_mode){
+            arm_angle_in_ticks = (int) ((pickup_position_1[1] - pickup_position_2[1])/(pickup_position_1[0] - pickup_position_2[0]) * (slide_position - pickup_position_1[0]) + pickup_position_1[1]) + (inside_pick_up ? 70 : 15);
+        }
+
+        return arm_angle_in_ticks;
     }
     public void slidesStuck(){
         if(slides.getCurrent() > SLIDE_CURRENT_LIMIT ){
@@ -511,6 +515,9 @@ public class Intake extends Subsystem {
                 level_offset -= a;
             }
         }
+    }
+    public boolean isSlideStoppedWithCurrent(){
+        return slide_current_stop;
     }
     public void absIncrementLevelOffset(int a){
         level_offset += a;
@@ -544,8 +551,13 @@ public class Intake extends Subsystem {
             trafficLight.green(distance.getFilteredDist() < 10);
         }
         if(slides.getCurrent() > SLIDE_CURRENT_LIMIT){
+            slide_current_stop = true;
+            slide_current_stop_delay = timer.seconds();
             moveSlides(slides.getCurrentPosition());
             trafficLight.flashRed(0.5, 2);
+        }
+        if(timer.seconds() - slide_current_stop_delay > 3){
+            slide_current_stop = false;
         }
         if(level_on) {
 
@@ -561,13 +573,15 @@ public class Intake extends Subsystem {
         }else{
             slides.setPIDF(gunToPointSlidesPID.p , gunToPointSlidesPID.i, gunToPointSlidesPID.d, gunToPointSlidesPID.f);
         }
-        if(use_velo){
+
+        if(use_velo) {
             use_velo = arm.getVelocity() >= VELO_THRESHOLD;
             arm.setManualPower(use_velo_power);
-        }else{
-            arm.setManualPower(0);
+            if (!use_velo) {
+                arm.setManualPower(0);
+            }
         }
-        if(arm.getCurrentPosition() > 330 || use_fast_pid){
+        if((arm.getCurrentPosition() > 330 || use_fast_pid) && !level_on){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsPID.f);
 
         }else{
@@ -589,6 +603,9 @@ public class Intake extends Subsystem {
         arm.update();
         slides.update();
     }
+    public void clearStoppedWithCurrent(){
+        slide_current_stop = false;
+    }
     public int calculateSlidePositionForFloorPickup(double distance){
         double slope = (slide_distance_position_2[0] - slide_distance_position_1[0])/(slide_distance_position_2[1] - slide_distance_position_1[1]);
 
@@ -597,6 +614,7 @@ public class Intake extends Subsystem {
     @Override
     public void telemetry() {
         telemetry.addData("Arm Angle", getArmAngle());
+        telemetry.addData("Slide Stopped With Current", slide_current_stop);
         diffyClaw.telemetry();
         slides.telemetry();
         arm.telemetry();

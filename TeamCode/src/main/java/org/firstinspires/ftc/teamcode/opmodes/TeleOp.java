@@ -63,7 +63,7 @@ public class TeleOp extends LinearOpMode {
         REVERSE,
         FORWARD,
         EXIT_FLOOR_PICKUP_SEQ,
-        LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, EXTEND_SLIDES_FOR_SPECIMEN, RETRACT_SLIDES_SPECI, GRAB_FLOOR_SPECIMEN, SECOND_START, DELIVER_SPECIMEN, DROP_SAMPLE, PICK_UP_FLOOR_SPECIMEN, RAISE_ARM
+        LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, EXTEND_SLIDES_FOR_SPECIMEN, RETRACT_SLIDES_SPECI, GRAB_FLOOR_SPECIMEN, SECOND_START, DELIVER_SPECIMEN, DROP_SAMPLE, PICK_UP_FLOOR_SPECIMEN, GRAB_SPECIMEN, SWITCH_POINT, LOWER_SLIDES_AFTER_SCORING_SPECIMEN, LOWER_SLIDES_INTERMEDIATE, RAISE_ARM
     }
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
@@ -82,7 +82,7 @@ public class TeleOp extends LinearOpMode {
     boolean camera_align = false;
     int open_claw_specimen = 2;
     public static boolean player2 = true;
-    public static double target_height = 3;
+    public static double target_height = 8.75;
     boolean drive_pid_on = false;
     public static int offset = 0;
     public static boolean telemetry_on = false;
@@ -172,7 +172,6 @@ public class TeleOp extends LinearOpMode {
             currentGamepad2.copy(gamepad2);
             currentGamepad1.copy(gamepad1);
 
-            intake.setTargetHeight(target_height);
 
             boolean left_bumper2 = currentGamepad2.left_bumper && !previousGamepad2.left_bumper;
             multiClick.update("left_bumper", getRuntime(), left_bumper2);
@@ -332,7 +331,14 @@ public class TeleOp extends LinearOpMode {
             if(currentGamepad1.back && !previousGamepad1.back){
                 specimen_cycle = !specimen_cycle;
             }
-
+            if(position.equals(INTAKE_POSITIONS.LOWER_CLAW)){
+                if (intake.slides.getCurrentPosition() > 900){
+                    trafficLight.red(true);
+                }else{
+                    trafficLight.red(false);
+                    trafficLight.green(false);
+                }
+            }
             //"basic" arm controls
             if (move_next || multiClick.getTaps("a") > 0 || multiClick.getTaps("a2") > 0) {
                 trafficLight.flashGreen(0.5, multiClick.getTaps("a"));
@@ -383,6 +389,7 @@ public class TeleOp extends LinearOpMode {
                     case LOWER_CLAW:
                         intake.plowClaw();
                         intake.setTargetAngle(90);
+                        intake.setTargetHeight(8.75);
                         intake.setFourBar(true);
                         intake.slides.setMax(1000);
                         intake.arm.setUseMotionProfile(false);
@@ -408,6 +415,7 @@ public class TeleOp extends LinearOpMode {
                         if (intake.getVeloOn() && !move_next_override) {
                             break;
                         }
+                        trafficLight.red(false);
                         intake.useVelo(false);
                         move_next = true;
                         intake.setFourBar(false);
@@ -439,7 +447,7 @@ public class TeleOp extends LinearOpMode {
                             break;
                         }
                         move_next = false;
-                        intake.slides.setMax(1400);
+                        intake.slides.setMax(700);
                         current_time = timer.seconds();
                         intake.enableLevel(false);
 //                        intake.moveWrist(180);
@@ -479,12 +487,12 @@ public class TeleOp extends LinearOpMode {
                         intake.moveSlides(0);
                         next_position = INTAKE_POSITIONS.FOLD;
                         mecaTank.setMaxPower(1);
-                        move_next = true;
+                        move_next = false;
                         break;
                     case TURN_ARM:
                         intake.moveArm(deliver_position);
                         intake.moveWrist(120);
-                        move_next = true;
+                        move_next = false;
                         next_position = INTAKE_POSITIONS.EXTEND;
                         previous_position = INTAKE_POSITIONS.FOLD;
                         break;
@@ -498,6 +506,7 @@ public class TeleOp extends LinearOpMode {
                         intake.moveSlides(1350);
                         mecaTank.setMaxPower(0.5);
                         current_time = timer.time();
+                        move_next = true;
                         delay = 0.7;
                         next_position = INTAKE_POSITIONS.TURN_CLAW;
                         previous_position = INTAKE_POSITIONS.LOWER_SLIDES_BEFORE_FOLD;
@@ -663,7 +672,7 @@ public class TeleOp extends LinearOpMode {
                 multiClick.clearTaps("x");
             }
 
-            //manual slide and arm control
+            //manual slide and arm controls
             boolean left_bumper = currentGamepad1.left_bumper;
             boolean right_bumper = currentGamepad1.right_bumper;
 
@@ -758,14 +767,13 @@ public class TeleOp extends LinearOpMode {
                 move_next2 = false;
                 trafficLight.flashGreen(0.5, multiClick.getTaps("y"));
                 if(multiClick.getTaps("y") == 2){
-                   position = INTAKE_POSITIONS.PICK_UP_FLOOR_SPECIMEN;
+                   position = INTAKE_POSITIONS.START;
                    move_next3 = true;
                 }
                 else {
                     mecaTank.setMaxPower(1);
                     intake.slides.setMax(1400);
-                    intake.enableLevel(false);
-
+/**
                     switch (position) {
                         case PICK_UP_FLOOR_SPECIMEN:
                             if(intake.slides.isBusy() || move_next3_override){
@@ -859,6 +867,88 @@ public class TeleOp extends LinearOpMode {
                             move_next3 = true;
                             next_position3 = INTAKE_POSITIONS.PICK_UP_FLOOR_SPECIMEN;
                             break;
+                    }
+ */
+                    switch (position){
+                        case GRAB_SPECIMEN:
+                            intake.closeClaw();
+                            intake.setFourBar(false);
+                            intake.enableLevel(false);
+                            move_next3 = false;
+                            next_position3 = INTAKE_POSITIONS.RAISE_ARM_FOR_SPECIMEN;
+                            break;
+                        case RAISE_ARM_FOR_SPECIMEN:
+                            intake.moveArm(1500);
+                            move_next3 = true;
+                            next_position3 = INTAKE_POSITIONS.EXTEND_SLIDES_FOR_SPECIMEN;
+                            break;
+                        case EXTEND_SLIDES_FOR_SPECIMEN:
+                            if(intake.arm.getCurrentPosition() < 500 && !move_next3_override){
+                                break;
+                            }
+                            intake.moveWrist(0);
+                            intake.moveSlides(275);
+                            move_next3 = false;
+                            next_position3 = INTAKE_POSITIONS.SCORE_SPECMEN;
+                            break;
+                        case SCORE_SPECMEN:
+                            intake.moveSlides(800);
+                            next_position3 = INTAKE_POSITIONS.SWITCH_POINT;
+                            move_next3 = true;
+                            break;
+                        case SWITCH_POINT:
+                            if(move_next3_override){
+                                next_position3 = INTAKE_POSITIONS.RELEASE;
+                                move_next3 = true;
+                                break;
+                            }
+                            if (intake.isSlideStoppedWithCurrent()){
+                                next_position3 = INTAKE_POSITIONS.RELEASE;
+                                intake.clearStoppedWithCurrent();
+                            }else if(!intake.slides.isBusy()){
+                                next_position3 = INTAKE_POSITIONS.EXTEND_SLIDES_FOR_SPECIMEN;
+                            }
+
+                            move_next3 = true;
+                            break;
+                        case RELEASE:
+                            if(intake.slides.isBusy() && !move_next3_override){
+                                break;
+                            }
+                            move_next3 = true;
+                            current_time = timer.seconds();
+                            intake.openClaw();
+                            next_position = INTAKE_POSITIONS.LOWER_SLIDES_AFTER_SCORING_SPECIMEN;
+                            break;
+                        case LOWER_SLIDES_AFTER_SCORING_SPECIMEN:
+                            if(timer.seconds() - current_time <= delay && !move_next3_override){
+                                break;
+                            }
+                            move_next3 = false;
+                            intake.moveSlides(500);
+                            next_position = INTAKE_POSITIONS.START;
+                            next_position3 = INTAKE_POSITIONS.START;
+                            break;
+                        case LOWER_SLIDES_INTERMEDIATE:
+                            if(intake.slides.isBusy() && !move_next3_override){
+                                break;
+                            }
+                            move_next3 = true;
+                            intake.moveArm(550);
+                            intake.moveWrist(95);
+                            intake.setTargetAngle(-10);
+                            intake.setTargetHeight(13.25);
+                            intake.enableLevel(true);
+                            intake.setFourBar(true);
+                            next_position3 = INTAKE_POSITIONS.GRAB_SPECIMEN;
+                            break;
+                        default:
+                            move_next3 = true;
+                            intake.moveSlides(0);
+                            intake.moveClaw(RobotConstants.claw_flat);
+                            next_position3 = INTAKE_POSITIONS.LOWER_SLIDES_INTERMEDIATE;
+                            break;
+
                     }
                     position = next_position3;
                 }
