@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.testing.AutoArmStabilizerTesting;
 import org.firstinspires.ftc.teamcode.testing.BigBoyTesting;
 import org.firstinspires.ftc.teamcode.testing.CameraTesting;
+import org.firstinspires.ftc.teamcode.testing.ColorTesting;
 import org.firstinspires.ftc.teamcode.testing.DiffyIntakeTest;
 import org.firstinspires.ftc.teamcode.testing.DistanceRRPathTest;
 import org.firstinspires.ftc.teamcode.testing.DoubleTap;
@@ -77,12 +78,14 @@ public final class TestingOpModes {
         manager.register(metaForClass(SlideTesting.class), SlideTesting.class);
         manager.register(metaForClass(TestDataTrasnfer.class, false), TestDataTrasnfer.class);
         manager.register(metaForClass(TrafficLightTest.class), TrafficLightTest.class);
+        manager.register(metaForClass(ColorTesting.class), ColorTesting.class);
 
         FtcDashboard.getInstance().withConfigRoot(configRoot -> {
             for (Class<?> c : Arrays.asList(
                     AutoArmStabilizerTesting.class,
                     BigBoyTesting.class,
                     CameraTesting.class,
+                    ColorTesting.class,
                     DiffyIntakeTest.class,
                     DistanceRRPathTest.class,
                     DoubleTap.class,

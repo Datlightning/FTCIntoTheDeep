@@ -50,14 +50,14 @@ public class NGMotor extends Subsystem {
 
     private boolean external_hardstop = false;
 
-    private boolean power_damp = false;
+    public boolean power_damp = false;
     private double power_damp_coefficient = 0.7;
     private double previous_power = 0;
     private double compensation_power = 0;
 
     private double motion_profile_exit_time = 0;
 
-
+    private double caching_tolerance = 0.005;
     Telemetry telemetry;
 
     public NGMotor(HardwareMap hardwareMap, Telemetry telemetry, String name) {
@@ -231,14 +231,9 @@ public class NGMotor extends Subsystem {
     }
     public void setPower(double power) {
         if(!exceedingConstraints(power)) {
-            if (power_damp){
-                double new_power = power * power_damp_coefficient + previous_power * (1 - power_damp_coefficient);
-                pid_motor.setPower(new_power);
-                previous_power = new_power;
 
-            }else {
                 pid_motor.setPower(power + holding_power);
-            }
+
         }
         else{
             pid_motor.setPower(holding_power);
@@ -393,8 +388,15 @@ public class NGMotor extends Subsystem {
 // Check if the target has been reached (based on an error threshold)
         reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range && Math.abs(out) < 0.3;
 
+        if (power_damp){
+            double new_power = out * power_damp_coefficient + previous_power * (1 - power_damp_coefficient);
+            pid_motor.setPower(new_power);
+            previous_power = out;
+
+        }else {
 // Set motor power output
-        pid_motor.setPower(out);
+            pid_motor.setPower(out);
+        }
 // Update lastError for the next iteration
         lastError = error;
         time_stop = timer.seconds();

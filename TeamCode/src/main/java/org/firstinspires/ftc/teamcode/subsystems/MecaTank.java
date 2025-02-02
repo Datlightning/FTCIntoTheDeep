@@ -69,6 +69,7 @@ public class MecaTank extends Subsystem {
     private boolean auto_move = false;
     private double previousHeadingError = 0;
     double error;
+    private double[] past_powers = new double[]{0, 0, 0, 0};
 
     double targetHeading = 0;
 

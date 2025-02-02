@@ -26,7 +26,7 @@ import org.firstinspires.ftc.teamcode.library.Subsystem;
 @Config
 public class Intake extends Subsystem {
     public static PIDFCoefficients armsPID = new PIDFCoefficients(0.003,0.00006,0.00002,0.0008);
-    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.002,0.00007,0.00001,0.0008);
+    public static PIDFCoefficients armsLevelPID = new PIDFCoefficients(0.008,0,0.0000005,0.0008);
 
     public NGMotor arm;
     private double claw_offset = 0;
@@ -100,7 +100,8 @@ public class Intake extends Subsystem {
 
     public static boolean beta_mode = false;//for beta
 
-
+    public boolean specimen_level_on = false;
+    private double new_target_height = 17.1851;
 
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
@@ -243,7 +244,15 @@ public class Intake extends Subsystem {
     public void moveSlides(int targetPosition){
         slides.move_async(targetPosition);
     }
-    public void setRotationPower(double power){ arm.setManualPower(power); }
+    public void setRotationPower(double power){
+        arm.setManualPower(power);
+    }
+    public void setNewTargetHeight(){
+        new_target_height = calculateTargetHeight(arm.getCurrentPosition(), slides.getCurrentPosition());
+    }
+    public double getSpecimenHeight(){
+        return new_target_height;
+    }
     public void setTargetHeight(double target_height){ this.target_height = target_height; }
     public void setAbsRotationPower(double power){ arm.setAbsPower(power);}
     public void setSlidePower(double power){slides.setManualPower(power);}
@@ -254,7 +263,7 @@ public class Intake extends Subsystem {
         if(inside_pick_up){
             diffyClaw.moveClaw(RobotConstants.inside_pickup_open + claw_offset);
         }else {
-            diffyClaw.moveClaw(RobotConstants.claw_open + claw_offset);
+            diffyClaw.moveClaw(RobotConstants.claw_open + claw_offset - 0.05);
         }
         claw_open=true;
     }
@@ -445,27 +454,17 @@ public class Intake extends Subsystem {
     }
     public void enableLevel(boolean on){
         level_on = on;
+        setDamp(on);
+    }
+    public void setDamp(boolean on){
         arm.setPowerDamp(level_on);
     }
-    public void enableArmStabilizer(boolean on){
-        arm_stabilizer = on;
-    }
 
-    public void turnClawMore(double turnAmount){
-        turnClaw(diffyClaw.getClawAngle() + turnAmount);
-    }
+
     public void foldWrist(){
         diffyClaw.setWristAngle(RobotConstants.wrist_folded); wrist_open=false;
     }
-    public void extendWrist(){
-        diffyClaw.setWristAngle(RobotConstants.wrist_extended); wrist_open=true;
-    }
-    public boolean isClawOpen(){
-        return claw_open;
-    }
-    public boolean isWristOpen(){
-        return wrist_open;
-    }
+
     public double getArmAngle(){
 
         return (double) (arm.getCurrentPosition()  - arm_at_0_ticks -  offset ) / (arm_at_90_ticks - arm_at_0_ticks) * 90.0;
@@ -475,9 +474,6 @@ public class Intake extends Subsystem {
         double target_position = 90 + arm_angle + target_angle;
 
         return target_position;
-    }
-    public double calculateSlideLengthNotTheHypot(int slide_position){
-        return slide_starting_length + slide_position * slide_ticks_to_inches;
     }
     public double calculateSlideLength(int slide_position){
         telemetry.addData("Calculated Slide Length", slide_starting_length + slide_position * slide_ticks_to_inches);
@@ -497,16 +493,16 @@ public class Intake extends Subsystem {
 
         return arm_angle_in_ticks;
     }
-    public void slidesStuck(){
-        if(slides.getCurrent() > SLIDE_CURRENT_LIMIT ){
-                trafficLight.flashRed(0.5, 2);
-                arm.setManualPower(0.3);
-                slides.setManualPower(-0.2);
+    public double calculateTargetHeight(int arm_position, int slide_position) {
 
-        }else{
-            slides.setManualPower(0);
-            arm.setManualPower(0);
-        }
+        // Constants
+        double slide_length = calculateSlideLength(slide_position);
+        // Calculate the arm angle from ticks
+        double arm_angle_in_radians = ((arm_position - arm_at_0_ticks - offset) / (double) (arm_at_90_ticks - arm_at_0_ticks)) * Math.toRadians(90.0);
+        // Calculate the target height based on the arm angle
+        double target_height = (Math.sin(arm_angle_in_radians) * slide_length) + slide_starting_height - claw_height;
+
+        return target_height;
     }
     public void incrementLevelOffset(int a){
         level_offset += a;
@@ -581,7 +577,7 @@ public class Intake extends Subsystem {
                 arm.setManualPower(0);
             }
         }
-        if((arm.getCurrentPosition() > 330 || use_fast_pid) && !level_on){
+        if(!level_on){
             arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, Math.cos(Math.toRadians(getArmAngle())) * calculateSlideLength(slides.getCurrentPosition()) * armsPID.f);
 
         }else{
