@@ -18,6 +18,7 @@ import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveToAprilTagOmni;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
@@ -317,5 +318,111 @@ public abstract class NGAutoOpMode extends LinearOpMode {
             failedOver = true;
         }
     }
+    public Action scoreSpecimen(Action toSpecimen, Action after){
+        return new SequentialAction(
+                new InstantAction(() -> intake.closeClaw(-0.03)),
+                new SleepAction(0.1),
+                new ParallelAction(
+                        toSpecimen,
+                        intake.armAction(1500),
+                        intake.slideAction(325),
+                        new InstantAction(() -> intake.moveWrist(0))
+                ),
+                intake.slideAction(800),
+                new InstantAction(() -> intake.openClaw()),
+                new ParallelAction(
+                        after,
+                        new SequentialAction(
+                                new SleepAction(1),
+                                intake.slideAction(0)
+                        ),
+                        intake.armAction(400),
+                        new InstantAction(() -> {intake.moveClaw(RobotConstants.claw_flat); intake.moveWrist(90);})
+                )
+        );
+    }
+    public Action transferSample(Action toSample, Action after){
+        return new SequentialAction(
 
+                new ParallelAction(
+                        toSample,
+                        new SequentialAction(
+                            intake.armAction(300),
+                            intake.slideAction(200),
+                            new InstantAction(() -> {
+                                intake.moveWrist(180);
+                                intake.moveClaw(RobotConstants.claw_flat);
+                            })
+                        )
+                ),
+                intake.armAction(200),
+                eternalAction(),
+                new InstantAction(() -> intake.closeClaw()),
+                new ParallelAction(
+                    intake.armAction(500),
+                    after,
+                    intake.slideAction(1000)
+
+                ),
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
+
+
+
+        );
+    }
+    public Action transferSample(Action toSample, Action after, double claw_angle){
+        return new SequentialAction(
+
+                new ParallelAction(
+                        toSample,
+                        new SequentialAction(
+                                intake.armAction(300),
+                                intake.slideAction(200),
+                                new InstantAction(() -> {
+                                    intake.turnAndRotateClaw(180, claw_angle);
+                                    intake.moveClaw(RobotConstants.claw_flat);
+                                })
+                        )
+                ),
+                intake.armAction(200),
+                eternalAction(),
+                new InstantAction(() -> intake.closeClaw()),
+                new ParallelAction(
+                        intake.armAction(500),
+                        after,
+                        intake.slideAction(1000)
+
+                ),
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
+
+
+
+        );
+    }
+    public Action transferSample(Action toSample, Action after, boolean last){
+        return new SequentialAction(
+                new ParallelAction(
+                        toSample,
+                        new SequentialAction(
+                                intake.armAction(400),
+                                intake.slideAction(200),
+                                new InstantAction(() -> {
+                                    intake.moveWrist(180);
+                                    intake.moveClaw(RobotConstants.claw_flat);
+                                })
+                        )
+                ),
+                new InstantAction(() -> intake.closeClaw()),
+                new ParallelAction(
+                        intake.armAction(500),
+                        after,
+                        intake.slideAction(0)
+
+                ),
+                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
+
+
+
+        );
+    }
 }

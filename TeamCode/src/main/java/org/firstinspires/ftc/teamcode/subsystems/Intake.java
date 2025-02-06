@@ -441,6 +441,14 @@ public class Intake extends Subsystem {
         }
         claw_open=false;
     }
+    public void closeClaw(double offset) {
+        if(inside_pick_up){
+            diffyClaw.moveClaw(RobotConstants.inside_pickup_closed + claw_offset + offset);
+        }else {
+            diffyClaw.moveClaw(RobotConstants.claw_closed + claw_offset + offset);
+        }
+        claw_open=false;
+    }
     public void plowClaw(){
         if(inside_pick_up){
             diffyClaw.moveClaw(RobotConstants.inside_pickup_open + claw_offset);
@@ -514,6 +522,22 @@ public class Intake extends Subsystem {
     }
     public boolean isSlideStoppedWithCurrent(){
         return slide_current_stop;
+    }
+    public class currentWaitAction implements Action{
+        private boolean canceled = false;
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if (canceled){
+                return false;
+            }
+            return !isSlideStoppedWithCurrent();
+        }
+        public void cancel(){
+            canceled = true;
+        }
+    }
+    public Action currentWaitAction(){
+        return new currentWaitAction();
     }
     public void absIncrementLevelOffset(int a){
         level_offset += a;

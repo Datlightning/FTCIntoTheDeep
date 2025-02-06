@@ -16,13 +16,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.Control;
+import org.firstinspires.ftc.teamcode.library.NGMotor;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 
 import java.util.concurrent.TimeUnit;
 
 @Config
 public class MecaTank extends Subsystem {
-    private DcMotor frontLeft, frontRight, backLeft, backRight;
+    private NGMotor frontLeft, frontRight, backLeft, backRight;
 
     public  TrafficLight trafficLight;
     private LazyImu imu; // IMU for field-centric control
@@ -69,16 +70,15 @@ public class MecaTank extends Subsystem {
     private boolean auto_move = false;
     private double previousHeadingError = 0;
     double error;
-    private double[] past_powers = new double[]{0, 0, 0, 0};
 
     double targetHeading = 0;
 
     private ElapsedTime timer;
     public MecaTank(HardwareMap hardwareMap, Telemetry telemetry){
-        frontLeft = hardwareMap.get(DcMotor.class, RobotConstants.fl);
-        frontRight = hardwareMap.get(DcMotor.class, RobotConstants.fr);
-        backLeft = hardwareMap.get(DcMotor.class, RobotConstants.bl);
-        backRight = hardwareMap.get(DcMotor.class, RobotConstants.br);
+        frontLeft = new NGMotor(hardwareMap, telemetry, RobotConstants.fl);
+        frontRight = new NGMotor(hardwareMap, telemetry, RobotConstants.fr);
+        backLeft = new NGMotor(hardwareMap, telemetry, RobotConstants.bl);
+        backRight = new NGMotor(hardwareMap, telemetry, RobotConstants.br);
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance);
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance);
@@ -100,23 +100,9 @@ public class MecaTank extends Subsystem {
     }
 
     public MecaTank(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer, TrafficLight trafficLight){
-        frontLeft = hardwareMap.get(DcMotor.class, RobotConstants.fl);
-        frontRight = hardwareMap.get(DcMotor.class, RobotConstants.fr);
-        backLeft = hardwareMap.get(DcMotor.class, RobotConstants.bl);
-        backRight = hardwareMap.get(DcMotor.class, RobotConstants.br);
-
-        distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
-        rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
-
-        this.trafficLight = trafficLight;
-        imu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
-                PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
+        this(hardwareMap, telemetry);
         this.timer = timer;
-        backRight.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        this.telemetry = telemetry;
+        this.trafficLight = trafficLight;
 
     }
     public void setDistanceType(boolean front){
@@ -169,8 +155,7 @@ public class MecaTank extends Subsystem {
 
     }
     public void clearLinearDeadwheel(){
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeft.resetEncoder();
     }
     public void setPowers(double left_stick_x, double left_stick_y, double right_stick_x) {
         double heading = getHeading();  // Get robot heading

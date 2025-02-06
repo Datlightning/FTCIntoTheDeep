@@ -58,6 +58,8 @@ public class NGMotor extends Subsystem {
     private double motion_profile_exit_time = 0;
 
     private double caching_tolerance = 0.005;
+    private double cached_power = Double.NaN;
+
     Telemetry telemetry;
 
     public NGMotor(HardwareMap hardwareMap, Telemetry telemetry, String name) {
@@ -176,6 +178,7 @@ public class NGMotor extends Subsystem {
         telemetry.addData(name + "'s Max Hardstop", maxHardstop);
         telemetry.addData(name + "'s Min Hardstop", minHardstop);
         telemetry.addData(name + " Exceeding Constraints", exceedingConstraints());
+        telemetry.addData(name + "Power Cache", cached_power);
         telemetry.addData(name + " Busy Status", isBusy());
         telemetry.addData(name + "Current Draw", getCurrent());
         telemetry.addData(name + "Current Cooked", getCurrentAlert());
@@ -230,13 +233,12 @@ public class NGMotor extends Subsystem {
         }
     }
     public void setPower(double power) {
-        if(!exceedingConstraints(power)) {
-
-                pid_motor.setPower(power + holding_power);
-
+        if(exceedingConstraints(power)) {
+            power = 0;
         }
-        else{
-            pid_motor.setPower(holding_power);
+        if (Math.abs(power - cached_power) >= caching_tolerance || (power == 0.0 && cached_power != 0.0) || (power >= 1.0 && !(cached_power >= 1.0)) || (power <= -1.0 && !(cached_power <= -1.0)) || Double.isNaN(cached_power)) {
+            pid_motor.setPower(power + holding_power);
+            cached_power = power+holding_power;
         }
 
     }
@@ -390,12 +392,12 @@ public class NGMotor extends Subsystem {
 
         if (power_damp){
             double new_power = out * power_damp_coefficient + previous_power * (1 - power_damp_coefficient);
-            pid_motor.setPower(new_power);
+            setPower(new_power);
             previous_power = out;
 
         }else {
 // Set motor power output
-            pid_motor.setPower(out);
+            setPower(out);
         }
 // Update lastError for the next iteration
         lastError = error;

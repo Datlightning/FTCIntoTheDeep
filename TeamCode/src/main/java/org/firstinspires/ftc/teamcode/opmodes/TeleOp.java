@@ -458,7 +458,7 @@ public class TeleOp extends LinearOpMode {
                         intake.setFourBar(false);
                         mecaTank.setMaxPower(1);
                         current_time = timer.seconds();
-                        intake.closeClaw();
+                        intake.closeClaw(-0.03);
                         intake.slides.setMax(700);
                         intake.enableLevel(false);
                         intake.arm.setMax(Math.max(ARM_LIMIT, deliver_position));
@@ -934,7 +934,7 @@ public class TeleOp extends LinearOpMode {
                     switch (position){
                         case GRAB_SPECIMEN:
 
-                            intake.closeClaw();
+                            intake.closeClaw(-0.03);
                             intake.setFourBar(false);
                             intake.enableLevel(false);
 
@@ -944,6 +944,7 @@ public class TeleOp extends LinearOpMode {
                             break;
                         case RAISE_ARM_FOR_SPECIMEN:
                             intake.moveArm(1500);
+                            intake.closeClaw();
                             move_next3 = true;
                             next_position3 = INTAKE_POSITIONS.EXTEND_SLIDES_FOR_SPECIMEN;
                             break;
