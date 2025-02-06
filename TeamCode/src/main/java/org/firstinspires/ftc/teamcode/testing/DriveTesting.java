@@ -34,7 +34,7 @@ public class DriveTesting extends TestingOpMode {
         waitForStart();
         while(!isStopRequested() && opModeIsActive()){
             loopTimer.reset();
-            mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+            mecaTank.setDrivePowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             mecaTank.setDistanceType(front_distance);
             if(!pid_on) {
                 mecaTank.distance.setOn(false);

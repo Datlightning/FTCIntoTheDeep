@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
+import static org.firstinspires.ftc.teamcode.RobotConstants.wrist_extended;
 
 import androidx.annotation.NonNull;
 
@@ -539,6 +540,7 @@ public class Intake extends Subsystem {
     public Action currentWaitAction(){
         return new currentWaitAction();
     }
+
     public void absIncrementLevelOffset(int a){
         level_offset += a;
     }
@@ -703,6 +705,35 @@ public class Intake extends Subsystem {
     public Action slideAction(int position, int end_position) {
         return new moveSlidesAction(position, end_position);
     }
+    public class moveArmFast implements  Action{
+        boolean direction = true;
+        int target = 0;
+        double power = 0;
+
+        boolean first=  true;
+
+        public moveArmFast(int target, double power){
+            this.target = target;
+            this.power = power;
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(first){
+                first = false;
+                direction = arm.getCurrentPosition() < target;
+                arm.setManualPower(power);
+
+            }
+            boolean ongoing = direction ? arm.getCurrentPosition() < target : arm.getCurrentPosition() > target;
+            if(!ongoing){
+                arm.setManualPower(0);
+            }
+            return ongoing;
+        }
+    }
+    public Action moveArmFast(int target, double power){
+        return new moveArmFast(target, power);
+    }
     public class moveArmAction implements Action {
         private int endpos = 0;
         private boolean partial_motion = false;
@@ -712,7 +743,11 @@ public class Intake extends Subsystem {
         private boolean direction_up = true;
 
         private boolean canceled = false;
+
+        private boolean fast = false;
         private boolean ongoing = true;
+
+        private double power = 0;
         public moveArmAction(int position){
             target_pos = position;
         }
@@ -721,6 +756,7 @@ public class Intake extends Subsystem {
             partial_motion = true;
             target_pos = position;
         }
+
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if (canceled){

@@ -242,6 +242,13 @@ public class NGMotor extends Subsystem {
         }
 
     }
+    public void setDrivePower(double power) {
+        if (Math.abs(power - cached_power) >= caching_tolerance || (power == 0.0 && cached_power != 0.0) || (power >= 1.0 && !(cached_power >= 1.0)) || (power <= -1.0 && !(cached_power <= -1.0)) || Double.isNaN(cached_power)) {
+            pid_motor.setPower(power + holding_power);
+            cached_power = power+holding_power;
+        }
+
+    }
     public void setUseMotionProfile(boolean on){
         motionProfileOverride = on;
     }
@@ -388,8 +395,11 @@ public class NGMotor extends Subsystem {
         out += F;
         out += compensation_power;
 // Check if the target has been reached (based on an error threshold)
-        reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range && Math.abs(out) < 0.3;
-
+        boolean new_reached = exit_with_time ? (timer.seconds() - time_started > motion_profile_exit_time) : Math.abs(getCurrentPosition() - targetPos) < reached_range && Math.abs(out) < 0.3;
+        if(new_reached && !reached){
+            reached = true;
+            completed_time = timer.seconds();
+        }
         if (power_damp){
             double new_power = out * power_damp_coefficient + previous_power * (1 - power_damp_coefficient);
             setPower(new_power);

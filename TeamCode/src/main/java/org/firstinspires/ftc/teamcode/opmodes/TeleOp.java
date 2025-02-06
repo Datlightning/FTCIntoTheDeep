@@ -335,7 +335,7 @@ public class TeleOp extends LinearOpMode {
             }
 
             //all the drive controls
-            mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+            mecaTank.setDrivePowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
 
             multiClick.update("a", getRuntime(),  ( currentGamepad1.a && !previousGamepad1.a));
             multiClick.update("a2", getRuntime(), (player2  && currentGamepad2.a && !previousGamepad2.a));

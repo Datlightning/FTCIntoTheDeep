@@ -31,7 +31,7 @@ public class Auto3Specimen extends NGAutoOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d beginPose = new Pose2d(10, -64, Math.toRadians(90));
+        Pose2d beginPose = new Pose2d(10, -64, Math.toRadians(0));
         initAuto(beginPose);
 
         rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance, timer);
@@ -65,29 +65,31 @@ public class Auto3Specimen extends NGAutoOpMode {
         double CHAMBER_Y = -35.5;
         Pose2d firstSample = new Pose2d(23, -34, Math.toRadians(15));
         Pose2d secondSample = new Pose2d(58, -14, Math.toRadians(270));
-        Pose2d thirdSample = new Pose2d(58, -14, Math.toRadians(315));
+        Pose2d thirdSample = new Pose2d(58, -16, Math.toRadians(315));
         Pose2d pickupPosition = new Pose2d(40, -63,  Math.toRadians(270));
         TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)
-                .splineToConstantHeading(new Vector2d(4,-58.5), Math.toRadians(90), new TranslationalVelConstraint(30), smartScore)
-                .splineToConstantHeading(new Vector2d(4,-47), Math.toRadians(90), new TranslationalVelConstraint(30), smartScore);
-        TrajectoryActionBuilder moveToFirstSamplePath = drive.closeActionBuilder(new Pose2d(4, -47, Math.toRadians(90)))
-                .setTangent(Math.toRadians(-10))
-                .splineToLinearHeading(new Pose2d(23, -34, Math.toRadians(15)), Math.toRadians(45));
-        TrajectoryActionBuilder depositFirstSamplePath = moveToFirstSamplePath.endTrajectory().fresh()
-                .setTangent(Math.toRadians(270))
-                .splineToSplineHeading(new Pose2d(48, -35, Math.toRadians(270)), Math.toRadians(0));
-        TrajectoryActionBuilder moveToSecondSamplePath = drive.closeActionBuilder(new Pose2d(48, -35, Math.toRadians(270)))
                 .setTangent(Math.toRadians(90))
-                .splineToConstantHeading(secondSample.position,0);
-        TrajectoryActionBuilder depositSecondSamplePath = moveToSecondSamplePath.endTrajectory().fresh()
+                .splineToSplineHeading(new Pose2d(4,-45, Math.toRadians(270)), Math.toRadians(90))
+                .splineToConstantHeading(new Vector2d(4,-34), Math.toRadians(90));
+        TrajectoryActionBuilder moveToFirstSamplePath = drive.actionBuilder(new Pose2d(4, -34, Math.toRadians(270)))
+                .setTangent(Math.toRadians(-45))
+                .splineToLinearHeading(new Pose2d(31, -34, Math.toRadians(30)), Math.toRadians(30), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-15, 35));
+        TrajectoryActionBuilder depositFirstSamplePath = moveToFirstSamplePath.endTrajectory().fresh()
+                .setTangent(Math.toRadians(-30))
+                .splineToSplineHeading(new Pose2d(48, -37, Math.toRadians(270)), Math.toRadians(0), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
+        TrajectoryActionBuilder moveToSecondSamplePath = drive.actionBuilder(new Pose2d(48, -35, Math.toRadians(270)))
+                .setTangent(Math.toRadians(115))
+                .splineToConstantHeading(new Vector2d(42, -16), Math.toRadians(90))
+                .splineToConstantHeading(secondSample.position,Math.toRadians(0));
+            TrajectoryActionBuilder depositSecondSamplePath = moveToSecondSamplePath.endTrajectory().fresh()
                 .setTangent(Math.toRadians(270))
-                .lineToY(-35);
-        TrajectoryActionBuilder moveToThirdSamplePath = drive.closeActionBuilder(new Pose2d(secondSample.position.x, -35, Math.toRadians(270)))
+                .lineToY(-37, new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
+        TrajectoryActionBuilder moveToThirdSamplePath = drive.actionBuilder(new Pose2d(secondSample.position.x, -35, Math.toRadians(270)))
                 .setTangent(Math.toRadians(90))
                 .splineToLinearHeading(thirdSample,0);
-        TrajectoryActionBuilder depositThirdSamplePath = drive.closeActionBuilder(thirdSample)
+        TrajectoryActionBuilder depositThirdSamplePath = drive.actionBuilder(thirdSample)
                 .setTangent(Math.toRadians(270))
-                .splineToLinearHeading(pickupPosition,Math.toRadians(270) );
+                .splineToLinearHeading(pickupPosition,Math.toRadians(270),new TranslationalVelConstraint(20), new ProfileAccelConstraint(-8, 25));
 
         Pose2d secondSpecimen = new Pose2d(6, CHAMBER_Y, Math.toRadians(270));
         Pose2d thirdSpecimen = new Pose2d(8, CHAMBER_Y, Math.toRadians(270));
@@ -132,20 +134,20 @@ public class Auto3Specimen extends NGAutoOpMode {
         Action auto;
         SPECIMEN_COUNT = 4;
         auto = new SequentialAction(
-                intake.armAction(560, 200),
                 new ParallelAction(
-                    new SequentialAction(
-                    intake.slideAction(1000)
-                    ),
+                    intake.armAction(1600),
+
+                    intake.slideAction(200),
                     new InstantAction(() -> intake.moveWrist(20)),
                     firstSpecimen
                 ),
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
-                new SleepAction(0.3),
-                intake.slideAction(200, 400),
-            transferSample(moveToFirstSample, depositFirstSample, 90   ),
+//                intake.slideAction(200, 400),
+
+            transferSample(moveToFirstSample, depositFirstSample, 60  , 900),
             transferSample(moveToSecondSample, depositSecondSample),
-            transferSample(moveToThirdSample, depositThirdSample, true),
+//depositThirdSample
+                transferSample(moveToThirdSample,eternalAction() , true),
             scoreSpecimen(scoreSecondSpecimen, collectThirdSpecimen),
             scoreSpecimen(scoreThirdSpecimen, collectFourthSpecimen),
             scoreSpecimen(scoreFourthSpecimen, collectFifthSpecimen),
@@ -156,7 +158,11 @@ public class Auto3Specimen extends NGAutoOpMode {
 
         telemetry.addLine("paths did the creation");
         telemetry.update();
-
+//        intake.openClaw();
+        intake.moveArm(400);
+        while(!isStopRequested() && opModeInInit()){
+            intake.update();
+        }
         waitForStart();
 
 

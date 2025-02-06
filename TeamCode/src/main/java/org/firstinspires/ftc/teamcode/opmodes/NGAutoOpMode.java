@@ -31,7 +31,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     public static Intake intake;
     public static MecanumDrive drive;
     public static TrafficLight trafficLight;
-    public static Rigging rigging;
+//    public static Rigging rigging;
     public void initAuto(Pose2d beginPose){
         timer = new ElapsedTime();
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led, timer);
@@ -40,9 +40,9 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         RobotConstants.auto_transfer = true;
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
-        rigging = new Rigging(hardwareMap, telemetry, timer);
-        rigging.init();
-        rigging.reset();
+//        rigging = new Rigging(hardwareMap, telemetry, timer);
+//        rigging.init();
+//        rigging.reset();
 
         intake.init();
 
@@ -348,18 +348,20 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                         toSample,
                         new SequentialAction(
                             intake.armAction(300),
-                            intake.slideAction(200),
-                            new InstantAction(() -> {
-                                intake.moveWrist(180);
-                                intake.moveClaw(RobotConstants.claw_flat);
-                            })
+                            new ParallelAction(
+                                intake.slideAction(200),
+                                new InstantAction(() -> {
+                                    intake.turnAndRotateClaw(180,0);
+                                    intake.moveClaw(RobotConstants.claw_flat);
+                                })
+                            )
                         )
                 ),
-                intake.armAction(200),
-                eternalAction(),
+                intake.moveArmFast(200,-0.3),
                 new InstantAction(() -> intake.closeClaw()),
+                new SleepAction(0.3),
                 new ParallelAction(
-                    intake.armAction(500),
+                    intake.armAction(400),
                     after,
                     intake.slideAction(1000)
 
@@ -370,27 +372,29 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
         );
     }
-    public Action transferSample(Action toSample, Action after, double claw_angle){
+    public Action transferSample(Action toSample, Action after, double claw_angle, int slide_length){
         return new SequentialAction(
 
                 new ParallelAction(
                         toSample,
                         new SequentialAction(
-                                intake.armAction(300),
-                                intake.slideAction(200),
-                                new InstantAction(() -> {
-                                    intake.turnAndRotateClaw(180, claw_angle);
-                                    intake.moveClaw(RobotConstants.claw_flat);
-                                })
+                                intake.armAction(300, 600),
+                                new ParallelAction(
+                                    intake.slideAction(slide_length),
+                                    new InstantAction(() -> {
+                                        intake.turnAndRotateClaw(180, claw_angle);
+                                        intake.moveClaw(RobotConstants.claw_flat);
+                                    })
+                                )
                         )
                 ),
-                intake.armAction(200),
-                eternalAction(),
+                intake.moveArmFast(200,-0.3),
                 new InstantAction(() -> intake.closeClaw()),
+                new SleepAction(0.3),
                 new ParallelAction(
-                        intake.armAction(500),
+                        intake.armAction(400),
                         after,
-                        intake.slideAction(1000)
+                        intake.slideAction(slide_length)
 
                 ),
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
@@ -403,15 +407,16 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SequentialAction(
                 new ParallelAction(
                         toSample,
-                        new SequentialAction(
-                                intake.armAction(400),
-                                intake.slideAction(200),
-                                new InstantAction(() -> {
-                                    intake.moveWrist(180);
-                                    intake.moveClaw(RobotConstants.claw_flat);
-                                })
-                        )
+                        intake.armAction(300),
+                        intake.slideAction(200),
+                        new InstantAction(() -> {
+                            intake.moveWrist(180);
+                            intake.moveClaw(RobotConstants.claw_flat);
+                        })
+
+
                 ),
+                intake.moveArmFast(200,-0.3),
                 new InstantAction(() -> intake.closeClaw()),
                 new ParallelAction(
                         intake.armAction(500),

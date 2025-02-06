@@ -134,10 +134,10 @@ public class MecaTank extends Subsystem {
         force_exit = true;
    }
    void set_individual_powers(double fl_power, double fr_power, double bl_power, double br_power){
-        frontRight.setPower(fr_power);
-        frontLeft.setPower(fl_power);
-        backLeft.setPower(bl_power);
-        backRight.setPower(br_power);
+        frontRight.setDrivePower(fr_power);
+        frontLeft.setDrivePower(fl_power);
+        backLeft.setDrivePower(bl_power);
+        backRight.setDrivePower(br_power);
     }
     public void setUseDeadwheel(boolean on){
         use_dead_wheel = on;
@@ -157,7 +157,7 @@ public class MecaTank extends Subsystem {
     public void clearLinearDeadwheel(){
         backLeft.resetEncoder();
     }
-    public void setPowers(double left_stick_x, double left_stick_y, double right_stick_x) {
+    public void setDrivePowers(double left_stick_x, double left_stick_y, double right_stick_x) {
         double heading = getHeading();  // Get robot heading
 
         // Rotate joystick inputs for field-centric control
@@ -182,13 +182,13 @@ public class MecaTank extends Subsystem {
         }
 
         // Apply the calculated power values to the motors
-        frontLeft.setPower(frontLeftPower * MAX_DRIVE_SPEED);
-        frontRight.setPower(frontRightPower * MAX_DRIVE_SPEED);
-        backLeft.setPower(backLeftPower * MAX_DRIVE_SPEED);
-        backRight.setPower(backRightPower * MAX_DRIVE_SPEED);
+        frontLeft.setDrivePower(frontLeftPower * MAX_DRIVE_SPEED);
+        frontRight.setDrivePower(frontRightPower * MAX_DRIVE_SPEED);
+        backLeft.setDrivePower(backLeftPower * MAX_DRIVE_SPEED);
+        backRight.setDrivePower(backRightPower * MAX_DRIVE_SPEED);
     }
 
-    public void setPowers(double left_stick_y, double right_stick_y, double left_trigger, double right_trigger){
+    public void setDrivePowers(double left_stick_y, double right_stick_y, double left_trigger, double right_trigger){
         if(auto_move){
             return;
 //            if(left_stick_y == 0 && right_stick_y == 0 && left_trigger == 0 && right_trigger == 0){
@@ -200,28 +200,28 @@ public class MecaTank extends Subsystem {
         if (left_strafe) {
             double posPower = sameSignSqrt(left_trigger);
             double negPower = sameSignSqrt(-left_trigger);
-            frontLeft.setPower(negPower * MAX_DRIVE_SPEED);
-            backRight.setPower(negPower * MAX_DRIVE_SPEED);
-            frontRight.setPower(posPower * MAX_DRIVE_SPEED);
-            backLeft.setPower(posPower * MAX_DRIVE_SPEED);
+            frontLeft.setDrivePower(negPower * MAX_DRIVE_SPEED);
+            backRight.setDrivePower(negPower * MAX_DRIVE_SPEED);
+            frontRight.setDrivePower(posPower * MAX_DRIVE_SPEED);
+            backLeft.setDrivePower(posPower * MAX_DRIVE_SPEED);
             return;
         }
         if (right_strafe) {
             double posPower = sameSignSqrt(right_trigger);
             double negPower = sameSignSqrt(-right_trigger);
-            frontLeft.setPower(posPower * MAX_DRIVE_SPEED);
-            backRight.setPower(posPower * MAX_DRIVE_SPEED);
-            frontRight.setPower(negPower * MAX_DRIVE_SPEED);
-            backLeft.setPower(negPower * MAX_DRIVE_SPEED);
+            frontLeft.setDrivePower(posPower * MAX_DRIVE_SPEED);
+            backRight.setDrivePower(posPower * MAX_DRIVE_SPEED);
+            frontRight.setDrivePower(negPower * MAX_DRIVE_SPEED);
+            backLeft.setDrivePower(negPower * MAX_DRIVE_SPEED);
             return;
         }
 
         double leftPower = sameSignSqrt(-left_stick_y);
         double rightPower = sameSignSqrt(-right_stick_y);
-        frontLeft.setPower(leftPower * MAX_DRIVE_SPEED);
-        backLeft.setPower(leftPower * MAX_DRIVE_SPEED);
-        frontRight.setPower(rightPower * MAX_DRIVE_SPEED);
-        backRight.setPower(rightPower * MAX_DRIVE_SPEED);
+        frontLeft.setDrivePower(leftPower * MAX_DRIVE_SPEED);
+        backLeft.setDrivePower(leftPower * MAX_DRIVE_SPEED);
+        frontRight.setDrivePower(rightPower * MAX_DRIVE_SPEED);
+        backRight.setDrivePower(rightPower * MAX_DRIVE_SPEED);
     }
     public void LivePIDToDistance(double distance){
         if (target != distance){
@@ -287,10 +287,10 @@ public class MecaTank extends Subsystem {
         if(force_exit){
             auto_move = false;
             force_exit = false;
-            frontLeft.setPower(0);
-            backLeft.setPower(0);
-            backRight.setPower(0);
-            frontRight.setPower(0);
+            frontLeft.setDrivePower(0);
+            backLeft.setDrivePower(0);
+            backRight.setDrivePower(0);
+            frontRight.setDrivePower(0);
         }
         // Declare variables outside of the loop for PID
 
@@ -312,19 +312,19 @@ public class MecaTank extends Subsystem {
                 if (completed) {
                     fast_drive = false;
                     auto_move = false;
-                    frontLeft.setPower(0);
-                    backLeft.setPower(0);
-                    backRight.setPower(0);
-                    frontRight.setPower(0);
+                    frontLeft.setDrivePower(0);
+                    backLeft.setDrivePower(0);
+                    backRight.setDrivePower(0);
+                    frontRight.setDrivePower(0);
                     trafficLight.red(false);
                     trafficLight.green(true);
                     trafficLight.flashGreen(1, 1);
                 } else {
                     trafficLight.red(true);
-                    frontLeft.setPower(fast_drive_speed );
-                    frontRight.setPower(fast_drive_speed );
-                    backLeft.setPower(fast_drive_speed );
-                    backRight.setPower(fast_drive_speed );
+                    frontLeft.setDrivePower(fast_drive_speed );
+                    frontRight.setDrivePower(fast_drive_speed );
+                    backLeft.setDrivePower(fast_drive_speed );
+                    backRight.setDrivePower(fast_drive_speed );
                 }
 
             } else {
@@ -347,10 +347,10 @@ public class MecaTank extends Subsystem {
                 double time_passed = timer.seconds() - time_stop;
 
                 if (Math.abs(getDistance() - target) < 0.5) {
-                    frontLeft.setPower(0);
-                    backLeft.setPower(0);
-                    backRight.setPower(0);
-                    frontRight.setPower(0);
+                    frontLeft.setDrivePower(0);
+                    backLeft.setDrivePower(0);
+                    backRight.setDrivePower(0);
+                    frontRight.setDrivePower(0);
                     auto_move = false;
                     trafficLight.red(false);
                     trafficLight.green(true);
@@ -379,10 +379,10 @@ public class MecaTank extends Subsystem {
                     previousHeadingError = headingError;
 
                     // Adjust motor powers for heading correction
-                    frontLeft.setPower(power + headingCorrection);
-                    backLeft.setPower(power + headingCorrection);
-                    backRight.setPower(power - headingCorrection);
-                    frontRight.setPower(power - headingCorrection);
+                    frontLeft.setDrivePower(power + headingCorrection);
+                    backLeft.setDrivePower(power + headingCorrection);
+                    backRight.setDrivePower(power - headingCorrection);
+                    frontRight.setDrivePower(power - headingCorrection);
 
                     previousError = error;
                     time_stop = timer.seconds();

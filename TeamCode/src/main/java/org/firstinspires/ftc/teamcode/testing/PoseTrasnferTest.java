@@ -23,7 +23,7 @@ public class PoseTrasnferTest extends TestingOpMode {
         waitForStart();
         while(opModeIsActive() && !isStopRequested()){
             mecaTank.update();
-            mecaTank.setPowers(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
+            mecaTank.setDrivePowers(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
             mecaTank.telemetry();
         }
 

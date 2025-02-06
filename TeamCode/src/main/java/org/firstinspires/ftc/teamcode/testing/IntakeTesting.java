@@ -150,7 +150,7 @@ public class IntakeTesting extends TestingOpMode {
             }
 
             if(!mecaTank.isBusy()){
-                mecaTank.setPowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+                mecaTank.setDrivePowers(gamepad1.left_stick_y, gamepad1.right_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
             }
             if(!drive_pid_on) {
                 mecaTank.forceExit();
