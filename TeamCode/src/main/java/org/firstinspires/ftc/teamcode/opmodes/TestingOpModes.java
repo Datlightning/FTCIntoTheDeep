@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.testing.IntakeTuning;
 import org.firstinspires.ftc.teamcode.testing.MotionProfileTest;
 import org.firstinspires.ftc.teamcode.testing.PIDTuning;
 import org.firstinspires.ftc.teamcode.testing.PoseTrasnferTest;
+import org.firstinspires.ftc.teamcode.testing.PotTesting;
 import org.firstinspires.ftc.teamcode.testing.RRPathTest;
 import org.firstinspires.ftc.teamcode.testing.RudimentaryDiffyTesting;
 import org.firstinspires.ftc.teamcode.testing.ServoExTesting;
@@ -60,7 +61,6 @@ public final class TestingOpModes {
         if (DISABLED) return;
 
         manager.register(metaForClass(AutoArmStabilizerTesting.class, false), AutoArmStabilizerTesting.class);
-        manager.register(metaForClass(BigBoyTesting.class), BigBoyTesting.class);
         manager.register(metaForClass(CameraTesting.class), CameraTesting.class);
         manager.register(metaForClass(DiffyIntakeTest.class), DiffyIntakeTest.class);
         manager.register(metaForClass(DistanceRRPathTest.class, false), DistanceRRPathTest.class);
@@ -79,11 +79,11 @@ public final class TestingOpModes {
         manager.register(metaForClass(TestDataTrasnfer.class, false), TestDataTrasnfer.class);
         manager.register(metaForClass(TrafficLightTest.class), TrafficLightTest.class);
         manager.register(metaForClass(ColorTesting.class), ColorTesting.class);
+        manager.register(metaForClass(PotTesting.class), PotTesting.class);
 
         FtcDashboard.getInstance().withConfigRoot(configRoot -> {
             for (Class<?> c : Arrays.asList(
                     AutoArmStabilizerTesting.class,
-                    BigBoyTesting.class,
                     CameraTesting.class,
                     ColorTesting.class,
                     DiffyIntakeTest.class,
@@ -100,6 +100,7 @@ public final class TestingOpModes {
                     ServoExTesting.class,
                     ServoTesting.class,
                     SlideTesting.class,
+                    PotTesting.class,
                     TestDataTrasnfer.class,
                     TrafficLightTest.class
             )) {

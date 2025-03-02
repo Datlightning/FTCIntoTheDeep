@@ -122,7 +122,7 @@ public class Auto1SpecimenLivePathCreation extends NGAutoOpMode {
                 )
         );
 
-        TrajectoryActionBuilder scoreFirstSamplePath = drive.closeActionBuilder(drive.pose)
+        TrajectoryActionBuilder scoreFirstSamplePath = drive.fastActionBuilder(drive.pose)
                 .setReversed(true)
                 .splineToLinearHeading(new Pose2d(-58, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
 
@@ -155,7 +155,7 @@ public class Auto1SpecimenLivePathCreation extends NGAutoOpMode {
                         )
                 )
         );
-        TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(drive.pose)
+        TrajectoryActionBuilder scoreSecondSamplePath = drive.fastActionBuilder(drive.pose)
                 .setReversed(true)
                 .splineToLinearHeading(new Pose2d(-58, -62, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-12,30));
 
@@ -199,7 +199,7 @@ public class Auto1SpecimenLivePathCreation extends NGAutoOpMode {
         );
 
 
-        TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(drive.pose)
+        TrajectoryActionBuilder scoreThirdSamplePath = drive.fastActionBuilder(drive.pose)
                 .setReversed(true)
                 .setTangent(Math.toRadians(270))
                 .splineToSplineHeading(new Pose2d(-52, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))

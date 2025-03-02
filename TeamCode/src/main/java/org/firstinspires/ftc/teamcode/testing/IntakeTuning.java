@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-@Config
+
 public class IntakeTuning extends TestingOpMode {
 
     Intake intake;

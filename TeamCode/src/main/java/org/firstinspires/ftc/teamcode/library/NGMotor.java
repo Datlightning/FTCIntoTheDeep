@@ -25,6 +25,10 @@ public class NGMotor extends Subsystem {
     private boolean useMotionProfile = false;
 
     private boolean motionProfileOverride = false;
+
+    public boolean alternate = false;
+
+    private AlternateEncoder alternateEncoder;
     private int distance = 0;
     private ElapsedTime timer;
     private double time_passed = 0, time_stop = 0, time_started = 0;
@@ -107,6 +111,10 @@ public class NGMotor extends Subsystem {
     }
     public void setExternalDownHardstop(boolean on){
         external_hardstop = on;
+    }
+
+    public void setAlternateEncoder(AlternateEncoder alternateEncoder){
+        this.alternateEncoder = alternateEncoder;
     }
     public void resetEncoder(){
         pid_motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -256,6 +264,9 @@ public class NGMotor extends Subsystem {
         this.reversed_encoder = reversed;
     }
     public int getCurrentPosition() {
+        if(alternate){
+            return alternateEncoder.getCurrentPosition();
+        }
         return pid_motor.getCurrentPosition();
     }
     public void setAbsPower(double power){
@@ -296,7 +307,7 @@ public class NGMotor extends Subsystem {
                 integralSum = 0;//potentially remove this
             }
             reached = false;
-//            integralSum = 0;
+//              integralSum = 0;
             if(MAX_DECEL == -1){
                 motion_profile_exit_time =  Control.motionProfileTime(MAX_ACCEL, MAX_VEL, distance);
             }else{

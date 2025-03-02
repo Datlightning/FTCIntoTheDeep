@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-@Config
+
 public class ServoTesting extends TestingOpMode {
 
     Intake intake;

@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 @Config
 public class DiffyClaw extends Subsystem {
-    private double wrist_angle = 0;
+    public double wrist_angle = 0;
     private double claw_angle = 0;
     private double claw_position = 0.95;
 

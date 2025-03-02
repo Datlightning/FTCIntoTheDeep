@@ -15,7 +15,6 @@ import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
-import com.acmerobotics.roadrunner.ftc.ImuInitMessage;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
@@ -92,7 +91,7 @@ public class Auto4SampleLivePathCreation extends NGAutoOpMode {
                 )
         );
 
-        TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(drive.pose)
+        TrajectoryActionBuilder scoreSecondSamplePath = drive.fastActionBuilder(drive.pose)
                 .setReversed(true)
                 .splineToLinearHeading(new Pose2d(-54.5, -59, Math.toRadians(45)), Math.toRadians(225), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,30));
 
@@ -160,7 +159,7 @@ public class Auto4SampleLivePathCreation extends NGAutoOpMode {
                 )
         );
 
-        TrajectoryActionBuilder scoreFourthSamplePath = drive.closeActionBuilder(drive.pose)
+        TrajectoryActionBuilder scoreFourthSamplePath = drive.fastActionBuilder(drive.pose)
                 .setReversed(true)
                 .splineToSplineHeading(new Pose2d(-50, -50, Math.toRadians(45)), Math.toRadians(270), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,32))
                 .splineToConstantHeading(new Vector2d(-57, -57), Math.toRadians(225), new TranslationalVelConstraint(10), new ProfileAccelConstraint(-12,32));

@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Camera;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
-@Config
+
 public class ColorTesting extends TestingOpMode {
     ColorSensor test_color;
 

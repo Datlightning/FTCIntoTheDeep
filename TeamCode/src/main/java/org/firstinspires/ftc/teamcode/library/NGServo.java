@@ -20,6 +20,8 @@ public class NGServo extends Subsystem{
     private ElapsedTime timer;
     private String name;
     private double init_pos = 0;
+
+    private double last_pos = -10;
     private boolean PWMEnabled = true;
     private double min = 0;
     private double max = 1;
@@ -65,7 +67,8 @@ public class NGServo extends Subsystem{
             {
                 position = min;
             }
-        if(PWMEnabled) {
+        if(PWMEnabled && Math.abs(position - last_pos) > 0.005) {
+            last_pos = position;
             servo.setPosition(position);
             speed = 0;
             targetPosition = position;
@@ -121,6 +124,7 @@ public class NGServo extends Subsystem{
     @Override
     public void telemetry() {
         telemetry.addData(name + " position: ", servo.getPosition());
+        telemetry.addData(name + " previous position: ", last_pos);
         telemetry.addData(name + " enabled: ", PWMEnabled);
         if(speed != 0){
             telemetry.addData(name + " speed: ", speed);

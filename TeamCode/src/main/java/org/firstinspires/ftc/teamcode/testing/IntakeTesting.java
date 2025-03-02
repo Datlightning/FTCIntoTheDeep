@@ -31,6 +31,8 @@ public class IntakeTesting extends TestingOpMode {
     public static boolean use_offset_calibrate = false;
     public static boolean use_motion_profile_slide = true;
 
+    public static boolean use_pot = false;
+
     public static boolean enable_arm_motor = true;
 
     public static boolean extend_slide_with_distance = false;
@@ -79,7 +81,7 @@ public class IntakeTesting extends TestingOpMode {
                 }
             }
             past_distance_scope = distance_scope;
-
+            intake.usePot(use_pot);
 
             mecaTank.setDistanceType(front_distance);
             if(A1_arm_position != past_arm_position){
@@ -106,12 +108,13 @@ public class IntakeTesting extends TestingOpMode {
             intake.arm.setUseMotionProfile(use_motion_profile_arm);
 
             if(controller){
-                intake.setFourBar(true);
                 intake.setTargetAngle(target_angle);
                 intake.turnClaw(A1_claw_angle);
             }else{
                 intake.turnAndRotateClaw(A1_wrist_angle, A1_claw_angle);
             }
+            intake.setFourBar(controller);
+
             if(use_offset_calibrate){
                 intake.calculateOffset();
                 use_offset_calibrate = false;
@@ -165,15 +168,15 @@ public class IntakeTesting extends TestingOpMode {
                 trafficLight.green(intake.distance.getFilteredDist() < 12);
             }
             intake.distance.setOn(true);
-            mecaTank.rear_distance.setOn(true);
+//            mecaTank.rear_distance.setOn(true);
             telemetry.addData("Target Distance", distance);
             mecaTank.telemetry();
             mecaTank.update();
             intake.update();
             intake.distance.update();
             intake.distance.telemetry();
-            mecaTank.rear_distance.update();
-            mecaTank.rear_distance.telemetry();
+//            mecaTank.rear_distance.update();
+//            mecaTank.rear_distance.telemetry();
             telemetry.addData("Slide Predicted Distance", intake.calculateSlidePositionForFloorPickup(intake.distance.getFilteredDist()));
             intake.telemetry();
             telemetry.update();

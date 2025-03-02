@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 @Config
+@TeleOp
 public class BigBoyTesting extends TestingOpMode {
     protected DcMotor motor1,motor2,motor3,motor4, motor1e, motor2e, motor3e, motor4e;
     public static double motor1power = 0,motor2power = 0, motor3power = 0,motor4power = 0,motor1epower = 0,motor2epower = 0,motor3epower = 0,motor4epower = 0;

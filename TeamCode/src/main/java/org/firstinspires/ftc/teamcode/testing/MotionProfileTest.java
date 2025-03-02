@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.library.Control;
 
-@Config
+
 public class MotionProfileTest extends TestingOpMode {
 
     public static double distance = 10;

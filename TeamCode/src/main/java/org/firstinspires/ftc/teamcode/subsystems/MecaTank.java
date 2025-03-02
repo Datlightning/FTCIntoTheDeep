@@ -81,7 +81,7 @@ public class MecaTank extends Subsystem {
         backRight = new NGMotor(hardwareMap, telemetry, RobotConstants.br);
 
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance);
-        rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance);
+//        rear_distance = new Distance(hardwareMap, telemetry, RobotConstants.rear_distance);
         imu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
                 PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
@@ -189,12 +189,12 @@ public class MecaTank extends Subsystem {
     }
 
     public void setDrivePowers(double left_stick_y, double right_stick_y, double left_trigger, double right_trigger){
-        if(auto_move){
-            return;
-//            if(left_stick_y == 0 && right_stick_y == 0 && left_trigger == 0 && right_trigger == 0){
-//                return;
-//            }
-        }
+//        if(auto_move){
+//            return;
+////            if(left_stick_y == 0 && right_stick_y == 0 && left_trigger == 0 && right_trigger == 0){
+////                return;
+////            }
+
         left_strafe = left_trigger != 0;
         right_strafe = right_trigger != 0;
         if (left_strafe) {
@@ -277,10 +277,10 @@ public class MecaTank extends Subsystem {
 
     @Override
     public void update() {
-        if(update_distance) {
-            distance.update();
-            rear_distance.update();
-        }
+//        if(update_distance) {
+//            distance.update();
+//            rear_distance.update();
+//        }
         trafficLight.update();
 
 

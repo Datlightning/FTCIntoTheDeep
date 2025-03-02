@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
 import static org.firstinspires.ftc.teamcode.RobotConstants.distance;
 
+import android.media.audiofx.BassBoost;
+
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -16,6 +18,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveToAprilTagOmni;
@@ -25,12 +28,16 @@ import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
+import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
 
 public abstract class NGAutoOpMode extends LinearOpMode {
     public static ElapsedTime timer;
     public static Intake intake;
     public static MecanumDrive drive;
     public static TrafficLight trafficLight;
+    public static VihasRigging vihasRigging;
+    public static Gamepad currentGamepad1, previousGamepad1;
+    private int arm_height_for_specimen = 560;
 //    public static Rigging rigging;
     public void initAuto(Pose2d beginPose){
         timer = new ElapsedTime();
@@ -39,12 +46,16 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         drive.mountTrafficLight(trafficLight);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         RobotConstants.auto_transfer = true;
+        vihasRigging = new VihasRigging(hardwareMap, telemetry);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
+        currentGamepad1 = new Gamepad();
+        previousGamepad1 = new Gamepad();
 //        rigging = new Rigging(hardwareMap, telemetry, timer);
 //        rigging.init();
 //        rigging.reset();
 
         intake.init();
+        vihasRigging.init();
 
         intake.slides.setReachedRange(30);
 //        intake.calculateOffset();
@@ -119,26 +130,23 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
 
     public Action slideCollectSampleAndScore(Action sampleScore, double ending_claw_pos){
-        Intake.moveArmAction armDown = intake.armAction(500, 260);
         return new SequentialAction(
-                intake.grab(RobotConstants.claw_closed),
                 new ParallelAction(
                         new SequentialAction(
                                     new ParallelAction(
-                                        intake.slideAction(200, 400),
-                                        new InstantAction(() -> intake.arm.setExitWithTime(true)),
-                                        armDown,
-                                        new InstantAction(() -> intake.arm.setExitWithTime(false)),
-                                        new InstantAction(() -> intake.moveWrist(90))
+                                        intake.slideAction(200, 400)
                                     ),
+                                    new ParallelAction(
                                     intake.raiseArm()
+                                    )
 
                         ),
                         new SequentialAction(
-                                sampleScore,
-                                new InstantAction(armDown::cancel)
+                                sampleScore
+
                         )
                 ),
+                new InstantAction(() -> intake.closeClaw(-0.07)),
                 new SleepAction(0.2),
                 intake.scoreSlidePickup(),
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
@@ -159,8 +167,8 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
     public Action goToSampleWithSlides(Action sample){
         Intake.moveArmAction armDown = intake.armAction(300, 700);
-        Intake.moveArmAction armDown2 = intake.armAction(200);
-        FailoverAction sleep = new FailoverAction(new SleepAction(1.25), new NullAction());
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
                 new InstantAction(() ->
                 {
@@ -175,66 +183,80 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                                 intake.slideAction(1000)
                         ),
                         new SequentialAction(
-                                sample,
-                                new InstantAction(() -> {intake.useFastPID(true);}),
-                                new ParallelAction(
-                                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
-                                        new SequentialAction(sleep, new InstantAction(armDown2::cancel))
-                                ),
-                                new InstantAction(() -> {intake.useFastPID(false);})
+                                sample
                         )
 
-                )
+                ),
+                new ParallelAction(
+                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                ),
+                intake.grab(RobotConstants.claw_closed),
+                new SleepAction(0.1),
+                new InstantAction(() -> intake.moveArm(500))
+        );
+    }
+
+    public Action goToSampleWithSlides(Action sample, double claw_angle){
+        Intake.moveArmAction armDown = intake.armAction(300, 700);
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
+        return new SequentialAction(
+                new InstantAction(() ->
+                {
+                    intake.moveClaw(RobotConstants.claw_flat);
+                    intake.turnAndRotateClaw(180, claw_angle);
+                }),
+
+                new ParallelAction(
+                        new SequentialAction(
+
+                                armDown,
+                                intake.slideAction(1000)
+                        ),
+                        new SequentialAction(
+                                sample
+                        )
+
+                ),
+                new ParallelAction(
+                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                ),
+                intake.grab(RobotConstants.claw_closed),
+                new SleepAction(0.1),
+                new InstantAction(() -> intake.moveArm(500))
         );
     }
     public Action goToSampleWithSlides(Action sample, FailoverAction delay_action){
         Intake.moveArmAction armDown = intake.armAction(300, 700);
-        Intake.moveArmAction armDown2 = intake.armAction(200);
-        FailoverAction sleep = new FailoverAction(new SleepAction(1.25), new NullAction());
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.1), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(250, -0.3), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
-                new InstantAction(() ->
-                {
-                    intake.moveClaw(RobotConstants.claw_flat);
-                    intake.moveWrist(180);
-                }),
-
                 new ParallelAction(
                         new SequentialAction(
-                                delay_action,
+
                                 armDown,
+                                intake.slideAction(0),
+                                new InstantAction(() ->
+                                {
+                                    intake.moveClaw(RobotConstants.claw_flat);
+                                    intake.moveWrist(180);
+                                }),
+                                delay_action,
                                 intake.slideAction(1000)
-                        ),
-                        new SequentialAction(
-                                sample,
-                                new SequentialAction(
-                                        delay_action,
-                                    new InstantAction(() -> {intake.useFastPID(true);}),
-                                    new ParallelAction(
-                                            new SequentialAction(armDown2, new InstantAction(sleep::failover)),
-                                            new SequentialAction(sleep, new InstantAction(armDown2::cancel))
-                                    ),
-                                    new InstantAction(() -> {intake.useFastPID(false);})
-                                )
-                        )
 
-                )
-        );
-    }
-    public Action goToSampleWithSlides(Action sample,int slide_length){
-        return new SequentialAction(
-                new InstantAction(() ->
-                {
-                    intake.moveClaw(RobotConstants.claw_flat);
-                    intake.moveWrist(180);
-                }),
-
-                new ParallelAction(
-                        new SequentialAction(
-                                intake.armAction(240, 700),
-                                intake.slideAction(slide_length)
                         ),
                         sample
-                )
+
+                ),
+                new ParallelAction(
+                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                ),
+                intake.grab(RobotConstants.claw_closed),
+                new SleepAction(0.1),
+                new InstantAction(() -> intake.moveArm(500))
         );
     }
     public Action goToSample(FailoverAction sample, FailoverAction distance){
@@ -319,60 +341,96 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         }
     }
     public Action scoreSpecimen(Action toSpecimen, Action after){
+        FailoverAction extendSlides = new FailoverAction(intake.slideAction(300), new NullAction());
+        FailoverAction timer = new FailoverAction(new SleepAction(0.4), new NullAction());
+        FailoverAction rotateArm = new FailoverAction(intake.armAction(1600), new NullAction());
+        FailoverAction timer2 = new FailoverAction(new SleepAction(0.3), new NullAction());
+
+
         return new SequentialAction(
-                new InstantAction(() -> intake.closeClaw(-0.03)),
-                new SleepAction(0.1),
+                new ParallelAction(
+                    new SequentialAction(timer, new InstantAction(extendSlides::failover)),
+                    new SequentialAction(extendSlides, new InstantAction(timer::failover))
+                ),
+
+                new InstantAction(() -> {
+                    intake.enableLevel(false);
+                    intake.setFourBar(false);
+                    intake.closeClaw(-0.04);
+                }),
+                new SleepAction(0.25),
                 new ParallelAction(
                         toSpecimen,
-                        intake.armAction(1500),
-                        intake.slideAction(325),
-                        new InstantAction(() -> intake.moveWrist(0))
+                        intake.armAction(1550),
+                        intake.slideAction(310),
+                        new SequentialAction(
+                            new InstantAction(() -> intake.moveWrist(0)),
+                                new SleepAction(0.5),
+                                new InstantAction(() -> intake.closeClaw(-0.03))
+                        )
                 ),
-                intake.slideAction(800),
+                new ParallelAction(
+                        new SequentialAction(timer2, new InstantAction(rotateArm::failover)),
+                        new SequentialAction(rotateArm, new InstantAction(timer2::failover))
+                ),
+                intake.slideAction(750),
                 new InstantAction(() -> intake.openClaw()),
                 new ParallelAction(
                         after,
-                        new SequentialAction(
-                                new SleepAction(1),
-                                intake.slideAction(0)
-                        ),
-                        intake.armAction(400),
-                        new InstantAction(() -> {intake.moveClaw(RobotConstants.claw_flat); intake.moveWrist(90);})
+                        new InstantAction(() -> {
+                            intake.turnAndRotateClaw(110,0);
+                            intake.moveClaw(RobotConstants.claw_flat);
+                        }),
+                        intake.slideAction(100),
+                        intake.armAction(arm_height_for_specimen)
+
+
                 )
+//                ,new InstantAction(() -> {
+//                    intake.setTargetHeight(intake.getSpecimenHeight());
+//                    intake.enableLevel(true);
+//
+//                }),
+//                new SleepAction(0.75)
         );
     }
-    public Action transferSample(Action toSample, Action after){
+    public Action scoreSpecimenSampleSide(Action toSpecimen){
+        FailoverAction extendSlides = new FailoverAction(intake.slideAction(300), new NullAction());
+        FailoverAction timer = new FailoverAction(new SleepAction(0.4), new NullAction());
+        FailoverAction rotateArm = new FailoverAction(intake.armAction(1600), new NullAction());
+        FailoverAction timer2 = new FailoverAction(new SleepAction(0.3), new NullAction());
+
+
         return new SequentialAction(
+                new ParallelAction(
+                        toSpecimen,
+                        intake.armAction(1600),
+                        intake.slideAction(325),
 
-                new ParallelAction(
-                        toSample,
-                        new SequentialAction(
-                            intake.armAction(300),
-                            new ParallelAction(
-                                intake.slideAction(200),
-                                new InstantAction(() -> {
-                                    intake.turnAndRotateClaw(180,0);
-                                    intake.moveClaw(RobotConstants.claw_flat);
-                                })
-                            )
-                        )
-                ),
-                intake.moveArmFast(200,-0.3),
-                new InstantAction(() -> intake.closeClaw()),
-                new SleepAction(0.3),
-                new ParallelAction(
-                    intake.armAction(400),
-                    after,
-                    intake.slideAction(1000)
+                                new InstantAction(() -> intake.moveWrist(0))
+
 
                 ),
-                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
-
-
-
+//                new ParallelAction(
+//                        new SequentialAction(timer2, new InstantAction(rotateArm::failover)),
+//                        new SequentialAction(rotateArm, new InstantAction(timer2::failover))
+//                ),
+                intake.slideAction(650),
+                new InstantAction(() -> intake.openClaw()),
+                intake.slideAction(500)
+//                ,new InstantAction(() -> {
+//                    intake.setTargetHeight(intake.getSpecimenHeight());
+//                    intake.enableLevel(true);
+//
+//                }),
+//                new SleepAction(0.75)
         );
     }
+
     public Action transferSample(Action toSample, Action after, double claw_angle, int slide_length){
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.2), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(250, -0.3), new InstantAction(() -> intake.arm.setManualPower(0)));
+
         return new SequentialAction(
 
                 new ParallelAction(
@@ -388,11 +446,14 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                                 )
                         )
                 ),
-                intake.moveArmFast(200,-0.3),
-                new InstantAction(() -> intake.closeClaw()),
-                new SleepAction(0.3),
                 new ParallelAction(
-                        intake.armAction(400),
+                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                ),
+                intake.grab(RobotConstants.claw_closed),
+                new SleepAction(0.1),
+                new InstantAction(() -> intake.moveArm(300)),
+                new ParallelAction(
                         after,
                         intake.slideAction(slide_length)
 
@@ -403,28 +464,47 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
         );
     }
-    public Action transferSample(Action toSample, Action after, boolean last){
+    public Action transferSample(Action toSample, Action after, double claw_angle, int slide_length, boolean last){
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.2), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(250, -0.3), new InstantAction(() -> intake.arm.setManualPower(0)));
+
         return new SequentialAction(
+
                 new ParallelAction(
                         toSample,
-                        intake.armAction(300),
-                        intake.slideAction(200),
-                        new InstantAction(() -> {
-                            intake.moveWrist(180);
-                            intake.moveClaw(RobotConstants.claw_flat);
-                        })
+                        new SequentialAction(
 
-
+                                intake.armAction(300, 600),
+                                new ParallelAction(
+                                        intake.slideAction(slide_length),
+                                        new InstantAction(() -> {
+                                            intake.turnAndRotateClaw(180, claw_angle);
+                                            intake.moveClaw(RobotConstants.claw_flat);
+                                        })
+                                )
+                        )
                 ),
-                intake.moveArmFast(200,-0.3),
-                new InstantAction(() -> intake.closeClaw()),
                 new ParallelAction(
-                        intake.armAction(500),
+                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                ),
+                intake.grab(RobotConstants.claw_closed),
+                new SleepAction(0.1),
+                new ParallelAction(
+                        intake.armAction(arm_height_for_specimen),
                         after,
-                        intake.slideAction(0)
+                        new InstantAction(() -> intake.turnAndRotateClaw(110,0)),
+                        intake.slideAction(100)
 
                 ),
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat))
+
+//                ,new InstantAction(() -> {
+//                    intake.setTargetHeight(intake.getSpecimenHeight());
+//                    intake.enableLevel(true);
+//                    intake.setTargetAngle(-10);
+//                    intake.setFourBar(true);
+//                })
 
 
 

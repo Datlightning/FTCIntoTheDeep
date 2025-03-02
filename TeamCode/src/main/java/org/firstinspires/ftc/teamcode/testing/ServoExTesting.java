@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
-@Config
+
 public class ServoExTesting extends TestingOpMode {
     ServoImplEx servo;
     @Override

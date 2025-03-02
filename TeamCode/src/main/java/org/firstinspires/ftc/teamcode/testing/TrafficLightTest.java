@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 
 @Config
+@TeleOp
 public class TrafficLightTest extends TestingOpMode {
 
     TrafficLight trafficLight;

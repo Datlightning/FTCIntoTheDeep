@@ -76,12 +76,12 @@ public final class MecanumDrive {
 
         // drive model parameters
         public double inPerTick = 5.4831668225294210238794085239951e-4;
-        public double lateralInPerTick = 0.0004054342789823417;
-        public double trackWidthTicks = 21651.285603556116;
+        public double lateralInPerTick = 0.00040551511214546605;
+        public double trackWidthTicks = 22915.48313310018;
 
         // feedforward parameters (in tick units)
-        public double kS = 0.8525493111142994;
-        public double kV = 0.00011412691580332305;
+        public double kS = 0.8470387406425917;
+        public double kV = 0.0001063045912406822;
         public double kA = 0.00002;
 
         // path profile parameters (in inches)
@@ -94,9 +94,9 @@ public final class MecanumDrive {
         public double maxAngAccel = Math.PI;
 
         // path controller gains
-        public double axialGain = 8;
-        public double lateralGain = 7.3;
-        public double headingGain = 6; // shared with turn
+        public double axialGain = 4.5;//8;
+        public double lateralGain = 4;//7.3;
+        public double headingGain = 4;//6; // shared with turn
 
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
@@ -624,12 +624,12 @@ public final class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
-    public final class FollowTrajectoryActionClosely implements Action {
+    public final class FollowTrajectoryActionFast implements Action {
         public final TimeTrajectory timeTrajectory;
         private double beginTs = -1;
 
         private final double[] xPoints, yPoints;
-        public FollowTrajectoryActionClosely(TimeTrajectory t) {
+        public FollowTrajectoryActionFast(TimeTrajectory t) {
             timeTrajectory = t;
 
             List<Double> disps = com.acmerobotics.roadrunner.Math.range(
@@ -658,15 +658,14 @@ public final class MecanumDrive {
             targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
             Pose2d error = txWorldTarget.value().minusExp(pose);
-            if ((t >= timeTrajectory.duration && error.position.norm() < 2 && robotVelRobot.linearVel.norm() < 0.5)
-                    || t >= timeTrajectory.duration + 1) {
+            if (t >= timeTrajectory.duration - 0.5) {
                 frontLeft.setPower(0);
                 backLeft.setPower(0);
                 backRight.setPower(0);
                 frontRight.setPower(0);
+
                 return false;
             }
-
 
             PoseVelocity2dDual<Time> command = new HolonomicController(
                     PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain,
@@ -745,15 +744,18 @@ public final class MecanumDrive {
         public FollowTrajectoryActionPP(TimeTrajectory t) {
             timeTrajectory = t;
 
-            List<Double> disps = com.acmerobotics.roadrunner.Math.range(
+            disps = com.acmerobotics.roadrunner.Math.range(
                     0, t.path.length(),
                     Math.max(2, (int) Math.ceil(t.path.length() / 2)));
+
+
             xPoints = new double[disps.size()];
             yPoints = new double[disps.size()];
             for (int i = 0; i < disps.size(); i++) {
                 Pose2d p = t.path.get(disps.get(i), 1).value();
                 xPoints[i] = p.position.x;
                 yPoints[i] = p.position.y;
+                vel.add(t.path.get(disps.get(i), 2).position.norm().value());
             }
         }
 
@@ -976,10 +978,10 @@ public final class MecanumDrive {
                 defaultVelConstraint, defaultAccelConstraint
         );
     }
-    public TrajectoryActionBuilder closeActionBuilder(Pose2d beginPose) {
+    public TrajectoryActionBuilder fastActionBuilder(Pose2d beginPose) {
         return new TrajectoryActionBuilder(
                 TurnAction::new,
-                FollowTrajectoryActionClosely::new,
+                FollowTrajectoryActionFast::new,
                 new TrajectoryBuilderParams(
                         1e-6,
                         new ProfileParams(

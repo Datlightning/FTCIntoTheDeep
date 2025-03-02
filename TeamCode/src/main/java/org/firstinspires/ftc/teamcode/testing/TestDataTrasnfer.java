@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-@Config
+
 public class TestDataTrasnfer extends TestingOpMode {
     ElapsedTime timer;
     Intake intake;

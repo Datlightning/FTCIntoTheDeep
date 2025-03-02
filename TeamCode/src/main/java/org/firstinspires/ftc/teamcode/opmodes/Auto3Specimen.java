@@ -57,60 +57,88 @@ public class Auto3Specimen extends NGAutoOpMode {
                 return new MinMax(-30,50);
             }
         };
+        AccelConstraint pickup = (robotPose, _path, _disp) -> {
+            if (robotPose.position.y.value() < -40) {
+                return new MinMax(-6,12);
+            } else {
+                return new MinMax(-30,50);
+            }
+        };
+        VelConstraint pickupVel = (robotPose, _path, _disp) -> {
+            if (robotPose.position.y.value() < -40.0) {
+                return 20;
+            } else {
+                return 40;
+            }
+        };
 
 
 
 
 
-        double CHAMBER_Y = -35.5;
-        Pose2d firstSample = new Pose2d(23, -34, Math.toRadians(15));
-        Pose2d secondSample = new Pose2d(58, -14, Math.toRadians(270));
-        Pose2d thirdSample = new Pose2d(58, -16, Math.toRadians(315));
-        Pose2d pickupPosition = new Pose2d(40, -63,  Math.toRadians(270));
-        TrajectoryActionBuilder scoreFirstSpecimenPath = drive.actionBuilder(beginPose)
+        double CHAMBER_Y = -34.5;
+        Pose2d firstSample = new Pose2d(31, -34, Math.toRadians(30));
+        Pose2d secondSample = new Pose2d(41, -34, Math.toRadians(30));
+        Pose2d thirdSample = new Pose2d(48, -35, Math.toRadians(30));
+        Pose2d pickupPosition = new Pose2d(40, -50.5,  Math.toRadians(270));
+        TrajectoryActionBuilder scoreFirstSpecimenPath = drive.fastActionBuilder(beginPose)
                 .setTangent(Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(4,-45, Math.toRadians(270)), Math.toRadians(90))
-                .splineToConstantHeading(new Vector2d(4,-34), Math.toRadians(90));
+                .splineToSplineHeading(new Pose2d(0,-45, Math.toRadians(270)), Math.toRadians(90))
+                .splineToConstantHeading(new Vector2d(2,-34), Math.toRadians(90));
+
         TrajectoryActionBuilder moveToFirstSamplePath = drive.actionBuilder(new Pose2d(4, -34, Math.toRadians(270)))
                 .setTangent(Math.toRadians(-45))
-                .splineToLinearHeading(new Pose2d(31, -34, Math.toRadians(30)), Math.toRadians(30), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-15, 35));
+                .splineToLinearHeading(firstSample, Math.toRadians(30), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-15, 24));
         TrajectoryActionBuilder depositFirstSamplePath = moveToFirstSamplePath.endTrajectory().fresh()
                 .setTangent(Math.toRadians(-30))
-                .splineToSplineHeading(new Pose2d(48, -37, Math.toRadians(270)), Math.toRadians(0), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
-        TrajectoryActionBuilder moveToSecondSamplePath = drive.actionBuilder(new Pose2d(48, -35, Math.toRadians(270)))
-                .setTangent(Math.toRadians(115))
-                .splineToConstantHeading(new Vector2d(42, -16), Math.toRadians(90))
-                .splineToConstantHeading(secondSample.position,Math.toRadians(0));
+                .splineToLinearHeading(new Pose2d(firstSample.position.x, -42, Math.toRadians(-70)), Math.toRadians(0), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
+        TrajectoryActionBuilder moveToSecondSamplePath = depositFirstSamplePath.endTrajectory().fresh()
+                .setTangent(Math.toRadians(135))
+                .splineToLinearHeading(secondSample, Math.toRadians(30), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-15, 24));
             TrajectoryActionBuilder depositSecondSamplePath = moveToSecondSamplePath.endTrajectory().fresh()
+                .setTangent(Math.toRadians(-30))
+                .splineToLinearHeading(new Pose2d(40, -45,  Math.toRadians(270)) ,Math.toRadians(270),new TranslationalVelConstraint(12), new ProfileAccelConstraint(-8, 25));
+        TrajectoryActionBuilder collectSecondSpecimenPath = depositSecondSamplePath.endTrajectory().fresh()
                 .setTangent(Math.toRadians(270))
-                .lineToY(-37, new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
+                .lineToY(pickupPosition.position.y);
+//                .splineToLinearHeading(new Pose2d(secondSample.position.x, -42, Math.toRadians(-60)), Math.toRadians(0), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 25));
         TrajectoryActionBuilder moveToThirdSamplePath = drive.actionBuilder(new Pose2d(secondSample.position.x, -35, Math.toRadians(270)))
-                .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(thirdSample,0);
+                .setTangent(Math.toRadians(135))
+                .splineToLinearHeading(thirdSample, Math.toRadians(30), new TranslationalVelConstraint(20), new ProfileAccelConstraint(-15, 35));
         TrajectoryActionBuilder depositThirdSamplePath = drive.actionBuilder(thirdSample)
-                .setTangent(Math.toRadians(270))
+                .setTangent(Math.toRadians(-30))
                 .splineToLinearHeading(pickupPosition,Math.toRadians(270),new TranslationalVelConstraint(20), new ProfileAccelConstraint(-8, 25));
 
-        Pose2d secondSpecimen = new Pose2d(6, CHAMBER_Y, Math.toRadians(270));
-        Pose2d thirdSpecimen = new Pose2d(8, CHAMBER_Y, Math.toRadians(270));
-        Pose2d fourthSpecimen = new Pose2d(10, CHAMBER_Y, Math.toRadians(270));
+        Pose2d secondSpecimen = new Pose2d(2, CHAMBER_Y, Math.toRadians(270));
+        Pose2d thirdSpecimen = new Pose2d(5, CHAMBER_Y, Math.toRadians(270));
+        Pose2d fourthSpecimen = new Pose2d(8, CHAMBER_Y, Math.toRadians(270));
         Pose2d fifthSpecimen = new Pose2d(12, CHAMBER_Y, Math.toRadians(270));
-        TrajectoryActionBuilder scoreSecondSpecimenPath = drive.closeActionBuilder(pickupPosition)
-                .strafeTo(secondSpecimen.position);
-        TrajectoryActionBuilder collectThirdSpecimenPath = drive.closeActionBuilder(secondSpecimen)
-                .strafeTo(pickupPosition.position);
-        TrajectoryActionBuilder scoreThirdSpecimenPath = drive.closeActionBuilder(pickupPosition)
-                .strafeTo(thirdSpecimen.position);
-        TrajectoryActionBuilder collectFourthSpecimenPath = drive.closeActionBuilder(thirdSpecimen)
-                .strafeTo(pickupPosition.position);
-        TrajectoryActionBuilder scoreFourthSpecimenPath = drive.closeActionBuilder(pickupPosition)
-                .strafeTo(fourthSpecimen.position);
-        TrajectoryActionBuilder collectFifthSpecimenPath = drive.closeActionBuilder(fourthSpecimen)
-                .strafeTo(pickupPosition.position);
-        TrajectoryActionBuilder scoreFifthSpecimenPath = drive.closeActionBuilder(pickupPosition)
+        TrajectoryActionBuilder scoreSecondSpecimenPath = drive.fastActionBuilder(pickupPosition)
+                .setTangent(Math.toRadians(170))
+
+                .splineToConstantHeading(secondSpecimen.position, Math.toRadians(90)) ;
+        TrajectoryActionBuilder collectThirdSpecimenPath = drive.fastActionBuilder(secondSpecimen)
+                .setTangent(Math.toRadians(270))
+                .splineToConstantHeading(pickupPosition.position, Math.toRadians(0));
+        TrajectoryActionBuilder scoreThirdSpecimenPath = drive.fastActionBuilder(pickupPosition)
+                .setTangent(Math.toRadians(170))
+
+                .splineToConstantHeading(thirdSpecimen.position, Math.toRadians(90));
+        TrajectoryActionBuilder collectFourthSpecimenPath = drive.fastActionBuilder(thirdSpecimen)
+                .setTangent(Math.toRadians(270))
+                .splineToConstantHeading(pickupPosition.position, Math.toRadians(0));
+        TrajectoryActionBuilder scoreFourthSpecimenPath = drive.fastActionBuilder(pickupPosition)
+                .setTangent(Math.toRadians(170))
+
+                .splineToConstantHeading(fourthSpecimen.position, Math.toRadians(90));
+        TrajectoryActionBuilder collectFifthSpecimenPath = drive.fastActionBuilder(fourthSpecimen)
+                .setTangent(Math.toRadians(270))
+                .splineToConstantHeading(pickupPosition.position, Math.toRadians(0));
+        TrajectoryActionBuilder scoreFifthSpecimenPath = drive.fastActionBuilder(pickupPosition)
                 .strafeTo(fifthSpecimen.position);
-        TrajectoryActionBuilder parkPath = scoreFifthSpecimenPath.endTrajectory().fresh()
-                .strafeTo(pickupPosition.position);
+        TrajectoryActionBuilder parkPath = scoreFourthSpecimenPath.endTrajectory().fresh()
+                .setTangent(Math.toRadians(270))
+                .splineToLinearHeading(new Pose2d(pickupPosition.position, Math.toRadians(180)), Math.toRadians(0));
 
 
 
@@ -144,14 +172,15 @@ public class Auto3Specimen extends NGAutoOpMode {
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
 //                intake.slideAction(200, 400),
 
-            transferSample(moveToFirstSample, depositFirstSample, 60  , 900),
-            transferSample(moveToSecondSample, depositSecondSample),
+            transferSample(moveToFirstSample, depositFirstSample, 60, 900),
+            transferSample(moveToSecondSample, depositSecondSample, 60, 900,true),
+            collectSecondSpecimenPath.build(),
 //depositThirdSample
-                transferSample(moveToThirdSample,eternalAction() , true),
+//            transferSample(moveToThirdSample, depositThirdSample, 60, 900, true),
             scoreSpecimen(scoreSecondSpecimen, collectThirdSpecimen),
             scoreSpecimen(scoreThirdSpecimen, collectFourthSpecimen),
-            scoreSpecimen(scoreFourthSpecimen, collectFifthSpecimen),
-            scoreSpecimen(scoreFifthSpecimen, park)
+            scoreSpecimen(scoreFourthSpecimen, park)
+//            ,scoreSpecimen(scoreFifthSpecimen, park)
         );
 
 

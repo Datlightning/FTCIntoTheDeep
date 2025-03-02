@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 
-@Config
 public class DiffyIntakeTest extends LinearOpMode {
     Servo leftServo;
     Servo rightServo;

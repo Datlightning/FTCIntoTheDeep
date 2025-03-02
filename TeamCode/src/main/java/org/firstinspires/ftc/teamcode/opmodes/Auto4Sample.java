@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import static java.lang.Thread.sleep;
+
 import com.acmerobotics.roadrunner.AccelConstraint;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
@@ -10,24 +12,20 @@ import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.ProfileAccelConstraint;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
-import com.acmerobotics.roadrunner.TimeTrajectory;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.acmerobotics.roadrunner.TrajectoryBuilder;
-import com.acmerobotics.roadrunner.TrajectoryBuilderParams;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
-import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 
 @Autonomous
 public class Auto4Sample extends NGAutoOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d beginPose = new Pose2d(-32.5, -64, Math.toRadians(0));
-        double INCHES_FORWARD = -3.25;
+        Pose2d beginPose = new Pose2d(-31, -64, Math.toRadians(0));
+
         initAuto(beginPose);
         AccelConstraint pickSampleAccel = (robotPose, _path, _disp) -> {
             if (robotPose.position.y.value() > -30.0) {
@@ -36,14 +34,107 @@ public class Auto4Sample extends NGAutoOpMode {
                 return new MinMax(-30,50);
             }
         };
+        telemetry.clear();
+        telemetry.addLine("x for Blue Field 1");
+        telemetry.addLine("a for Red Field 1");
+        telemetry.addLine("y for Blue Field 2");
+        telemetry.addLine("b for Red Field 2");
+        telemetry.update();
+        double fourthSampleAngleDegrees = 123.5;
+        double INCHES_FORWARD = -2.25;
+        boolean exit = false;
+        String side = "Blue Field 1";
+        Pose2d basket = new Pose2d(-58, -58, Math.toRadians(45));
+        Pose2d sample4Pickup = new Pose2d(-57 , -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+        Pose2d fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
+        while (!isStopRequested()) {
+            while (!isStopRequested()) {
+
+                previousGamepad1.copy(currentGamepad1);
+                currentGamepad1.copy(gamepad1);
+
+                if (currentGamepad1.x && !previousGamepad1.x) {
+                    telemetry.clear();
+                    telemetry.addLine("Selected Blue Field 1");
+                    telemetry.update();
+                    side = "Blue Field 1";
+
+                    fourthSampleAngleDegrees = 123.5;
+                    INCHES_FORWARD = -2.25;
+                    basket = new Pose2d(-58, -58, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+
+                    break;
+                }
+                if (currentGamepad1.y && !previousGamepad1.y) {
+                    telemetry.clear();
+                    telemetry.addLine("Selected Blue Field 2");
+                    telemetry.update();
+                    side = "Blue Field 2";
 
 
-        Pose2d basket = new Pose2d(-54, -55, Math.toRadians(45));
-        Pose2d sample2Pickup = new Pose2d(-48, -50.5 + INCHES_FORWARD, Math.toRadians(90));
-        Pose2d sample3Pickup = new Pose2d(-58, -50.5 + INCHES_FORWARD, Math.toRadians(90));
-        Pose2d sample4Pickup = new Pose2d(-55 , -48.5 + INCHES_FORWARD, Math.toRadians(123.5));
+                    break;
+                }
+                if (currentGamepad1.a && !previousGamepad1.a) {
+                    telemetry.clear();
+                    telemetry.addLine("Selected Red Field 1");
+                    telemetry.update();
+                    side = "Red Field 1";
 
-        TrajectoryActionBuilder firstSamplePath = drive.closeActionBuilder(beginPose)
+                    fourthSampleAngleDegrees = 123.5;
+                    INCHES_FORWARD = -0.5;
+                    basket = new Pose2d(-58, -59, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-59, -60, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+
+                    break;
+                }
+                if (currentGamepad1.b && !previousGamepad1.b) {
+                    telemetry.clear();
+                    telemetry.addLine("Selected Red Field 2");
+                    telemetry.update();
+
+                    side = "Red Field 2";
+
+                    break;
+                }
+            }
+            sleep(200);
+            telemetry.addLine("Press x to confirm, press y to restart");
+            telemetry.update();
+            while (!isStopRequested()) {
+                previousGamepad1.copy(currentGamepad1);
+                currentGamepad1.copy(gamepad1);
+
+                if (currentGamepad1.x && !previousGamepad1.x) {
+                    exit = true;
+                    telemetry.addLine("Ready to go");
+                    telemetry.update();
+                    break;
+                }
+                if (currentGamepad1.y && !previousGamepad1.y) {
+                    exit = false;
+                    telemetry.clear();
+                    telemetry.addLine("x for Blue Field 1");
+                    telemetry.addLine("a for Red Field 1");
+                    telemetry.addLine("y for Blue Field 2");
+                    telemetry.addLine("b for Red Field 2");
+                    telemetry.update();
+                    break;
+                }
+            }
+            sleep(200);
+            if(exit){
+                break;
+            }
+        }
+        telemetry.addLine("Ready to go");
+        telemetry.update();
+        Pose2d sample2Pickup = new Pose2d(-48, -50 + INCHES_FORWARD, Math.toRadians(90));
+        Pose2d sample3Pickup = new Pose2d(-58, -50 + INCHES_FORWARD, Math.toRadians(90));
+
+        TrajectoryActionBuilder firstSamplePath = drive.fastActionBuilder(beginPose)
                 .setReversed(true)
                 .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
                 .setTangent(Math.toRadians(135))
@@ -55,7 +146,7 @@ public class Auto4Sample extends NGAutoOpMode {
                 .setTangent(Math.toRadians(45))
                 .splineToLinearHeading(sample2Pickup, Math.toRadians(0), new TranslationalVelConstraint(30), new ProfileAccelConstraint(-12,25));
 
-        TrajectoryActionBuilder scoreSecondSamplePath = drive.closeActionBuilder(sample2Pickup)
+        TrajectoryActionBuilder scoreSecondSamplePath = drive.actionBuilder(sample2Pickup)
                 .setReversed(true)
                 .setTangent(Math.PI + Math.atan2(sample2Pickup.position.y - basket.position.y, sample2Pickup.position.x - basket.position.x))
                 .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
@@ -65,7 +156,7 @@ public class Auto4Sample extends NGAutoOpMode {
                 .setTangent(Math.toRadians(135))
                 .splineToLinearHeading(sample3Pickup, Math.toRadians(90), new TranslationalVelConstraint(30),  new ProfileAccelConstraint(-12,25));
 
-        TrajectoryActionBuilder scoreThirdSamplePath = drive.closeActionBuilder(sample3Pickup)
+        TrajectoryActionBuilder scoreThirdSamplePath = drive.actionBuilder(sample3Pickup)
                 .setReversed(true)
                 .setTangent(Math.PI + Math.atan2(sample3Pickup.position.y - basket.position.y, sample3Pickup.position.x - basket.position.x))
                 .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,40));
@@ -74,15 +165,16 @@ public class Auto4Sample extends NGAutoOpMode {
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
                 .splineToLinearHeading(sample4Pickup, Math.toRadians(90), new TranslationalVelConstraint(30),  new ProfileAccelConstraint(-12,25));
-        TrajectoryActionBuilder scoreFourthSamplePath = drive.closeActionBuilder(sample4Pickup)
+        TrajectoryActionBuilder scoreFourthSamplePath = drive.fastActionBuilder(sample4Pickup)
                 .setReversed(true)
-                .setTangent(Math.toRadians(298.5))
-                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,30));
-
+                .setTangent(Math.toRadians(fourthSampleAngleDegrees + 180))
+                .splineToLinearHeading(fourthBasket, Math.toRadians(225), new TranslationalVelConstraint(36), new ProfileAccelConstraint(-10,30));
+//new Pose2d(-59, -56, Math.toRadians(45))
         TrajectoryActionBuilder parkPath = scoreFourthSamplePath.endTrajectory().fresh()
                 .setReversed(true)
                 .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(new Pose2d(-34, -22, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
+                .splineToSplineHeading(new Pose2d(-54, -45, Math.toRadians(0)), Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(-26, -12, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
 
         FailoverAction firstSample = new FailoverAction(firstSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
         FailoverAction secondSample = new FailoverAction( secondSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
@@ -93,13 +185,15 @@ public class Auto4Sample extends NGAutoOpMode {
         Action scoreFourthSample = scoreFourthSamplePath.build();
         Action park = parkPath.build();
 
-
+        telemetry.clear();
+        telemetry.addLine("Paths built for " + side);
+        telemetry.update();
+        
         waitForStart();
 
 
         Actions.runBlocking(
                 new ParallelAction(
-                        intake.distance.updateAction(),
                         intake.updateAction(),
                         trafficLight.updateAction(),
                         new SequentialAction(
@@ -116,7 +210,7 @@ public class Auto4Sample extends NGAutoOpMode {
                                 slideCollectSampleAndScore(scoreSecondSample, RobotConstants.claw_flat),
                                 goToSampleWithSlides(thirdSample),
                                 slideCollectSampleAndScore(scoreThirdSample, RobotConstants.claw_flat),
-                                goToSampleWithSlides(fourthSample),
+                                goToSampleWithSlides(fourthSample, 90-fourthSampleAngleDegrees),
                                 slideCollectSampleAndScore(scoreFourthSample, RobotConstants.claw_open),
                                 new ParallelAction(
                                         new SequentialAction(
@@ -127,7 +221,9 @@ public class Auto4Sample extends NGAutoOpMode {
                                             intake.slideAction(0),
                                             intake.armAction(0)
                                         ),
-                                        park
+                                        park,
+                                        new InstantAction(() -> vihasRigging.level1())
+
 
                                 )
 

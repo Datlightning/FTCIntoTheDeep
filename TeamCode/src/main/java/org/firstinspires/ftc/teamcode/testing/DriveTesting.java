@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
 
-@Config
+
 //@Disabled
 public class DriveTesting extends TestingOpMode {
     MecaTank mecaTank;

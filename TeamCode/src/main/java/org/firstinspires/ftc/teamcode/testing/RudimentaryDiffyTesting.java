@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 
-@Config
+
 public class RudimentaryDiffyTesting extends TestingOpMode {
     public static double left_pos = 0;
     public static double right_pos = 1;

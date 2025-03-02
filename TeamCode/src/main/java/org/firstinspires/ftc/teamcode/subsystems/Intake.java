@@ -9,6 +9,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.NullAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.SequentialAction;
@@ -22,7 +23,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.NGMotor;
+import org.firstinspires.ftc.teamcode.library.Potentiometer;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
+import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 
 @Config
 public class Intake extends Subsystem {
@@ -44,6 +47,8 @@ public class Intake extends Subsystem {
 
     public Distance distance;
 
+    public Potentiometer potentiometer;
+
 
     private boolean claw_open = false;
     private boolean wrist_open =false;
@@ -53,7 +58,7 @@ public class Intake extends Subsystem {
     private int level_offset=  0;
 
     private boolean inside_pick_up = false;
-    private boolean power_four_bar_enabled = false;
+    public boolean power_four_bar_enabled = false;
 
     private boolean use_fast_pid = false;
     private boolean distance_update = true;
@@ -70,7 +75,7 @@ public class Intake extends Subsystem {
 
     private boolean arm_stabilizer = false;
     private double target_angle = 0;//To the y-axis
-    private double target_height = 0;//To the floor
+    public double target_height = 0;//To the floor
 
 
 
@@ -104,6 +109,15 @@ public class Intake extends Subsystem {
     public boolean specimen_level_on = false;
     private double new_target_height = 17.1851;
 
+    private boolean lower_arm_speed = false;
+    private int lower_arm_position = 0;
+
+    public static int position_at_90 = 1445;
+    public static int position_at_0 = 190;
+
+    public static double real_zero_degrees = 10;
+
+    private boolean pot_on = false;
 
     public Intake(HardwareMap hardwareMap, Telemetry telemetry){
         this.hardwareMap = hardwareMap;
@@ -124,21 +138,17 @@ public class Intake extends Subsystem {
         diffyClaw.mountTrafficLight(trafficLight);
         arm.setMin(-500);
         arm.setReachedRange(50);
+        potentiometer = new Potentiometer(hardwareMap, telemetry, "pot");
+        potentiometer.set0Position(position_at_0);
+        potentiometer.set90Position(position_at_90);
+        potentiometer.setRealZeroDegrees(real_zero_degrees);
+        arm.setAlternateEncoder(potentiometer);
     }
     public Intake(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer, TrafficLight trafficLight){
-        this.hardwareMap = hardwareMap;
-        this.telemetry = telemetry;
-        magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
-        magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
+        this(hardwareMap, telemetry);
         this.timer = timer;
-        distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
 //        mecanumDrive = new MecanumDrive(hardwareMap, new Pose2d(0,0,Math.toRadians(90)));
-        arm = new NGMotor(hardwareMap, telemetry, RobotConstants.intakeMotor, timer);
-        arm.setDirection(DcMotor.Direction.REVERSE);
-        arm.setPIDF(armsPID.p, armsPID.i, armsPID.d, armsPID.f);
-        slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor, timer);
-        slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
-        diffyClaw = new DiffyClaw(hardwareMap, telemetry);
+
         diffyClaw.left.mountTimer(timer);
         diffyClaw.right.mountTimer(timer);
         diffyClaw.mountTrafficLight(trafficLight);
@@ -159,6 +169,23 @@ public class Intake extends Subsystem {
         }else{
             closeClaw();
         }
+    }
+    public void resetSpecimenHeight(){
+        new_target_height = 17.1851;
+    }
+    public void lowerArmSpeed(double power, int position){
+        lower_arm_speed = true;
+        lower_arm_position = arm.targetPos + position;
+        arm.setManualPower(power);
+    }
+    public boolean loweringArm(){
+        return lower_arm_speed;
+    }
+    public void usePot(boolean on){
+        pot_on = on;
+    }
+    public void setLowerArm(boolean on){
+        lower_arm_speed = on;
     }
     public void toggleInsidePick(){
         setInsidePick(!inside_pick_up);
@@ -246,7 +273,12 @@ public class Intake extends Subsystem {
         slides.move_async(targetPosition);
     }
     public void setRotationPower(double power){
-        arm.setManualPower(power);
+        if(!lower_arm_speed) {
+            arm.setManualPower(power);
+        }
+    }
+    public boolean levelOn(){
+        return level_on;
     }
     public void setNewTargetHeight(){
         new_target_height = calculateTargetHeight(arm.getCurrentPosition(), slides.getCurrentPosition());
@@ -304,11 +336,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 1000),
-                new InstantAction(() -> moveWrist(115)),
+                armAction(ARM_LIMIT - 100,ARM_LIMIT - 1000),
+                new InstantAction(() -> turnAndRotateClaw(115,0)),
                 new ParallelAction(
-                        slideAction(1350),
-                        armAction(ARM_LIMIT- 100)
+                        slideAction(1500),
+                        armAction(ARM_LIMIT - 100)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
                 new InstantAction(() -> moveWrist(35)),
@@ -356,7 +388,9 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
-                new InstantAction(() -> moveWrist(90)),
+                new InstantAction(() -> moveWrist(100)),
+                new SleepAction(0.2),
+                moveArmFast(ARM_LIMIT - 200, -0.2),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
 //                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setExitWithTime(false)),
@@ -368,12 +402,19 @@ public class Intake extends Subsystem {
         );
     }
     public Action scoreSlidePickup(){
+
         return new SequentialAction(
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
+                new SleepAction(0.2),
+                new InstantAction(() -> arm.setUseMotionProfile(false)),
+
+                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
 //                armAction(ARM_LIMIT - 300),
+                new InstantAction(() -> arm.setUseMotionProfile(true)),
+
                 new InstantAction(() -> arm.setExitWithTime(false)),
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> turnClaw(0)),
@@ -475,6 +516,9 @@ public class Intake extends Subsystem {
     }
 
     public double getArmAngle(){
+        if(pot_on){
+            return potentiometer.getAngle();
+        }
 
         return (double) (arm.getCurrentPosition()  - arm_at_0_ticks -  offset ) / (arm_at_90_ticks - arm_at_0_ticks) * 90.0;
     }
@@ -514,12 +558,15 @@ public class Intake extends Subsystem {
         return target_height;
     }
     public void incrementLevelOffset(int a){
-        level_offset += a;
-        if(level_offset < 0){
-            if(a < 0) {
-                level_offset -= a;
-            }
+        if(calculateArmPosition(slides.getCurrentPosition()) + a + level_offset >= arm.maxHardstop){
+            return;
         }
+        level_offset += a;
+//        if(level_offset < 0){
+//            if(a < 0) {
+//                level_offset -= a;
+//            }
+//        }
     }
     public boolean isSlideStoppedWithCurrent(){
         return slide_current_stop;
@@ -563,6 +610,10 @@ public class Intake extends Subsystem {
 //        }
 //        accel_time = timer.milliseconds();
 
+        potentiometer.set0Position(position_at_0);
+        potentiometer.set90Position(position_at_90);
+        potentiometer.setRealZeroDegrees(real_zero_degrees);
+        
         diffyClaw.update();
         trafficLight.update();
 
@@ -577,6 +628,13 @@ public class Intake extends Subsystem {
             slide_current_stop_delay = timer.seconds();
             moveSlides(slides.getCurrentPosition());
             trafficLight.flashRed(0.5, 2);
+        }
+        if(lower_arm_speed){
+            if(arm.getCurrentPosition() < lower_arm_position) {
+                arm.setManualPower(0);
+                lower_arm_speed = false;
+                return;
+            }
         }
         if(timer.seconds() - slide_current_stop_delay > 3){
             slide_current_stop = false;
@@ -636,7 +694,12 @@ public class Intake extends Subsystem {
     @Override
     public void telemetry() {
         telemetry.addData("Arm Angle", getArmAngle());
+        telemetry.addData("Pot: Arm Angle", potentiometer.getAngle());
+        telemetry.addData("Pot: Arm Position", potentiometer.getCurrentPosition());
+        telemetry.addData("Pot: Voltage", potentiometer.getVoltage());
+
         telemetry.addData("Slide Stopped With Current", slide_current_stop);
+
         diffyClaw.telemetry();
         slides.telemetry();
         arm.telemetry();
@@ -649,7 +712,7 @@ public class Intake extends Subsystem {
         arm.setUseMotionProfile(true);
 
         slides.setUseMotionProfile(true);
-        slides.setMax(1400);
+        slides.setMax(1500);
         arm.setMax(ARM_LIMIT);
         arm.setMin(-1000);
         slides.setMaxAcceleration(15000);
