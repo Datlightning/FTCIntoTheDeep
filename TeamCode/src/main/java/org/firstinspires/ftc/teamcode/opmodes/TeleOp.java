@@ -387,6 +387,7 @@ resetArmHardstop();
             }
             if(intake.slides.getCurrentPosition() > 1200 && intake.arm.targetPos < 1000 ){
                 intake.moveSlides(500);
+                intake.slides.setMax(600);
             }
             //"basic" arm controls
             if (move_next || multiClick.getTaps("a") > 0 || multiClick.getTaps("a2") > 0) {

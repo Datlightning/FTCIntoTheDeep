@@ -166,7 +166,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         );
     }
     public Action goToSampleWithSlides(Action sample){
-        Intake.moveArmAction armDown = intake.armAction(300, 700);
+        Intake.moveArmAction armDown = intake.armAction(400, 700);
         FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
         FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
@@ -198,7 +198,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
 
     public Action goToSampleWithSlides(Action sample, double claw_angle){
-        Intake.moveArmAction armDown = intake.armAction(300, 700);
+        Intake.moveArmAction armDown = intake.armAction(400, 700);
         FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
         FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(

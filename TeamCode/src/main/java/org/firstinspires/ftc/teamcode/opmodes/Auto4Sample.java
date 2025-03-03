@@ -41,11 +41,11 @@ public class Auto4Sample extends NGAutoOpMode {
         telemetry.addLine("b for Red Field 2");
         telemetry.update();
         double fourthSampleAngleDegrees = 123.5;
-        double INCHES_FORWARD = -2.25;
+        double INCHES_FORWARD = -1.8;
         boolean exit = false;
-        String side = "Blue Field 1";
-        Pose2d basket = new Pose2d(-58, -58, Math.toRadians(45));
-        Pose2d sample4Pickup = new Pose2d(-57 , -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+        String side = "No Side";
+        Pose2d basket = new Pose2d(-58, -59, Math.toRadians(45));
+        Pose2d sample4Pickup = new Pose2d(-57 , -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
         Pose2d fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
         while (!isStopRequested()) {
             while (!isStopRequested()) {
@@ -60,10 +60,10 @@ public class Auto4Sample extends NGAutoOpMode {
                     side = "Blue Field 1";
 
                     fourthSampleAngleDegrees = 123.5;
-                    INCHES_FORWARD = -2.25;
-                    basket = new Pose2d(-58, -58, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
-                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+                    INCHES_FORWARD = -1.8;
+                    basket = new Pose2d(-58, -59, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-59, -59, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     break;
                 }
@@ -72,6 +72,12 @@ public class Auto4Sample extends NGAutoOpMode {
                     telemetry.addLine("Selected Blue Field 2");
                     telemetry.update();
                     side = "Blue Field 2";
+
+                    fourthSampleAngleDegrees = 123.5;
+                    INCHES_FORWARD = -1.7;
+                    basket = new Pose2d(-58, -58, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
 
                     break;
@@ -83,9 +89,9 @@ public class Auto4Sample extends NGAutoOpMode {
                     side = "Red Field 1";
 
                     fourthSampleAngleDegrees = 123.5;
-                    INCHES_FORWARD = -0.5;
-                    basket = new Pose2d(-58, -59, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-59, -60, Math.toRadians(45));
+                    INCHES_FORWARD = -1;
+                    basket = new Pose2d(-59, -59, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-60, -60, Math.toRadians(45));
                     sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     break;
@@ -94,6 +100,12 @@ public class Auto4Sample extends NGAutoOpMode {
                     telemetry.clear();
                     telemetry.addLine("Selected Red Field 2");
                     telemetry.update();
+
+                    fourthSampleAngleDegrees = 123.5;
+                    INCHES_FORWARD = -1.8;
+                    basket = new Pose2d(-58, -58, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     side = "Red Field 2";
 
@@ -200,7 +212,7 @@ public class Auto4Sample extends NGAutoOpMode {
                                 new ParallelAction(
                                         firstSample,
                                         new SequentialAction(
-                                                new SleepAction(0.3),
+                                                new SleepAction(0.1),
                                                 intake.raiseArm(false)
                                         )
                                 ),
