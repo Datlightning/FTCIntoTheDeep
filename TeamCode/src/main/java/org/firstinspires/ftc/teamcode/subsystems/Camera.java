@@ -1,13 +1,19 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
+import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
 import org.firstinspires.ftc.teamcode.testing.BigBoyTesting;
 import org.firstinspires.ftc.teamcode.vision.TheBigBrainAlgorithm;
 import org.openftc.easyopencv.OpenCvCamera;
@@ -15,6 +21,7 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
 import java.util.Arrays;
+import java.util.EventListenerProxy;
 
 
 public class Camera extends Subsystem {
@@ -60,11 +67,44 @@ public class Camera extends Subsystem {
     public double[] getYellow(){
         return bigBrainAlgorithm.yellowPosition();
     }
+
+    public boolean isYellowDetected(){
+        return bigBrainAlgorithm.yellowSampleDetected();
+    }
+
+    public boolean isBlueDetected(){
+        return bigBrainAlgorithm.blueSampleDetected();
+    }
+
+    public boolean isRedDetected(){
+        return bigBrainAlgorithm.redSampleDetected();
+    }
     @Override
     public void update() {
 
     }
-
+    public class SampleDetectionAction implements Action {
+        ElapsedTime timer;
+        boolean first = true;
+        public SampleDetectionAction(){
+            timer = new ElapsedTime();
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(first){
+                timer.reset();
+            }
+            if(timer.time() > 2){
+                stopCamera();
+                return false;
+            }
+            first = false;
+            return !isYellowDetected();
+        }
+    }
+    public Action waitForYellow(){
+        return new SampleDetectionAction();
+    }
     @Override
     public void telemetry() {
         telemetry.addData("Red Position", toString(getRed()));

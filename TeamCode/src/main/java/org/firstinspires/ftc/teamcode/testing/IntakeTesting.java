@@ -57,6 +57,8 @@ public class IntakeTesting extends TestingOpMode {
     public static double drive_speed = 0.15;
 
     public static boolean distance_scope = false;
+
+    public static boolean automatic_move_to_hard_stop = false;
     private boolean past_distance_scope = false;
 
     public static boolean lower_arm_until_0_velo = false;
@@ -137,6 +139,11 @@ public class IntakeTesting extends TestingOpMode {
 
             intake.slides.setManualPower(gamepad2.left_stick_y);
             intake.arm.setManualPower(gamepad2.right_stick_y);
+            if(automatic_move_to_hard_stop){
+                automatic_move_to_hard_stop = false;
+                intake.moveArmToHardstop();
+            }
+
             if(testing_level){
                 intake.moveArm(intake.calculateArmPosition(intake.slides.getCurrentPosition()));
             }

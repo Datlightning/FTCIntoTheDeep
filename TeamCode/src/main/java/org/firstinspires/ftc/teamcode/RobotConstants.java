@@ -42,6 +42,7 @@ public class RobotConstants {
     public static String bl = "backLeft";//chub 3 && par deadwheel
 
     public static String magnet_sensor = "magnet_sensor";//digital 0
+    public static String touch_sensor = "touch_sensor";//TBD
     public static String magnet_sensor2 = "magnet_sensor2";//ehub digital 0
     public static String distance = "sensor_distance";//i2c 1
 

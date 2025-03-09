@@ -39,6 +39,7 @@ public class Intake extends Subsystem {
     public static PIDFCoefficients slidesPID = new PIDFCoefficients(0.0015, 0.00007, 0.00008, 0.0005);
     public static PIDFCoefficients gunToPointSlidesPID = new PIDFCoefficients(0.004, 0.00007, 0.00003, 0.0005);
     DigitalChannel magnet_sensor;
+    DigitalChannel touch_sensor;
     HardwareMap hardwareMap;
     Telemetry telemetry;
     ElapsedTime timer;
@@ -53,12 +54,15 @@ public class Intake extends Subsystem {
     private boolean claw_open = false;
     private boolean wrist_open =false;
 
+    public boolean disable_up_hardstop = false;
     private boolean slide_current_stop = false;
     private double slide_current_stop_delay = 0;
     private int level_offset=  0;
 
     private boolean inside_pick_up = false;
     public boolean power_four_bar_enabled = false;
+    
+    public boolean to_hardstop = false;
 
     private boolean use_fast_pid = false;
     private boolean distance_update = true;
@@ -68,6 +72,8 @@ public class Intake extends Subsystem {
     private boolean use_velo = false;
     private double use_velo_power = 0;
     public static int SLIDE_CURRENT_LIMIT = 8500;
+    public static int ARM_CURRENT_LIMIT = 50000;
+
 
     private boolean previous_magnet_on = false;
     public static double VELO_THRESHOLD = 0;
@@ -114,6 +120,8 @@ public class Intake extends Subsystem {
 
     public static int position_at_90 = 1445;
     public static int position_at_0 = 190;
+    
+    public static int hard_stop_ticks = 1550;
 
     public static double real_zero_degrees = 10;
 
@@ -128,6 +136,8 @@ public class Intake extends Subsystem {
         timer = new ElapsedTime();
         distance = new Distance(hardwareMap, telemetry, RobotConstants.distance, timer);
         magnet_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.magnet_sensor);
+        touch_sensor = hardwareMap.get(DigitalChannel.class, RobotConstants.touch_sensor);
+        touch_sensor.setMode(DigitalChannel.Mode.INPUT);
         magnet_sensor.setMode(DigitalChannel.Mode.INPUT);
         slides = new NGMotor(hardwareMap, telemetry, RobotConstants.slidesMotor);
         slides.setPIDF(slidesPID.p, slidesPID.i, slidesPID.d, slidesPID.f);
@@ -158,6 +168,9 @@ public class Intake extends Subsystem {
     public void mountDistance(Distance distance){
         distance_update = false;
         this.distance = distance;
+    }
+    public boolean hardStopActivated(){
+        return !touch_sensor.getState();
     }
     public void setClawOffset(double offset){
         claw_offset = offset;
@@ -234,6 +247,10 @@ public class Intake extends Subsystem {
     public void setTargetAngle(double target_angle){
         this.target_angle = target_angle;
     }
+    public void moveArmToHardstop(){
+        moveArm(hard_stop_ticks);
+        to_hardstop = true;
+    }
     public void moveArm(int targetPosition){
         if(arm.getCurrentPosition() > ARM_LIMIT - 400 && targetPosition < 200 && slides.getCurrentPosition() > 300){
             trafficLight.flashRed(1,1);
@@ -287,6 +304,10 @@ public class Intake extends Subsystem {
         return new_target_height;
     }
     public void setTargetHeight(double target_height){ this.target_height = target_height; }
+
+    public void setHardstopTicks(int ticks){
+        hard_stop_ticks = ticks;
+    }
     public void setAbsRotationPower(double power){ arm.setAbsPower(power);}
     public void setSlidePower(double power){slides.setManualPower(power);}
     public void setAbsSlidePower(double power){
@@ -336,11 +357,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT - 100,ARM_LIMIT - 1000),
+                armAction(ARM_LIMIT,ARM_LIMIT - 1000),
                 new InstantAction(() -> turnAndRotateClaw(115,0)),
                 new ParallelAction(
                         slideAction(1500),
-                        armAction(ARM_LIMIT - 100)
+                        armAction(ARM_LIMIT )
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
                 new InstantAction(() -> moveWrist(35)),
@@ -354,11 +375,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(3000)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 300),
+                armAction(ARM_LIMIT,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
                         slideAction(1300),
-                        armAction(ARM_LIMIT-100)
+                        armAction(ARM_LIMIT)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
@@ -372,12 +393,11 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
                 new InstantAction(() -> arm.setMaxVelocity(3000)),
-                armAction(ARM_LIMIT-100,ARM_LIMIT - 800),
+                armAction(ARM_LIMIT,ARM_LIMIT - 800),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
                         slideAction(1300),
-                        armAction(ARM_LIMIT-100)
-                ),
+                        armAction(ARM_LIMIT)),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
                 new SleepAction(0.2)
@@ -410,7 +430,27 @@ public class Intake extends Subsystem {
                 new SleepAction(0.2),
                 new InstantAction(() -> arm.setUseMotionProfile(false)),
 
-                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),
+//                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
+//                armAction(ARM_LIMIT - 300),
+                new InstantAction(() -> arm.setUseMotionProfile(true)),
+
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> turnClaw(0))
+
+        );
+    }
+    public Action scoreSlidePickup(boolean last){
+
+        return new SequentialAction(
+                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
+                new SleepAction(0.1),
+                new InstantAction(() -> moveWrist(90)),
+                new SleepAction(0.2),
+                new InstantAction(() -> arm.setUseMotionProfile(false)),
+
+//                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
 //                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setUseMotionProfile(true)),
@@ -419,7 +459,6 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> turnClaw(0)),
                 slideAction(200, 600)
-
 
         );
     }
@@ -513,6 +552,9 @@ public class Intake extends Subsystem {
 
     public void foldWrist(){
         diffyClaw.setWristAngle(RobotConstants.wrist_folded); wrist_open=false;
+    }
+    public int getHardstopTicks(){
+        return hard_stop_ticks;
     }
 
     public double getArmAngle(){
@@ -613,31 +655,56 @@ public class Intake extends Subsystem {
         potentiometer.set0Position(position_at_0);
         potentiometer.set90Position(position_at_90);
         potentiometer.setRealZeroDegrees(real_zero_degrees);
-        
+
         diffyClaw.update();
         trafficLight.update();
 
 
         previous_magnet_on = magnet_activated();
-
-        if(distance_scope) {
+        if (!disable_up_hardstop) {
+            arm.setExternalUpHardstop(hardStopActivated());
+        }
+        if (distance_scope) {
             trafficLight.green(distance.getFilteredDist() < 10);
         }
-        if(slides.getCurrent() > SLIDE_CURRENT_LIMIT){
+        if (slides.getCurrent() > SLIDE_CURRENT_LIMIT) {
             slide_current_stop = true;
             slide_current_stop_delay = timer.seconds();
             moveSlides(slides.getCurrentPosition());
             trafficLight.flashRed(0.5, 2);
         }
-        if(lower_arm_speed){
-            if(arm.getCurrentPosition() < lower_arm_position) {
+//        if(arm.getCurrent() > ARM_CURRENT_LIMIT){
+//            moveArm(arm.getCurrentPosition());
+//            trafficLight.flashRed(0.5, 2);
+//        }
+        if (lower_arm_speed) {
+            if (arm.getCurrentPosition() < lower_arm_position) {
                 arm.setManualPower(0);
                 lower_arm_speed = false;
                 return;
             }
         }
-        if(timer.seconds() - slide_current_stop_delay > 3){
+        if (timer.seconds() - slide_current_stop_delay > 3) {
             slide_current_stop = false;
+        }
+        if (hardStopActivated()) {
+            hard_stop_ticks = arm.getCurrentPosition();
+        }
+        //disable this to remove automatic alignment shenanigans
+        /**if(to_hardstop){
+         *  to_hardstop = false;
+         * } */
+
+        if(to_hardstop){
+            to_hardstop = !hardStopActivated();
+            if(!to_hardstop){
+                moveArm(arm.getCurrentPosition());
+                arm.setManualPower(0);
+                hard_stop_ticks = arm.getCurrentPosition();
+            } else if(!arm.isBusy() && to_hardstop){
+                arm.setManualPower(0.45);
+            }
+
         }
         if(level_on) {
 
@@ -699,6 +766,7 @@ public class Intake extends Subsystem {
         telemetry.addData("Pot: Voltage", potentiometer.getVoltage());
 
         telemetry.addData("Slide Stopped With Current", slide_current_stop);
+        telemetry.addData("Touch Sensor Activated", hardStopActivated());
 
         diffyClaw.telemetry();
         slides.telemetry();
@@ -713,7 +781,7 @@ public class Intake extends Subsystem {
 
         slides.setUseMotionProfile(true);
         slides.setMax(1500);
-        arm.setMax(ARM_LIMIT);
+        arm.setMax(ARM_LIMIT );
         arm.setMin(-1000);
         slides.setMaxAcceleration(15000);
         slides.setMaxVelocity(12000);

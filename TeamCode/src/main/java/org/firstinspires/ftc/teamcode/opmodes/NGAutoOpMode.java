@@ -15,8 +15,12 @@ import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.NullAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.ProfileAccelConstraint;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
+import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
+import com.acmerobotics.roadrunner.TranslationalVelConstraint;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -24,11 +28,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveToAprilTagOmni;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.Camera;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class NGAutoOpMode extends LinearOpMode {
     public static ElapsedTime timer;
@@ -76,6 +84,91 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         return new SleepAction(30);
 
     }
+    public class obtainSampleWithCameraAction implements Action{
+        private boolean first = true;
+
+        private boolean park = false;
+        private Camera camera;
+        private Pose2d beginPose;
+
+        private TrajectoryActionBuilder backup, forward;
+        FailoverAction sleep, armDown2;
+        Action toSample;
+        Action action;
+
+        public obtainSampleWithCameraAction(Camera camera, Pose2d beginPose){
+            this.camera = camera;
+            this.beginPose = beginPose;
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            if(first){
+                if(!camera.isCameraOn()){
+                    backup = drive.actionBuilder(beginPose).strafeTo(new Vector2d(beginPose.position.x - 5, beginPose.position.y));
+                    forward = backup.endTrajectory().fresh().strafeTo(beginPose.position, new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 30));
+                    park = true;
+                    action  = new SequentialAction(
+                            backup.build(),
+                            new InstantAction(() -> vihasRigging.level1()),
+                            new SleepAction(0.4),
+                            forward.build(),
+                            new SleepAction(30)
+                    );
+
+                }else {
+                    double[] data = camera.getYellow();
+                    double diffy_angle = data[0];
+                    int slide_position = (int) data[1];
+                    telemetry.addData("Diffy Angle From Camera", diffy_angle);
+                    telemetry.addData("Slide Position From Camera", slide_position);
+                    telemetry.addData("Robot Displacement From Camera", data[2]);
+                    telemetry.update();
+                    sleep = new FailoverAction(new SleepAction(0.4), new NullAction());
+                    armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
+
+                    if (Math.abs(data[2]) > 0.5) {
+                        Vector2d newTarget = new Vector2d(beginPose.position.x, beginPose.position.y - Math.copySign(Math.abs(data[2]) + 0.5, data[2]));
+                        toSample = drive.actionBuilder(beginPose).strafeTo(newTarget).build();
+                    } else {
+                        toSample = new NullAction();
+                    }
+                    action = (new SequentialAction(
+                            new ParallelAction(
+                                    intake.armAction(400),
+                                    toSample
+                            ),
+                            intake.slideAction(slide_position , slide_position/2),
+                            new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);}),
+                            new ParallelAction(
+                                    intake.slideAction(slide_position),
+                                    new SleepAction(0.6)
+                            ),
+                            intake.armAction(300),
+                            new ParallelAction(
+                                    new SequentialAction(armDown2, new InstantAction(sleep::failover)),
+                                    new SequentialAction(sleep, new InstantAction(armDown2::failover))
+                            ),
+                            intake.grab(RobotConstants.claw_closed),
+                            new SleepAction(0.1),
+                            intake.armAction(500, 400),
+                            new InstantAction(() -> intake.moveWrist(90))
+                    ));
+
+                }
+            }
+            first = false;
+            TelemetryPacket packet = new TelemetryPacket();
+
+            return action.run(packet);
+        }
+    }
+    public Action obtainSampleWithCamera(Camera camera, Pose2d beginPose){
+
+        return new obtainSampleWithCameraAction(camera, beginPose);
+
+    }
+
     public class WaitUntilAction implements Action{
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
@@ -130,15 +223,18 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
 
     public Action slideCollectSampleAndScore(Action sampleScore, double ending_claw_pos){
+        return slideCollectSampleAndScore(sampleScore,  new ParallelAction(
+                intake.slideAction(200, 400)), ending_claw_pos);
+    }
+
+    public Action slideCollectSampleAndScore(Action sampleScore, Action delay, double ending_claw_pos){
         return new SequentialAction(
                 new ParallelAction(
                         new SequentialAction(
-                                    new ParallelAction(
-                                        intake.slideAction(200, 400)
-                                    ),
-                                    new ParallelAction(
-                                    intake.raiseArm()
-                                    )
+                                delay,
+                                new ParallelAction(
+                                        intake.raiseArm()
+                                )
 
                         ),
                         new SequentialAction(
@@ -153,6 +249,28 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         );
     }
 
+    public Action slideCollectSampleAndScore(Action sampleScore, Action delay, double ending_claw_pos, boolean last){
+        return new SequentialAction(
+                new ParallelAction(
+                        new SequentialAction(
+                                delay,
+                                new ParallelAction(
+                                        intake.raiseArm()
+                                )
+
+                        ),
+                        new SequentialAction(
+                                sampleScore
+
+                        )
+                ),
+                new InstantAction(() -> intake.closeClaw(-0.07)),
+                new SleepAction(0.2),
+                intake.scoreSlidePickup(last),
+                new InstantAction(() -> intake.moveClaw(ending_claw_pos))
+
+        );
+    }
     public Action goToSample(Action sample){
         return new SequentialAction(
                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
@@ -166,39 +284,12 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         );
     }
     public Action goToSampleWithSlides(Action sample){
-        Intake.moveArmAction armDown = intake.armAction(400, 700);
-        FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
-        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
-        return new SequentialAction(
-                new InstantAction(() ->
-                {
-                    intake.moveClaw(RobotConstants.claw_flat);
-                    intake.moveWrist(180);
-                }),
+        return goToSampleWithSlides(sample, 0);
 
-                new ParallelAction(
-                        new SequentialAction(
-
-                                armDown,
-                                intake.slideAction(1000)
-                        ),
-                        new SequentialAction(
-                                sample
-                        )
-
-                ),
-                new ParallelAction(
-                        new SequentialAction(armDown2, new InstantAction(sleep::failover)),
-                        new SequentialAction(sleep, new InstantAction(armDown2::failover))
-                ),
-                intake.grab(RobotConstants.claw_closed),
-                new SleepAction(0.1),
-                new InstantAction(() -> intake.moveArm(500))
-        );
     }
 
     public Action goToSampleWithSlides(Action sample, double claw_angle){
-        Intake.moveArmAction armDown = intake.armAction(400, 700);
+        Intake.moveArmAction armDown = intake.armAction(400, 1000);
         FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
         FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
@@ -207,17 +298,14 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                     intake.moveClaw(RobotConstants.claw_flat);
                     intake.turnAndRotateClaw(180, claw_angle);
                 }),
-
                 new ParallelAction(
                         new SequentialAction(
-
+                                new SleepAction(0.1),
+                                intake.slideAction(600, 1400),
                                 armDown,
                                 intake.slideAction(1000)
                         ),
-                        new SequentialAction(
-                                sample
-                        )
-
+                        sample
                 ),
                 new ParallelAction(
                         new SequentialAction(armDown2, new InstantAction(sleep::failover)),

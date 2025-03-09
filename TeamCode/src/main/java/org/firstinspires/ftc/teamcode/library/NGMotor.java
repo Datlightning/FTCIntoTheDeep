@@ -52,7 +52,8 @@ public class NGMotor extends Subsystem {
 
     private boolean exit_with_time = false;
 
-    private boolean external_hardstop = false;
+    private boolean low_external_hardstop = false;
+    private boolean high_external_hardstop = false;
 
     public boolean power_damp = false;
     private double power_damp_coefficient = 0.7;
@@ -110,9 +111,13 @@ public class NGMotor extends Subsystem {
 
     }
     public void setExternalDownHardstop(boolean on){
-        external_hardstop = on;
+        low_external_hardstop = on;
     }
 
+    public void setExternalUpHardstop(boolean on){
+        high_external_hardstop = on;
+
+    }
     public void setAlternateEncoder(AlternateEncoder alternateEncoder){
         this.alternateEncoder = alternateEncoder;
     }
@@ -206,7 +211,7 @@ public class NGMotor extends Subsystem {
     public boolean exceedingConstraints(){
         boolean over_max = getCurrentPosition() > maxHardstop;
         boolean under_min = getCurrentPosition() < minHardstop;
-        if (external_hardstop && getPower() < 0){
+        if (low_external_hardstop && getPower() < 0){
             return true;
         }
         return getPower() > 0 ? over_max : under_min;
@@ -215,7 +220,10 @@ public class NGMotor extends Subsystem {
     public boolean exceedingConstraints(double power){
         boolean over_max = getCurrentPosition() > maxHardstop;
         boolean under_min = getCurrentPosition() < minHardstop;
-        if (external_hardstop && power < 0){
+        if (low_external_hardstop && power < 0){
+            return true;
+        }
+        if(high_external_hardstop && power > 0){
             return true;
         }
         if (!reversed_encoder) {

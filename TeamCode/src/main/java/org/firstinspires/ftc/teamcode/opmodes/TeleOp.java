@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
-import static org.firstinspires.ftc.teamcode.RobotConstants.specimen_deliver;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -13,11 +12,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.library.MultiClick;
-import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
-import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
 import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
 
@@ -96,7 +93,6 @@ public class TeleOp extends LinearOpMode {
 
     int rigging_position = 0;
 
-    private int deliver_position = ARM_LIMIT - 75;
     private int SPECIMEN_DELIVER_ARM_VALUE = 1500;
     public static boolean player_2_on = true;
     private boolean waiting_for_distance = false;
@@ -196,9 +192,10 @@ public class TeleOp extends LinearOpMode {
             left_bumper2 = currentGamepad2.left_bumper && !previousGamepad2.left_bumper;
             multiClick.update("left_bumper", getRuntime(), left_bumper2);
 
+            //TODO: make sure the magnet rising edge isn't terribly annoying
             if(multiClick.getTaps("left_bumper") == 3 || intake.magnetOnRisingEdge()){
                 multiClick.clearTaps("left_bumper");
-                deliver_position = ARM_LIMIT - 75 ;
+                intake.setHardstopTicks(ARM_LIMIT - 75);
                 intake.arm.resetEncoder();
                 specimen_target_angle = -10;
                 intake.resetSpecimenHeight();
@@ -265,6 +262,7 @@ public class TeleOp extends LinearOpMode {
                 multiClick.clearTaps("b");
                 intake.moveSlides(intake.slides.getCurrentPosition());
                 intake.moveArm(intake.arm.getCurrentPosition());
+                intake.to_hardstop = false;
 
                 mecaTank.forceExit();
                 move_next3 = false;
@@ -278,7 +276,7 @@ public class TeleOp extends LinearOpMode {
                 trafficLight.green(false);
                 trafficLight.orange(false);
                 intake.enableLevel(false);
-resetArmHardstop();
+resetArmHardstopValue();
                 intake.slides.setMax(1500);
 
 
@@ -332,6 +330,7 @@ resetArmHardstop();
             }
             if(multiClick.getTaps("dpad_left") == 2 && !reset_claw){
                 intake.arm.setMax(5000);
+                intake.disable_up_hardstop = true;
                 multiClick.clearTaps("dpad_left");
             }
             if(multiClick.getTaps("dpad_right") == 1){
@@ -483,14 +482,14 @@ resetArmHardstop();
                         intake.closeClaw(-0.03);
                         intake.slides.setMax(700);
                         intake.enableLevel(false);
-        resetArmHardstop();
+        resetArmHardstopValue();
                         current_time = timer.time();
                         delay = 0.1;
                         next_position = INTAKE_POSITIONS.RAISE_ARM;
                         previous_position = INTAKE_POSITIONS.LOWER_CLAW;
                         break;
                     case DELIVER_SPECIMEN:
-        resetArmHardstop();
+        resetArmHardstopValue();
                         intake.moveSlides(700);
                         intake.moveWrist(90);
                         next_position = INTAKE_POSITIONS.DROP_SAMPLE;
@@ -509,7 +508,7 @@ resetArmHardstop();
                             break;
                         }
                         move_next = false;
-        resetArmHardstop();
+        resetArmHardstopValue();
                         intake.slides.setMax(700);
                         current_time = timer.seconds();
                         intake.enableLevel(true);
@@ -529,7 +528,7 @@ resetArmHardstop();
                         if(intake.slides.isBusy() && !move_next_override){
                             break;
                         }
-        resetArmHardstop();
+        resetArmHardstopValue();
                         intake.enableLevel(false);
                         intake.moveArm(400);
                         move_next = false;
@@ -555,9 +554,9 @@ resetArmHardstop();
                         move_next = false;
                         break;
                     case TURN_ARM:
-        resetArmHardstop();
-
-                        intake.moveArm(deliver_position);
+        resetArmHardstopValue();
+                        intake.moveArmToHardstop();
+                        //intake.moveArm(deliver_position);
                         intake.slides.setMax(1500);
                         intake.moveWrist(120);
                         move_next = true;
@@ -624,11 +623,11 @@ resetArmHardstop();
                         intake.openClaw();
                         delay = 0.2;
                         current_time = timer.time();
-                        if (Math.abs(intake.arm.getCurrentPosition() - deliver_position) > 25 ){
+                        if (Math.abs(intake.arm.getCurrentPosition() - intake.getHardstopTicks()) > 25 ){
 
-                            deliver_position = intake.arm.getCurrentPosition();
-                            if(deliver_position > intake.arm.maxHardstop){
-                                intake.arm.setMax(deliver_position);
+                            intake.setHardstopTicks(intake.arm.getCurrentPosition());
+                            if(intake.getHardstopTicks() > intake.arm.maxHardstop){
+                                intake.arm.setMax(intake.getHardstopTicks());
                             }
                         }
                         move_next = true;
@@ -1161,7 +1160,7 @@ resetArmHardstop();
             telemetry.addData("Average Cycle Time", getAvgLoopTime());
             telemetry.addData("Arm Position", intake.arm.getCurrentPosition());
             telemetry.addData("Slide Position", intake.slides.getCurrentPosition());
-            telemetry.addData("Delivery Position", deliver_position);
+            telemetry.addData("Delivery Position", intake.getHardstopTicks());
             telemetry.addData("Specimen Height", intake.getSpecimenHeight());
 
             telemetry.update();
@@ -1187,9 +1186,10 @@ resetArmHardstop();
         sum /= 5;
         return sum;
     }
-    public void resetArmHardstop(){
-        intake.arm.setMax(Math.max(SPECIMEN_DELIVER_ARM_VALUE, Math.max(ARM_LIMIT, deliver_position)));
+    public void resetArmHardstopValue(){
+        intake.arm.setMax(Math.max(SPECIMEN_DELIVER_ARM_VALUE, Math.max(ARM_LIMIT + 400, intake.getHardstopTicks())));
         arm_limit_override = false;
+        intake.disable_up_hardstop = false;
 
     }
 

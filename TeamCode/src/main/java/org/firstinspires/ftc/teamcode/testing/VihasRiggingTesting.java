@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
 public class VihasRiggingTesting extends TestingOpMode {
     VihasRigging vihasRigging;
 
-    public static double servo_position = 1;
+    public static double servo_position = 0;
     public static boolean servo_on = true;
 
     Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;

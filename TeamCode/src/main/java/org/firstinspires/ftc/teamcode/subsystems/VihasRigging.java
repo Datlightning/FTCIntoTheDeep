@@ -34,7 +34,7 @@ public class VihasRigging extends Subsystem {
     public VihasRigging(HardwareMap hardwareMap, Telemetry telemetry){
         rigging_motor = new NGMotor(hardwareMap, telemetry, RobotConstants.riggingMotor);
         rigging_servo = new NGServo(hardwareMap, telemetry,RobotConstants.rigging_servo);
-        rigging_servo.setInit_pos(0.95);
+        rigging_servo.setInit_pos(0);
         rigging_motor.setDirection(DcMotor.Direction.REVERSE);
         timer = new ElapsedTime();
         this.telemetry = telemetry;
@@ -77,8 +77,11 @@ public class VihasRigging extends Subsystem {
         level_one = true;
     }
     public void retract_wand(){
-        rigging_servo.setPosition(1);
+        rigging_servo.setPosition(0);
         level_one = false;
+    }
+    public void camera(){
+        rigging_servo.setPosition(0.78);
     }
     public boolean isLevelOne(){
         return level_one;
