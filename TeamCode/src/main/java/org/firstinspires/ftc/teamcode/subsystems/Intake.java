@@ -358,13 +358,17 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(6000)),
                 armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
-                new InstantAction(() -> turnAndRotateClaw(115,0)),
+                new InstantAction(() -> {
+                    turnAndRotateClaw(115,0);
+                    closeClaw(-0.05);
+                }),
                 new ParallelAction(
                         slideAction(1500),
                         armAction(ARM_LIMIT - 25)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
-                new InstantAction(() -> moveWrist(45)),
+                new InstantAction(() -> {moveWrist(45);
+                    closeClaw(-0.07);}),
                 new SleepAction(0.1)
 
 
