@@ -554,7 +554,7 @@ resetArmHardstopValue();
                         move_next = false;
                         break;
                     case TURN_ARM:
-        resetArmHardstopValue();
+                        resetArmHardstopValue();
                         intake.moveArmToHardstop();
                         //intake.moveArm(deliver_position);
                         intake.slides.setMax(1500);
@@ -570,7 +570,7 @@ resetArmHardstopValue();
                         intake.slides.setMax(1500);
                         if(low_basket){
                             move_next = true;
-                            intake.moveSlides(400);
+                            intake.moveSlides(500);
                             next_position = INTAKE_POSITIONS.TURN_CLAW;
                         }else{
                             move_next = true;
@@ -587,7 +587,7 @@ resetArmHardstopValue();
                         intake.moveWrist(130);
                         intake.slides.setMax(1500);
                         intake.slides.setUseMotionProfile(true);
-                        intake.moveSlides(1475);
+                        intake.moveSlides(1500);
 //                        mecaTank.setMaxPower(0.5); //three big booms (the robot falls over)
                         current_time = timer.time();
                         move_next = true;
@@ -606,7 +606,7 @@ resetArmHardstopValue();
                         intake.closeClaw(-0.05);
                         intake.moveWrist(15);
                         next_position = INTAKE_POSITIONS.LOOSEN_CLAW;
-                        previous_position = INTAKE_POSITIONS.FOLD;
+                        previous_position = INTAKE_POSITIONS.LOWER_SLIDES_BEFORE_FOLD;
                         break;
                     case LOOSEN_CLAW:
                         if (timer.time() - current_time < delay && !move_next_override) {
@@ -615,7 +615,7 @@ resetArmHardstopValue();
                         move_next = false;
                         intake.closeClaw(-0.07);
                         next_position = INTAKE_POSITIONS.DELIVER;
-                        previous_position = INTAKE_POSITIONS.FOLD;
+                        previous_position = INTAKE_POSITIONS.LOWER_SLIDES_BEFORE_FOLD;
                         break;
 
                     case DELIVER:

@@ -136,14 +136,11 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                     action = (new SequentialAction(
                             new ParallelAction(
                                     intake.armAction(400),
+                                    intake.slideAction(slide_position , slide_position/2),
+                                    new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);}),
                                     toSample
                             ),
-                            intake.slideAction(slide_position , slide_position/2),
-                            new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);}),
-                            new ParallelAction(
-                                    intake.slideAction(slide_position),
-                                    new SleepAction(0.6)
-                            ),
+                            intake.slideAction(slide_position),
                             intake.armAction(300),
                             new ParallelAction(
                                     new SequentialAction(armDown2, new InstantAction(sleep::failover)),
@@ -228,6 +225,15 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
 
     public Action slideCollectSampleAndScore(Action sampleScore, Action delay, double ending_claw_pos){
+        return slideCollectSampleAndScore(sampleScore, delay, ending_claw_pos, false);
+    }
+    public Action slideCollectSampleAndScore(Action sampleScore, Action delay, double ending_claw_pos, boolean slow){
+        Action score;
+        if(slow){
+            score = intake.scoreSlidePickupSlow();
+        }else{
+            score = intake.scoreSlidePickup();
+        }
         return new SequentialAction(
                 new ParallelAction(
                         new SequentialAction(
@@ -243,53 +249,27 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                         )
                 ),
                 new InstantAction(() -> intake.closeClaw(-0.07)),
-                new SleepAction(0.2),
-                intake.scoreSlidePickup(),
+                new SleepAction(0.1),
+                score,
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );
     }
 
-    public Action slideCollectSampleAndScore(Action sampleScore, Action delay, double ending_claw_pos, boolean last){
-        return new SequentialAction(
-                new ParallelAction(
-                        new SequentialAction(
-                                delay,
-                                new ParallelAction(
-                                        intake.raiseArm()
-                                )
 
-                        ),
-                        new SequentialAction(
-                                sampleScore
-
-                        )
-                ),
-                new InstantAction(() -> intake.closeClaw(-0.07)),
-                new SleepAction(0.2),
-                intake.scoreSlidePickup(last),
-                new InstantAction(() -> intake.moveClaw(ending_claw_pos))
-
-        );
+    public Action slideCollectSampleAndScore(Action sampleScore, double ending_claw_pos, boolean slow){
+       return slideCollectSampleAndScore(sampleScore, new NullAction(), ending_claw_pos, slow);
     }
-    public Action goToSample(Action sample){
-        return new SequentialAction(
-                new InstantAction(() -> intake.moveClaw(RobotConstants.claw_floor_pickup)),
-                new ParallelAction(
-                        new InstantAction(() -> intake.distance.setOn(true)),
-                        new SequentialAction(intake.armAction(0, 1000), sample),
-                        intake.slideAction(0)
 
-                )
-
-        );
-    }
     public Action goToSampleWithSlides(Action sample){
         return goToSampleWithSlides(sample, 0);
 
     }
 
     public Action goToSampleWithSlides(Action sample, double claw_angle){
-        Intake.moveArmAction armDown = intake.armAction(400, 1000);
+     return goToSampleWithSlides(sample, claw_angle, 750);
+    }
+    public Action goToSampleWithSlides(Action sample, double claw_angle, int collapse_value){
+        Intake.moveArmAction armDown = intake.armAction(375, 1000);
         FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
         FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
@@ -301,7 +281,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                 new ParallelAction(
                         new SequentialAction(
                                 new SleepAction(0.1),
-                                intake.slideAction(600, 1400),
+                                intake.slideAction(collapse_value, collapse_value + 400),
                                 armDown,
                                 intake.slideAction(1000)
                         ),

@@ -357,15 +357,15 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(true)),
                 new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT,ARM_LIMIT - 1000),
+                armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
                 new InstantAction(() -> turnAndRotateClaw(115,0)),
                 new ParallelAction(
                         slideAction(1500),
-                        armAction(ARM_LIMIT )
+                        armAction(ARM_LIMIT - 25)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(8000)),
-                new InstantAction(() -> moveWrist(35)),
-                new SleepAction(0.2)
+                new InstantAction(() -> moveWrist(45)),
+                new SleepAction(0.1)
 
 
         );
@@ -378,7 +378,7 @@ public class Intake extends Subsystem {
                 armAction(ARM_LIMIT,ARM_LIMIT - 300),
                 new InstantAction(() -> moveWrist(180)),
                 new ParallelAction(
-                        slideAction(1300),
+                        slideAction(1400),
                         armAction(ARM_LIMIT)
                 ),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
@@ -396,11 +396,11 @@ public class Intake extends Subsystem {
                 armAction(ARM_LIMIT,ARM_LIMIT - 800),
                 new InstantAction(() -> turnAndRotateClaw(90,0)),
                 new ParallelAction(
-                        slideAction(1300),
+                        slideAction(1500),
                         armAction(ARM_LIMIT)),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
                 new InstantAction(() -> moveWrist(30)),
-                new SleepAction(0.2)
+                new SleepAction(0.1)
 
         );
     }
@@ -427,10 +427,30 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
-                new SleepAction(0.2),
+//                new SleepAction(0.2),
                 new InstantAction(() -> arm.setUseMotionProfile(false)),
 
 //                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),
+                new InstantAction(() -> arm.setMaxVelocity(5000)),
+//                armAction(ARM_LIMIT - 300),
+                new InstantAction(() -> arm.setUseMotionProfile(true)),
+
+                new InstantAction(() -> arm.setExitWithTime(false)),
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> turnClaw(0))
+
+        );
+    }
+    public Action scoreSlidePickupSlow(){
+
+        return new SequentialAction(
+                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
+                new SleepAction(0.25),
+                new InstantAction(() -> moveWrist(90)),
+//                new SleepAction(0.2),
+                new InstantAction(() -> arm.setUseMotionProfile(false)),
+
+//                armAction(ARM_LIMIT - 200, ARM_LIMIT - 150),
                 new InstantAction(() -> arm.setMaxVelocity(5000)),
 //                armAction(ARM_LIMIT - 300),
                 new InstantAction(() -> arm.setUseMotionProfile(true)),
@@ -447,7 +467,7 @@ public class Intake extends Subsystem {
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
                 new InstantAction(() -> moveWrist(90)),
-                new SleepAction(0.2),
+//                new SleepAction(0.2),
                 new InstantAction(() -> arm.setUseMotionProfile(false)),
 
 //                armAction(ARM_LIMIT - 200, ARM_LIMIT -150),

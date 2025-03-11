@@ -51,6 +51,8 @@ public class AutomaticPickup extends NGAutoOpMode {
 
 
         Action pickup = new SequentialAction(
+                intake.armAction(400),
+                intake.slideAction(0),
                 new InstantAction(() -> {vihasRigging.camera(); camera.startCamera();}),
                 new SleepAction(1),
                 camera.waitForYellow(),
