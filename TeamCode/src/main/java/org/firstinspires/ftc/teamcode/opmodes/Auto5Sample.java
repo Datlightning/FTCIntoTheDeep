@@ -64,8 +64,8 @@ public class Auto5Sample extends NGAutoOpMode {
 
                     fourthSampleAngleDegrees = 123.5;
                     INCHES_FORWARD = -2.8;
-                    basket = new Pose2d(-55, -55, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
+                    basket = new Pose2d(-56, -56, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-56, -56, Math.toRadians(45));
                     sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     /**
@@ -282,7 +282,7 @@ public class Auto5Sample extends NGAutoOpMode {
                                                 new InstantAction(() -> intake.moveWrist(0))
                                         ),
                                         new SequentialAction(
-                                                new SleepAction(0.5),
+                                                new SleepAction(0.4),
                                                 intake.slideAction(0, 600),
                                                 intake.armAction(0)
                                         ),

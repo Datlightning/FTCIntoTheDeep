@@ -116,6 +116,8 @@ public class Intake extends Subsystem {
     private double new_target_height = 17.1851;
 
     private boolean lower_arm_speed = false;
+
+    private boolean hold_at_hardstop = false;
     private int lower_arm_position = 0;
 
     public static int position_at_90 = 1445;
@@ -353,26 +355,7 @@ public class Intake extends Subsystem {
         );
     }
     public Action raiseArm(){
-        return new SequentialAction(
-                new InstantAction(() -> slides.setExitWithTime(false)),
-                new InstantAction(() -> arm.setExitWithTime(true)),
-                new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
-                new InstantAction(() -> {
-                    turnAndRotateClaw(115,0);
-                    closeClaw(-0.05);
-                }),
-                new ParallelAction(
-                        slideAction(1500),
-                        armAction(ARM_LIMIT - 25)
-                ),
-
-                new InstantAction(() -> {arm.setMaxVelocity(8000); arm.setManualPower(0.1);}),
-                new InstantAction(() -> {moveWrist(30);}),
-                new SleepAction(0.15)
-
-
-        );
+        return raiseArm(true);
     }
     public Action raiseArmButNotSnagOnBasket(){
         return new SequentialAction(
@@ -392,6 +375,32 @@ public class Intake extends Subsystem {
 
         );
     }
+    public Action raiseArm(boolean arm_exit_with_time){
+        return new SequentialAction(
+                new InstantAction(() -> slides.setExitWithTime(false)),
+                new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
+                new InstantAction(() -> arm.setMaxVelocity(6000)),
+                armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
+                new InstantAction(() -> {
+                    turnAndRotateClaw(145,0);
+                    closeClaw(-0.05);
+                }),
+                new InstantAction(() -> arm.setExitWithTime(true)),
+
+                new SequentialAction(
+                        slideAction(1500, 1350),
+                        new InstantAction(() -> {moveWrist(15);}),
+                        new SleepAction(0.15)
+                ),
+                slideAction(1500),
+                new InstantAction(() -> {arm.setMaxVelocity(8000); arm.setManualPower(0.4);})
+//                ,new InstantAction(() -> {moveWrist(35);}),
+//                new SleepAction(0.15)
+
+
+        );
+    }
+
     public class moveArmToHardstopAction implements Action{
         boolean first = true;
         @Override
@@ -405,29 +414,6 @@ public class Intake extends Subsystem {
     }
     public Action moveArmToHardstopAction(){
         return new moveArmToHardstopAction();
-    }
-    public Action raiseArm(boolean arm_exit_with_time){
-        return new SequentialAction(
-                new InstantAction(() -> slides.setExitWithTime(arm_exit_with_time)),
-                new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
-                new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
-                new InstantAction(() -> {
-                    turnAndRotateClaw(115,0);
-                    closeClaw(-0.05);
-                }),
-                new InstantAction(() -> arm.setExitWithTime(true)),
-
-                new ParallelAction(
-                        slideAction(1500),
-                        armAction(ARM_LIMIT - 25)
-                ),
-                new InstantAction(() -> {arm.setMaxVelocity(8000); arm.setManualPower(0.1);}),
-                new InstantAction(() -> {moveWrist(35);}),
-                new SleepAction(0.15)
-
-
-        );
     }
     public Action score(){
         return new SequentialAction(
@@ -469,9 +455,9 @@ public class Intake extends Subsystem {
     public Action scoreSlidePickupSlow(){
 
         return new SequentialAction(
-                new SleepAction(0.1),
+                new SleepAction(0.3),
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
-                new SleepAction(0.2),
+                new SleepAction(0.1),
                 new InstantAction(() -> arm.setManualPower(-0.3)),
                 new InstantAction(() -> moveWrist(90)),
 //                new SleepAction(0.2),
@@ -687,6 +673,13 @@ public class Intake extends Subsystem {
 //    public void mountMecanumDrive(MecanumDrive mec){
 //        this.mecanumDrive = mec;
 //    }
+    public void holdAtHardstop(){
+        hold_at_hardstop = true;
+    }
+    public void stopHoldingAtHardstop(){
+        hold_at_hardstop = false;
+        arm.setManualPower(0);
+    }
 
     @Override
     public void update() {
@@ -751,9 +744,11 @@ public class Intake extends Subsystem {
                 arm.setManualPower(0);
                 hard_stop_ticks = arm.getCurrentPosition();
             } else if(!arm.isBusy() && to_hardstop){
-                arm.setManualPower(0.56);
+                arm.setManualPower(0.75);
             }
-
+        }
+        if(hold_at_hardstop){
+            arm.setManualPower(0.3);
         }
         if(level_on) {
 

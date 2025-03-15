@@ -251,8 +251,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
                         )
                 ),
-                new InstantAction(() -> intake.closeClaw(-0.07)),
-                new SleepAction(0.1),
+                new InstantAction(() -> intake.closeClaw(-0.05)),
                 score,
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );
