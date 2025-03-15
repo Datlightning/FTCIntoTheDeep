@@ -6,7 +6,6 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -18,7 +17,7 @@ import org.firstinspires.ftc.teamcode.library.NGServo;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
 
 @Config
-public class VihasRigging extends Subsystem {
+public class VihasCameraArm extends Subsystem {
     public NGMotor rigging_motor;
     public NGServo rigging_servo;
     private Telemetry telemetry;
@@ -31,7 +30,7 @@ public class VihasRigging extends Subsystem {
     public static int off_ground = 5500;
 
     private boolean level_one = false;
-    public VihasRigging(HardwareMap hardwareMap, Telemetry telemetry){
+    public VihasCameraArm(HardwareMap hardwareMap, Telemetry telemetry){
         rigging_motor = new NGMotor(hardwareMap, telemetry, RobotConstants.riggingMotor);
         rigging_servo = new NGServo(hardwareMap, telemetry,RobotConstants.rigging_servo);
         rigging_servo.setInit_pos(0);
@@ -55,7 +54,7 @@ public class VihasRigging extends Subsystem {
         return new updateAction();
     }
 
-    public VihasRigging(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
+    public VihasCameraArm(HardwareMap hardwareMap, Telemetry telemetry, ElapsedTime timer){
         this(hardwareMap, telemetry);
         rigging_motor = new NGMotor(hardwareMap, telemetry, RobotConstants.riggingMotor, timer);        rigging_servo = new NGServo(hardwareMap, telemetry,RobotConstants.rigging_servo);
         rigging_servo.mountTimer(timer);

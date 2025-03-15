@@ -38,6 +38,7 @@ public class LocalizationTest extends LinearOpMode {
                 telemetry.addData("x", drive.pose.position.x);
                 telemetry.addData("y", drive.pose.position.y);
                 telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()));
+                telemetry.addData("Stationary", drive.localizer.isStationary());
                 telemetry.update();
 
                 TelemetryPacket packet = new TelemetryPacket();

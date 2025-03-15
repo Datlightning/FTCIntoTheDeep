@@ -214,6 +214,7 @@ public class Auto4Sample extends NGAutoOpMode {
 
         Actions.runBlocking(
                 new ParallelAction(
+                        bulkRead.update(),
                         intake.updateAction(),
                         trafficLight.updateAction(),
                         new SequentialAction(
@@ -242,7 +243,7 @@ public class Auto4Sample extends NGAutoOpMode {
                                             intake.armAction(0)
                                         ),
                                         park,
-                                        new InstantAction(() -> vihasRigging.level1())
+                                        new InstantAction(() -> vihasCameraArm.level1())
 
 
                                 )

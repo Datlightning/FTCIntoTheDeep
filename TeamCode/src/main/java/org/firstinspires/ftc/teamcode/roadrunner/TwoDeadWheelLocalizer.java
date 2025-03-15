@@ -52,16 +52,22 @@ public final class TwoDeadWheelLocalizer implements Localizer {
         perp = new OverflowEncoder(new RawEncoder(hardwareMap.get(DcMotorEx.class, RobotConstants.fr)));
 
 
+
         this.imu = imu;
 
         this.inPerTick = inPerTick;
 
         FlightRecorder.write("TWO_DEAD_WHEEL_PARAMS", PARAMS);
     }
+    public boolean isStationary() {
+        return Math.abs(par.getPositionAndVelocity().velocity) < 5 && Math.abs(perp.getPositionAndVelocity().velocity ) < 5;
+    }
 
     public Twist2dDual<Time> update() {
         PositionVelocityPair parPosVel = par.getPositionAndVelocity();
         PositionVelocityPair perpPosVel = perp.getPositionAndVelocity();
+
+
 
         YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
         // Use degrees here to work around https://github.com/FIRST-Tech-Challenge/FtcRobotController/issues/1070

@@ -16,10 +16,12 @@ import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.RobotConstants;
 
 @Autonomous
+@Disabled
 public class Auto1Specimen extends NGAutoOpMode {
 
     @Override
@@ -128,7 +130,7 @@ public class Auto1Specimen extends NGAutoOpMode {
                                                 intake.armAction(0)
                                         ),
                                         park,
-                                        new InstantAction(() -> vihasRigging.level1())
+                                        new InstantAction(() -> vihasCameraArm.level1())
 
 
 

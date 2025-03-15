@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -13,16 +12,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.library.Subsystem;
-import org.firstinspires.ftc.teamcode.opmodes.NGAutoOpMode;
-import org.firstinspires.ftc.teamcode.testing.BigBoyTesting;
 import org.firstinspires.ftc.teamcode.vision.TheBigBrainAlgorithm;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
-
-import java.util.Arrays;
-import java.util.EventListenerProxy;
-
 
 public class Camera extends Subsystem {
 
@@ -105,6 +98,8 @@ public class Camera extends Subsystem {
     public Action waitForYellow(){
         return new SampleDetectionAction();
     }
+
+
     @Override
     public void telemetry() {
         telemetry.addData("Red Position", toString(getRed()));

@@ -4,17 +4,13 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
-import com.acmerobotics.roadrunner.NullAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 
-import org.firstinspires.ftc.teamcode.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Camera;
 
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
-import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -53,13 +49,14 @@ public class AutomaticPickup extends NGAutoOpMode {
         Action pickup = new SequentialAction(
                 intake.armAction(400),
                 intake.slideAction(0),
-                new InstantAction(() -> {vihasRigging.camera(); camera.startCamera();}),
+                new InstantAction(() -> {
+                    vihasCameraArm.camera(); camera.startCamera();}),
                 new SleepAction(1),
                 camera.waitForYellow(),
-                obtainSampleWithCamera(camera, beginPose)
+                obtainSampleWithCamera(camera, drive)
         );
         Actions.runBlocking(
-                new ParallelAction(pickup, intake.updateAction()));
+                new ParallelAction(bulkRead.update(), intake.updateAction(), pickup ));
 
 
 

@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.testing.AutoArmStabilizerTesting;
+import org.firstinspires.ftc.teamcode.testing.BandedSlidesSystem;
 import org.firstinspires.ftc.teamcode.testing.BigBoyTesting;
 import org.firstinspires.ftc.teamcode.testing.CameraTesting;
 import org.firstinspires.ftc.teamcode.testing.ColorTesting;
@@ -80,6 +81,7 @@ public final class TestingOpModes {
         manager.register(metaForClass(TrafficLightTest.class), TrafficLightTest.class);
         manager.register(metaForClass(ColorTesting.class), ColorTesting.class);
         manager.register(metaForClass(PotTesting.class), PotTesting.class);
+        manager.register(metaForClass(BandedSlidesSystem.class), BandedSlidesSystem.class);
 
         FtcDashboard.getInstance().withConfigRoot(configRoot -> {
             for (Class<?> c : Arrays.asList(
@@ -102,7 +104,8 @@ public final class TestingOpModes {
                     SlideTesting.class,
                     PotTesting.class,
                     TestDataTrasnfer.class,
-                    TrafficLightTest.class
+                    TrafficLightTest.class,
+                    BandedSlidesSystem.class
             )) {
                 configRoot.putVariable(c.getSimpleName(), ReflectionConfig.createVariableFromClass(c));
             }

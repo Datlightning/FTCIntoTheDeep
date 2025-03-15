@@ -281,6 +281,9 @@ public class MeepMeepTesting {
                 .splineToLinearHeading(new Pose2d(-32, -12, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(80))
                 .setTangent(Math.toRadians(180))
                 .splineToLinearHeading(basket, Math.toRadians(225))
+                .setTangent(Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(-32, -12, Math.toRadians(0)), Math.toRadians(0), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,50))
+
                 .build());
         sampleBot2.runAction(sampleBot.getDrive().actionBuilder(new Pose2d(-10, -66, Math.toRadians(270)))
                 .setTangent(Math.toRadians(90))

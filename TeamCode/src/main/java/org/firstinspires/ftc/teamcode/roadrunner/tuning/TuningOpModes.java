@@ -37,7 +37,7 @@ public final class TuningOpModes {
     public static final Class<?> DRIVE_CLASS = MecanumDrive.class;
 
     public static final String GROUP = "quickstart";
-    public static final boolean DISABLED = true;
+    public static final boolean DISABLED = false;
 
     private TuningOpModes() {}
 
@@ -60,24 +60,25 @@ public final class TuningOpModes {
 
                 List<Encoder> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
                 List<Encoder> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
-                if (md.localizer instanceof MecanumDrive.DriveLocalizer) {
-                    MecanumDrive.DriveLocalizer dl = (MecanumDrive.DriveLocalizer) md.localizer;
-                    leftEncs.add(dl.frontLeft);
-                    leftEncs.add(dl.backLeft);
-                    rightEncs.add(dl.frontRight);
-                    rightEncs.add(dl.backRight);
-                } else if (md.localizer instanceof ThreeDeadWheelLocalizer) {
-                    ThreeDeadWheelLocalizer dl = (ThreeDeadWheelLocalizer) md.localizer;
-                    parEncs.add(dl.par0);
-                    parEncs.add(dl.par1);
-                    perpEncs.add(dl.perp);
-                } else if (md.localizer instanceof TwoDeadWheelLocalizer) {
-                    TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) md.localizer;
-                    parEncs.add(dl.par);
-                    perpEncs.add(dl.perp);
-                } else {
-                    throw new RuntimeException("unknown localizer: " + md.localizer.getClass().getName());
-                }
+//                if (md.localizer instanceof MecanumDrive.DriveLocalizer) {
+//                    MecanumDrive.DriveLocalizer dl = (MecanumDrive.DriveLocalizer) md.localizer;
+//                    leftEncs.add(dl.frontLeft);
+//                    leftEncs.add(dl.backLeft);
+//                    rightEncs.add(dl.frontRight);
+//                    rightEncs.add(dl.backRight);
+//                } else if (md.localizer instanceof ThreeDeadWheelLocalizer) {
+//                    ThreeDeadWheelLocalizer dl = (ThreeDeadWheelLocalizer) md.localizer;
+//                    parEncs.add(dl.par0);
+//                    parEncs.add(dl.par1);
+//                    perpEncs.add(dl.perp);
+//                } else if (md.localizer instanceof TwoDeadWheelLocalizer) {
+//
+//                } else {
+//                    throw new RuntimeException("unknown localizer: " + md.localizer.getClass().getName());
+//                }
+                TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) md.localizer;
+                parEncs.add(dl.par);
+                perpEncs.add(dl.perp);
 
                 return new DriveView(
                         DriveType.MECANUM,

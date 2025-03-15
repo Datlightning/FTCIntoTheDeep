@@ -80,7 +80,7 @@ public final class MecanumDrive {
         public double trackWidthTicks = 22915.48313310018;
 
         // feedforward parameters (in tick units)
-        public double kS = 0.8470387406425917;
+        public double kS = 0.8944224112840558;
         public double kV = 0.0001063045912406822;
         public double kA = 0.00002;
 
@@ -125,7 +125,7 @@ public final class MecanumDrive {
 
     public final LazyImu lazyImu;
 
-    public final Localizer localizer;
+    public final TwoDeadWheelLocalizer localizer;
     public Pose2d pose;
 
     public static double kF = -0.05;// Feedforward constant
@@ -188,6 +188,7 @@ public final class MecanumDrive {
             // TODO: reverse encoders if needed
             //   leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
         }
+        
 
         @Override
         public Twist2dDual<Time> update() {
@@ -253,7 +254,16 @@ public final class MecanumDrive {
         }
     }
 
+    public class WaitForStationary implements Action{
 
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            return !localizer.isStationary();
+        }
+    }
+    public Action isStationary(){
+        return new WaitForStationary();
+    }
     public MecanumDrive(HardwareMap hardwareMap, Pose2d pose) {
         this.pose = pose;
 
@@ -658,7 +668,7 @@ public final class MecanumDrive {
             targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
             Pose2d error = txWorldTarget.value().minusExp(pose);
-            if (t >= timeTrajectory.duration - 0.5) {
+            if (t >= timeTrajectory.duration - 0.25) {
                 frontLeft.setPower(0);
                 backLeft.setPower(0);
                 backRight.setPower(0);

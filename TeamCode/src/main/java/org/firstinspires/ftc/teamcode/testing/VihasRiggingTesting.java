@@ -2,17 +2,14 @@ package org.firstinspires.ftc.teamcode.testing;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.subsystems.Rigging;
-import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
+import org.firstinspires.ftc.teamcode.subsystems.VihasCameraArm;
 
 @Config
 @TeleOp
 public class VihasRiggingTesting extends TestingOpMode {
-    VihasRigging vihasRigging;
+    VihasCameraArm vihasCameraArm;
 
     public static double servo_position = 0;
     public static boolean servo_on = true;
@@ -21,7 +18,7 @@ public class VihasRiggingTesting extends TestingOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         makeTelemetry();
-        vihasRigging = new VihasRigging(hardwareMap, telemetry);
+        vihasCameraArm = new VihasCameraArm(hardwareMap, telemetry);
 
         currentGamepad1 = new Gamepad();
         currentGamepad2 = new Gamepad();
@@ -43,17 +40,17 @@ public class VihasRiggingTesting extends TestingOpMode {
             if(currentGamepad1.dpad_up && !previousGamepad1.dpad_up){
                 servo_position += 0.05;
             }
-            vihasRigging.setServoPosition(servo_position);
+            vihasCameraArm.setServoPosition(servo_position);
             if(currentGamepad1.a && !previousGamepad1.a) {
-                if (!vihasRigging.rigging_servo.isPWMEnabled()) {
-                    vihasRigging.rigging_servo.enableServo();
+                if (!vihasCameraArm.rigging_servo.isPWMEnabled()) {
+                    vihasCameraArm.rigging_servo.enableServo();
                 } else {
-                    vihasRigging.rigging_servo.disableServo();
+                    vihasCameraArm.rigging_servo.disableServo();
                 }
             }
-            vihasRigging.setManualPower(-gamepad1.left_stick_y);
-            telemetry.addData("Servo Position: ", vihasRigging.rigging_servo.getPosition());
-            telemetry.addData("Motor Power: ", vihasRigging.rigging_motor.getPower());
+            vihasCameraArm.setManualPower(-gamepad1.left_stick_y);
+            telemetry.addData("Servo Position: ", vihasCameraArm.rigging_servo.getPosition());
+            telemetry.addData("Motor Power: ", vihasCameraArm.rigging_motor.getPower());
             telemetry.update();
 
         }

@@ -64,9 +64,9 @@ public class Auto5Sample extends NGAutoOpMode {
 
                     fourthSampleAngleDegrees = 123.5;
                     INCHES_FORWARD = -2.8;
-                    basket = new Pose2d(-54, -54, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-54, -54, Math.toRadians(45));
-                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+                    basket = new Pose2d(-55, -55, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     /**
                      *   fourthSampleAngleDegrees = 123.5;
@@ -152,6 +152,7 @@ public class Auto5Sample extends NGAutoOpMode {
                 break;
             }
         }
+        rigging.disableServos();
         camera.stopCamera();
         telemetry.addLine("Ready to go");
         telemetry.update();
@@ -201,12 +202,12 @@ public class Auto5Sample extends NGAutoOpMode {
                 .splineToSplineHeading(new Pose2d(-54, -45, Math.toRadians(0)), Math.toRadians(90))
                 .splineToLinearHeading(new Pose2d(-36, -12, Math.toRadians(0)), Math.toRadians(0))
                 .splineToLinearHeading(sample5Pickup, Math.toRadians(0), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-10,40));
-        TrajectoryActionBuilder scoreFifthSamplePath = fifthSamplePath.endTrajectory().fresh()
+        TrajectoryActionBuilder scoreFifthSamplePath = drive.actionBuilder(sample5Pickup)
                 .setReversed(true)
                 .setTangent(Math.toRadians(180))
                 .splineToLinearHeading(fourthBasket, Math.toRadians(225));
         TrajectoryActionBuilder parkPath = scoreFifthSamplePath.endTrajectory().fresh()
-                 .splineToSplineHeading(new Pose2d(-54, -45, Math.toRadians(0)), Math.toRadians(90))
+                .setTangent(Math.toRadians(90))
                 .splineToLinearHeading(sample5Pickup, Math.toRadians(0), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-15,50));
 
         FailoverAction firstSample = new FailoverAction(firstSamplePath.build(), new InstantAction(() -> drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0))));
@@ -226,27 +227,26 @@ public class Auto5Sample extends NGAutoOpMode {
         
         waitForStart();
 
-
         Actions.runBlocking(
                 new ParallelAction(
+                        bulkRead.update(),
                         intake.updateAction(),
                         trafficLight.updateAction(),
                         new SequentialAction(
                                 new ParallelAction(
                                         firstSample,
-                                        new SequentialAction(
-                                                intake.raiseArm(false)
-                                        )
+                                        intake.raiseArm(false)
                                 ),
-                                intake.scoreSlidePickup(),
+                                intake.scoreSlidePickupSlow(),
                                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
                                 goToSampleWithSlides(secondSample),
                                 slideCollectSampleAndScore(scoreSecondSample, RobotConstants.claw_flat, true),
                                 goToSampleWithSlides(thirdSample),
                                 slideCollectSampleAndScore(scoreThirdSample, RobotConstants.claw_flat, true),
                                 goToSampleWithSlides(fourthSample, 90-fourthSampleAngleDegrees, 300),
-                                slideCollectSampleAndScore(scoreFourthSample, RobotConstants.claw_flat, true),
+                                slideCollectSampleAndScore(scoreFourthSample, RobotConstants.claw_open, true),
                                 new ParallelAction(
+                                        new InstantAction(() -> intake.arm.setManualPower(0)),
                                         new SequentialAction(
                                                 new SleepAction(1),
                                                 new InstantAction(() -> intake.turnAndRotateClaw(90,0))
@@ -256,7 +256,7 @@ public class Auto5Sample extends NGAutoOpMode {
                                             intake.slideAction(0, 600),
                                             new InstantAction(
                                                     () -> {
-                                                        vihasRigging.camera();
+                                                        vihasCameraArm.camera();
 
                                                     }
                                             ),
@@ -269,11 +269,13 @@ public class Auto5Sample extends NGAutoOpMode {
                                         )
 
                                 ),
-                                new SleepAction(.15),
+                                drive.isStationary(),
                                 camera.waitForYellow(),
-                                obtainSampleWithCamera(camera, sample5Pickup),
+                                obtainSampleWithCamera(camera, drive),
 
                                 slideCollectSampleAndScore(scoreFifthSample, new SleepAction(0.8), RobotConstants.claw_open, true),
+                                new SleepAction(0.15),
+                                new InstantAction(() -> intake.arm.setManualPower(0)),
                                 new ParallelAction(
                                         new SequentialAction(
                                                 new SleepAction(1),
@@ -285,15 +287,10 @@ public class Auto5Sample extends NGAutoOpMode {
                                                 intake.armAction(0)
                                         ),
                                         park,
-                                        new InstantAction(() -> vihasRigging.level1())
+                                        new InstantAction(() -> vihasCameraArm.level1())
                                 )
                         )
                 )
         );
-        //Arm to 100
-        //Slides to 650
-        //Wrist to 0.45
-
-
     }
 }

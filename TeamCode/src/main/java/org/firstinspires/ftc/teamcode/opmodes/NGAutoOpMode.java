@@ -1,9 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import static org.firstinspires.ftc.teamcode.RobotConstants.ARM_LIMIT;
-import static org.firstinspires.ftc.teamcode.RobotConstants.distance;
-
-import android.media.audiofx.BassBoost;
 
 import androidx.annotation.NonNull;
 
@@ -25,45 +22,45 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.RobotAutoDriveToAprilTagOmni;
 import org.firstinspires.ftc.teamcode.RobotConstants;
+import org.firstinspires.ftc.teamcode.library.BulkRead;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Camera;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
-import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.firstinspires.ftc.teamcode.subsystems.VihasCameraArm;
 
 public abstract class NGAutoOpMode extends LinearOpMode {
     public static ElapsedTime timer;
     public static Intake intake;
     public static MecanumDrive drive;
     public static TrafficLight trafficLight;
-    public static VihasRigging vihasRigging;
+    public static BulkRead bulkRead;
+    public static Rigging rigging;
+    public static VihasCameraArm vihasCameraArm;
     public static Gamepad currentGamepad1, previousGamepad1;
     private int arm_height_for_specimen = 560;
 //    public static Rigging rigging;
     public void initAuto(Pose2d beginPose){
+        bulkRead = new BulkRead(hardwareMap);
         timer = new ElapsedTime();
         trafficLight = new TrafficLight("front", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led, timer);
         drive = new MecanumDrive(hardwareMap, beginPose);
         drive.mountTrafficLight(trafficLight);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         RobotConstants.auto_transfer = true;
-        vihasRigging = new VihasRigging(hardwareMap, telemetry);
+        vihasCameraArm = new VihasCameraArm(hardwareMap, telemetry);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         currentGamepad1 = new Gamepad();
         previousGamepad1 = new Gamepad();
-//        rigging = new Rigging(hardwareMap, telemetry, timer);
-//        rigging.init();
+        rigging = new Rigging(hardwareMap, telemetry, timer);
+        rigging.init();
 //        rigging.reset();
 
         intake.init();
-        vihasRigging.init();
+        vihasCameraArm.init();
 
         intake.slides.setReachedRange(30);
 //        intake.calculateOffset();
@@ -89,28 +86,29 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
         private boolean park = false;
         private Camera camera;
-        private Pose2d beginPose;
+        private MecanumDrive drive;
 
         private TrajectoryActionBuilder backup, forward;
         FailoverAction sleep, armDown2;
         Action toSample;
         Action action;
 
-        public obtainSampleWithCameraAction(Camera camera, Pose2d beginPose){
+        public obtainSampleWithCameraAction(Camera camera, MecanumDrive drive){
             this.camera = camera;
-            this.beginPose = beginPose;
+            this.drive = drive;
         }
 
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             if(first){
+                Pose2d beginPose = drive.pose;
                 if(!camera.isCameraOn()){
                     backup = drive.actionBuilder(beginPose).strafeTo(new Vector2d(beginPose.position.x - 5, beginPose.position.y));
                     forward = backup.endTrajectory().fresh().strafeTo(beginPose.position, new TranslationalVelConstraint(20), new ProfileAccelConstraint(-10, 30));
                     park = true;
                     action  = new SequentialAction(
                             backup.build(),
-                            new InstantAction(() -> vihasRigging.level1()),
+                            new InstantAction(() -> vihasCameraArm.level1()),
                             new SleepAction(0.4),
                             forward.build(),
                             new SleepAction(30)
@@ -125,22 +123,27 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                     telemetry.addData("Robot Displacement From Camera", data[2]);
                     telemetry.update();
                     sleep = new FailoverAction(new SleepAction(0.4), new NullAction());
-                    armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
+                    armDown2 = new FailoverAction(intake.moveArmFast(180, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
 
-                    if (Math.abs(data[2]) > 0.5) {
-                        Vector2d newTarget = new Vector2d(beginPose.position.x, beginPose.position.y - Math.copySign(Math.abs(data[2]) + 0.5, data[2]));
+                    if (Math.abs(data[2]) > 0) {
+                        Vector2d newTarget = new Vector2d(beginPose.position.x, beginPose.position.y - Math.copySign(Math.abs(data[2]) + 0, data[2]));
                         toSample = drive.actionBuilder(beginPose).strafeTo(newTarget).build();
                     } else {
                         toSample = new NullAction();
                     }
+                    if(slide_position > 620){
+                        slide_position += 40;
+                    }
                     action = (new SequentialAction(
                             new ParallelAction(
-                                    intake.armAction(400),
+                                    new SequentialAction(
+                                            intake.armAction(425),
+                                            new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);})
+                                    ),
                                     intake.slideAction(slide_position , slide_position/2),
-                                    new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);}),
                                     toSample
                             ),
-                            intake.slideAction(slide_position),
+                            intake.slideAction(slide_position ),
                             intake.armAction(300),
                             new ParallelAction(
                                     new SequentialAction(armDown2, new InstantAction(sleep::failover)),
@@ -160,9 +163,9 @@ public abstract class NGAutoOpMode extends LinearOpMode {
             return action.run(packet);
         }
     }
-    public Action obtainSampleWithCamera(Camera camera, Pose2d beginPose){
+    public Action obtainSampleWithCamera(Camera camera, MecanumDrive drive){
 
-        return new obtainSampleWithCameraAction(camera, beginPose);
+        return new obtainSampleWithCameraAction(camera, drive);
 
     }
 
@@ -273,6 +276,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
         FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
         FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
+                new InstantAction(() -> intake.arm.setManualPower(0)),
                 new InstantAction(() ->
                 {
                     intake.moveClaw(RobotConstants.claw_flat);

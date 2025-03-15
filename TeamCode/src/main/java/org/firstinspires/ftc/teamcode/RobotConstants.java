@@ -32,7 +32,8 @@ public class RobotConstants {
     public static String right_servo = "right_servo";//ehub 1 (copious lack of black tape)
 
     public static String rigging_servo = "the_wand";
-
+    public static String left_rigging_servo = "ascentLeft";
+    public static String right_rigging_servo = "ascentRight";
     public static String camera = "Webcam 1";
     public static String green_led = "front_led_green";
     public static String red_led = "front_led_red";

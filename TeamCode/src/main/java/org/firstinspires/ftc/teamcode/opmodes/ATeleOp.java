@@ -15,12 +15,13 @@ import org.firstinspires.ftc.teamcode.library.MultiClick;
 import org.firstinspires.ftc.teamcode.subsystems.Distance;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.MecaTank;
+import org.firstinspires.ftc.teamcode.subsystems.Rigging;
 import org.firstinspires.ftc.teamcode.subsystems.TrafficLight;
-import org.firstinspires.ftc.teamcode.subsystems.VihasRigging;
+import org.firstinspires.ftc.teamcode.subsystems.VihasCameraArm;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(group="Actually important opmodes")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp
 @Config
-public class TeleOp extends LinearOpMode {
+public class ATeleOp extends LinearOpMode {
     Intake intake;
     MecaTank mecaTank;
 
@@ -28,12 +29,13 @@ public class TeleOp extends LinearOpMode {
     Distance distance;
 
 //    Distance rear_distance;
+    Rigging rigging;
 
     TrafficLight trafficLight;
 
     MultiClick multiClick;
 
-    VihasRigging vihasRigging;
+    VihasCameraArm vihasCameraArm;
     BulkRead bulkRead;
     ElapsedTime timer;
     Gamepad currentGamepad1, currentGamepad2, previousGamepad1, previousGamepad2;
@@ -63,6 +65,8 @@ public class TeleOp extends LinearOpMode {
         EXIT_FLOOR_PICKUP_SEQ,
         LOWER_SLIDES_BEFORE_FOLD, EXTEND_SLIDE_AFTER_START_ARM_RAISE, EXTEND_SLIDES_FOR_SPECIMEN, RETRACT_SLIDES_SPECI, GRAB_FLOOR_SPECIMEN, SECOND_START, DELIVER_SPECIMEN, DROP_SAMPLE, PICK_UP_FLOOR_SPECIMEN, GRAB_SPECIMEN, SWITCH_POINT, LOWER_SLIDES_AFTER_SCORING_SPECIMEN, LOWER_SLIDES_INTERMEDIATE, LOW_BASKET_EXTEND, ENABLE_DAMP, TIGHTEN_GRIP, LOOSEN_GRIP, FOLD_WRIST, WAIT, LOOSEN_CLAW, RAISE_ARM
     }
+
+    private int ascent_position = 0;
     INTAKE_POSITIONS position = INTAKE_POSITIONS.FOLD_IN;
     INTAKE_POSITIONS next_position = INTAKE_POSITIONS.START;
     INTAKE_POSITIONS previous_position = INTAKE_POSITIONS.START;
@@ -80,7 +84,6 @@ public class TeleOp extends LinearOpMode {
     boolean camera_align = false;
 
     boolean first = true;
-    int open_claw_specimen = 2;
     public static boolean player2 = true;
     boolean drive_pid_on = false;
     public static int offset = 0;
@@ -91,30 +94,17 @@ public class TeleOp extends LinearOpMode {
     private boolean specimen_cycle = false;
     private boolean low_basket = false;
 
-    int rigging_position = 0;
-
     private int SPECIMEN_DELIVER_ARM_VALUE = 1500;
-    public static boolean player_2_on = true;
     private boolean waiting_for_distance = false;
-
-    private boolean arm_limit_override = false;
     double distance_wait = 0;
     private boolean claw_turning = false;
-
     private boolean maintain_level = false;
     private boolean reset_claw = false;
-
     private int SLIDE_SPECMEN_HEIGHT = 325;
-
     private boolean disable_distances = true;
-
+    private boolean rigging_lock = true;
     private final double[] previous_looptimes = new double[]{0,0,0,0,0};
     public double claw_offset = 0;
-
-    private boolean special_testing = false;
-
-    private double SPECIMEN_HEIGHT = 13.25;
-
     private int specimen_target_angle = -10;
 
     boolean x, b, y, left_bumper, right_bumper, dpad_down, left_bumper2, right_bumper2, dpad_right, dpad_left, dpad_left2, dpad_up;
@@ -132,7 +122,9 @@ public class TeleOp extends LinearOpMode {
         trafficLight = new TrafficLight("Traffic Light", hardwareMap, telemetry, RobotConstants.red_led, RobotConstants.green_led);
         intake = new Intake(hardwareMap, telemetry, timer, trafficLight);
         mecaTank = new MecaTank(hardwareMap, telemetry, timer, trafficLight);
-        vihasRigging = new VihasRigging(hardwareMap, telemetry, timer);
+        vihasCameraArm = new VihasCameraArm(hardwareMap, telemetry, timer);
+        rigging = new Rigging(hardwareMap, telemetry, timer);
+
 //        camera = new Camera(hardwareMap, telemetry);
         mecaTank.mountFrontDistance(distance);
 //        mecaTank.mountRearDistance(rear_distance);
@@ -141,8 +133,10 @@ public class TeleOp extends LinearOpMode {
             offset = RobotConstants.offset;
             intake.init_without_encoder_reset();
             RobotConstants.auto_transfer = false;
+            rigging_lock = true;
 //            mecaTank = new MecaTank(hardwareMap, telemetry, timer, RobotConstants.imu);
         }else {
+            rigging_lock = false;
             intake.init();
             sleep(200);
 //            intake.calculateOffset();
@@ -159,7 +153,8 @@ public class TeleOp extends LinearOpMode {
         intake.arm.setUseMotionProfile(true);
         intake.slides.setUseMotionProfile(true);
         mecaTank.init();
-        vihasRigging.init_without_moving();
+        rigging.init_without_moving();
+        vihasCameraArm.init_without_moving();
 
         bulkRead.clearCache();
         intake.moveSlides(intake.slides.getCurrentPosition());
@@ -171,9 +166,10 @@ public class TeleOp extends LinearOpMode {
 //        rigging.unlatchHooks();
 //        camera.stopCamera();
         while (!isStopRequested() && opModeIsActive()) {
-            if(first && gamepad1.a){
-                vihasRigging.retract_wand();
+            if(first && !gamepad1.atRest()){
+                vihasCameraArm.retract_wand();
                 first = false;
+                rigging.closeServos();
             }
             loopTimer.reset();
             bulkRead.clearCache();
@@ -225,21 +221,33 @@ public class TeleOp extends LinearOpMode {
 
 
 
-             b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
+            b = (currentGamepad1.b && !previousGamepad1.b) || (currentGamepad2.b && !previousGamepad2.b);
             multiClick.update("b", getRuntime(), b);
             if(disable_distances){
                 trafficLight.red(true);
             }
-             dpad_left2 = player2 && currentGamepad2.dpad_left && !previousGamepad2.dpad_left;
+            dpad_left2 = player2 && currentGamepad2.dpad_left && !previousGamepad2.dpad_left;
             multiClick.update("dpad_left2", getRuntime(), dpad_left2);
 
-            if(multiClick.getTaps("dpad_left2") == 1){
-               if(vihasRigging.isLevelOne()){
-                   vihasRigging.retract_wand();
-               }else{
-                   vihasRigging.level1();
-               }
+            if(rigging_lock){
+                rigging_lock = timer.seconds() < 100;
+            }
+
+            if(multiClick.getTaps("dpad_left2") == 1 && !rigging_lock){
+                switch(ascent_position){
+                    case 0:
+                        rigging.toggleServos();
+                        intake.moveWrist(0);
+                        ascent_position += 1;
+                        break;
+                    case 1:
+                        rigging.ascend();
+                        break;
+
+                }
                 multiClick.clearTaps("dpad_left2");
+
+
             }
             if(multiClick.getTaps("b") == 3){
                 multiClick.clearTaps("b");
@@ -275,6 +283,7 @@ public class TeleOp extends LinearOpMode {
                 trafficLight.red(false);
                 trafficLight.green(false);
                 trafficLight.orange(false);
+                rigging.abortAscent();
                 intake.enableLevel(false);
 resetArmHardstopValue();
                 intake.slides.setMax(1500);
@@ -408,8 +417,8 @@ resetArmHardstopValue();
                 multiClick.clearTaps("a");
                 switch (position) {
                     case START:
-                        if(vihasRigging.isLevelOne()){
-                            vihasRigging.retract_wand();
+                        if(vihasCameraArm.isLevelOne()){
+                            vihasCameraArm.retract_wand();
                         }
                         move_next = true;
                         if(intake.slides.getCurrentPosition() > 200) {
@@ -508,14 +517,13 @@ resetArmHardstopValue();
                             break;
                         }
                         move_next = false;
-        resetArmHardstopValue();
+                        resetArmHardstopValue();
                         intake.slides.setMax(700);
                         current_time = timer.seconds();
                         intake.enableLevel(true);
 //                        intake.moveWrist(180);
                         intake.useFastPID(true);
                         intake.slides.setUseMotionProfile(true);
-                        intake.moveArm(400);
                         if(intake.slides.getCurrentPosition() > 600){
                             intake.moveSlides(600);
                         }
@@ -528,9 +536,9 @@ resetArmHardstopValue();
                         if(intake.slides.isBusy() && !move_next_override){
                             break;
                         }
-        resetArmHardstopValue();
+                        resetArmHardstopValue();
                         intake.enableLevel(false);
-                        intake.moveArm(400);
+                        intake.moveArm(450);
                         move_next = false;
                         intake.arm.setUseMotionProfile(true);
                         intake.slides.setUseMotionProfile(true);
@@ -613,7 +621,7 @@ resetArmHardstopValue();
                             break;
                         }
                         move_next = false;
-                        intake.closeClaw(-0.07);
+                        intake.closeClaw(-0.05);
                         next_position = INTAKE_POSITIONS.DELIVER;
                         previous_position = INTAKE_POSITIONS.LOWER_SLIDES_BEFORE_FOLD;
                         break;
@@ -660,7 +668,8 @@ resetArmHardstopValue();
                     case FOLD_IN_2:
                         if (intake.slides.getCurrentPosition() < 300 || move_next_override) {
                             intake.foldWrist();
-                            intake.moveArm(200);
+                            intake.moveArm(450);
+
                             next_position = INTAKE_POSITIONS.SECOND_START;
                             previous_position = INTAKE_POSITIONS.TURN_CLAW;
                             move_next = false;
@@ -1091,14 +1100,15 @@ resetArmHardstopValue();
                 }
                 multiClick.clearTaps("y");
             }
-
+            rigging.setUpPressed(gamepad2.dpad_up);
+            rigging.setDownPressed(gamepad2.dpad_down);
             //rigging
-//            if (gamepad2.dpad_up){
-//                rigging.setManualPower(-1);
-//            }else if(gamepad2.dpad_down){
-//                rigging.setManualPower(1);
+//            if (!rigging_lock && gamepad2.dpad_up){
+//                rigging.setPower(-1);
+//            }else if(!rigging_lock && gamepad2.dpad_down){
+//                rigging.setPower(1);
 //            }else{
-//                rigging.rigging_motor.setManualPower(0);
+//                rigging.setPower(0);
 //            }
 
 
@@ -1111,7 +1121,7 @@ resetArmHardstopValue();
             mecaTank.update();
             distance.update();
 //            rear_distance.update();
-//            rigging.update();
+            rigging.update();
             addLoopTime(loopTimer.milliseconds());
             if(getAvgLoopTime() > 125 && !disable_distances && timer.seconds() > 5){
                 disable_distances = true;
@@ -1151,11 +1161,11 @@ resetArmHardstopValue();
 
 //                telemetry.addData("Rear Distance Reading", rear_distance.getFilteredDist());
 //            }
-            telemetry.addData("Intake Position", position);
+//            telemetry.addData("Intake Position", position);
             telemetry.addData("Kaboom Mode", robot_go_kaboom);
 //            telemetry.addData("Open Claw Specimen", open_claw_specimen);
 
-            telemetry.addData("Distance Disabled", disable_distances);
+//            telemetry.addData("Distance Disabled", disable_distances);
             telemetry.addData("Cycle Time", loopTimer.milliseconds());
             telemetry.addData("Average Cycle Time", getAvgLoopTime());
             telemetry.addData("Arm Position", intake.arm.getCurrentPosition());
@@ -1188,7 +1198,6 @@ resetArmHardstopValue();
     }
     public void resetArmHardstopValue(){
         intake.arm.setMax(Math.max(SPECIMEN_DELIVER_ARM_VALUE, Math.max(ARM_LIMIT + 400, intake.getHardstopTicks())));
-        arm_limit_override = false;
         intake.disable_up_hardstop = false;
 
     }
