@@ -144,7 +144,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                                     toSample
                             ),
                             intake.slideAction(slide_position ),
-                            intake.armAction(300),
+                            intake.armAction(350),
                             new ParallelAction(
                                     new SequentialAction(armDown2, new InstantAction(sleep::failover)),
                                     new SequentialAction(sleep, new InstantAction(armDown2::failover))
@@ -251,7 +251,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
                         )
                 ),
-                new InstantAction(() -> intake.closeClaw(-0.05)),
+                new InstantAction(() -> intake.closeClaw(-0.04)),
                 score,
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );
@@ -272,12 +272,12 @@ public abstract class NGAutoOpMode extends LinearOpMode {
     }
     public Action goToSampleWithSlides(Action sample, double claw_angle, int collapse_value){
         Intake.moveArmAction armDown = intake.armAction(375, 1000);
-        FailoverAction sleep = new FailoverAction(new SleepAction(0.3), new NullAction());
-        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(200, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
+        FailoverAction sleep = new FailoverAction(new SleepAction(0.4), new NullAction());
+        FailoverAction armDown2 = new FailoverAction(intake.moveArmFast(250, -0.2), new InstantAction(() -> intake.arm.setManualPower(0)));
         return new SequentialAction(
-                new InstantAction(() -> intake.arm.setManualPower(0)),
                 new InstantAction(() ->
                 {
+                    intake.arm.setManualPower(0);
                     intake.moveClaw(RobotConstants.claw_flat);
                     intake.turnAndRotateClaw(180, claw_angle);
                 }),

@@ -271,6 +271,7 @@ public class ATeleOp extends LinearOpMode {
                 intake.moveSlides(intake.slides.getCurrentPosition());
                 intake.moveArm(intake.arm.getCurrentPosition());
                 intake.to_hardstop = false;
+                intake.stopHoldingAtHardstop();
 
                 mecaTank.forceExit();
                 move_next3 = false;
@@ -608,6 +609,7 @@ resetArmHardstopValue();
                         if (intake.slides.getCurrentPosition() < (low_basket ? 0 : 1250) && !move_next_override) {
                             break;
                         }
+                        intake.holdAtHardstop();
                         move_next = true;
                         delay = 0.2;
                         current_time = timer.seconds();
@@ -629,6 +631,7 @@ resetArmHardstopValue();
                     case DELIVER:
                         mecaTank.setMaxPower(1);
                         intake.openClaw();
+                        intake.stopHoldingAtHardstop();
                         delay = 0.2;
                         current_time = timer.time();
                         if (Math.abs(intake.arm.getCurrentPosition() - intake.getHardstopTicks()) > 25 ){
@@ -806,35 +809,9 @@ resetArmHardstopValue();
 //            if(dpad_down && !previousGamepad1.dpad_down && intake.getLevelOffset() <= 0 && maintain_level){
 //                intake.absIncrementLevelOffset(-30);
 //            }
-            if (dpad_down) {
-                if(maintain_level){
-                    intake.incrementLevelOffset(-10);
-                    intake.setRotationPower(-0.25);
-                }else {
-                    intake.setRotationPower(-0.4);
-                }
-            } else if (dpad_up) {
-                if(maintain_level){
-                    intake.incrementLevelOffset(10);
-                    intake.setRotationPower(0.25);
-                }
-                else{
-                    intake.setRotationPower(0.4);
-                }
-            }
-            else if(currentGamepad2.left_stick_y != 0){
-                double power = sameSignSqrt((-currentGamepad2.left_stick_y/(position.equals(INTAKE_POSITIONS.TURN_CLAW) ? 5.0 : 1.0)));
-                if(!robot_go_kaboom) {
-                    intake.setRotationPower(power);
-                }else{
-                    intake.arm.setAbsPower(power);
-                }
-            }
-            else if(!robot_go_kaboom) {
-                    intake.setRotationPower(0);
-            }else{
-                intake.arm.setAbsPower(0);
-            }
+            intake.setDpadDown(dpad_down);
+            intake.setDpadUp(dpad_up);
+            intake.setJoyStickPower(sameSignSqrt((-currentGamepad2.left_stick_y/(position.equals(INTAKE_POSITIONS.TURN_CLAW) ? 5.0 : 1.0))));
 
 
             //specimen
@@ -1100,6 +1077,9 @@ resetArmHardstopValue();
                 }
                 multiClick.clearTaps("y");
             }
+            intake.setMaintainLevel(maintain_level);
+            intake.setRobotGoKaboom(robot_go_kaboom);
+
             rigging.setUpPressed(gamepad2.dpad_up);
             rigging.setDownPressed(gamepad2.dpad_down);
             //rigging

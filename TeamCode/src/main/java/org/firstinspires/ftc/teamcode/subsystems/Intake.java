@@ -79,6 +79,28 @@ public class Intake extends Subsystem {
     public static double VELO_THRESHOLD = 0;
     private boolean level_on = false;
 
+    private boolean dpad_up = false;
+    private boolean dpad_down = false;
+    private double joystick_power = 0;
+
+    public void setDpadUp(boolean on){
+        dpad_up= on;
+    }
+    public void setDpadDown(boolean on){
+        dpad_down = on;
+    }
+    public void setJoyStickPower(double power){
+        joystick_power = power;
+    }
+
+    private boolean robot_go_kaboom = false;
+    public void setRobotGoKaboom(boolean on){
+        robot_go_kaboom = on;
+    }
+    private boolean maintain_level = false;
+    public void setMaintainLevel(boolean on){
+        maintain_level = on;
+    }
     private boolean arm_stabilizer = false;
     private double target_angle = 0;//To the y-axis
     public double target_height = 0;//To the floor
@@ -383,17 +405,19 @@ public class Intake extends Subsystem {
                 armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
                 new InstantAction(() -> {
                     turnAndRotateClaw(145,0);
-                    closeClaw(-0.05);
+                    closeClaw(-0.035);
                 }),
                 new InstantAction(() -> arm.setExitWithTime(true)),
 
                 new SequentialAction(
                         slideAction(1500, 1350),
-                        new InstantAction(() -> {moveWrist(15);}),
-                        new SleepAction(0.15)
+                        new InstantAction(() -> {moveWrist(25);})
                 ),
                 slideAction(1500),
-                new InstantAction(() -> {arm.setMaxVelocity(8000); arm.setManualPower(0.4);})
+                new InstantAction(() -> {arm.setMaxVelocity(8000); }),
+                new SleepAction(0.15)
+
+        //arm.setManualPower(0.4);
 //                ,new InstantAction(() -> {moveWrist(35);}),
 //                new SleepAction(0.15)
 
@@ -437,8 +461,9 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.1),
-                new InstantAction(() -> arm.setManualPower(-0.3)),
                 new InstantAction(() -> moveWrist(90)),
+//                new InstantAction(() -> arm.setManualPower(0)),
+
 //                new SleepAction(0.2),
                 new InstantAction(() -> arm.setUseMotionProfile(false)),
 
@@ -455,11 +480,13 @@ public class Intake extends Subsystem {
     public Action scoreSlidePickupSlow(){
 
         return new SequentialAction(
-                new SleepAction(0.3),
-                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
+//                new InstantAction(() -> arm.setManualPower(0.3)),
                 new SleepAction(0.1),
-                new InstantAction(() -> arm.setManualPower(-0.3)),
+                new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
+                new SleepAction(0.3),
+//                new InstantAction(() -> arm.setManualPower(0)),
                 new InstantAction(() -> moveWrist(90)),
+
 //                new SleepAction(0.2),
                 new InstantAction(() -> arm.setUseMotionProfile(false)),
 
@@ -678,28 +705,58 @@ public class Intake extends Subsystem {
     }
     public void stopHoldingAtHardstop(){
         hold_at_hardstop = false;
-        arm.setManualPower(0);
     }
-
-    @Override
-    public void update() {
-//        past_velo = poseVelocity2d;
-//        poseVelocity2d = mecanumDrive.updatePoseEstimate();
-//        double accel = 0;
-//        if (past_velo != null){
-//            double dt = timer.milliseconds() - accel_time;
-//            accel = (poseVelocity2d.linearVel.sqrNorm() - poseVelocity2d.linearVel.sqrNorm())/dt;
-//            telemetry.addData("Drive Acceleration", accel);
-//        }
-//        accel_time = timer.milliseconds();
-
+    public void update(boolean auto){
         potentiometer.set0Position(position_at_0);
         potentiometer.set90Position(position_at_90);
         potentiometer.setRealZeroDegrees(real_zero_degrees);
 
         diffyClaw.update();
         trafficLight.update();
-
+        if(!auto) {
+            if (to_hardstop) {
+                if (dpad_down || dpad_up) {
+                    to_hardstop = false;
+                }
+                to_hardstop = !hardStopActivated();
+                if (!to_hardstop) {
+                    moveArm(arm.getCurrentPosition());
+                    arm.setManualPower(0);
+                    hard_stop_ticks = arm.getCurrentPosition();
+                } else if (!arm.isBusy() && to_hardstop) {
+                    arm.setManualPower(0.35);
+                }
+            } else if (hold_at_hardstop) {
+                if (dpad_down || dpad_up) {
+                    hold_at_hardstop = false;
+                }
+                arm.setManualPower(0.2);
+            } else if (dpad_down) {
+                if (maintain_level) {
+                    incrementLevelOffset(-10);
+                    setRotationPower(-0.25);
+                } else {
+                    setRotationPower(-0.4);
+                }
+            } else if (dpad_up) {
+                if (maintain_level) {
+                    incrementLevelOffset(10);
+                    setRotationPower(0.25);
+                } else {
+                    setRotationPower(0.4);
+                }
+            } else if (joystick_power != 0) {
+                if (!robot_go_kaboom) {
+                    setRotationPower(joystick_power);
+                } else {
+                    arm.setAbsPower(joystick_power);
+                }
+            } else if (!robot_go_kaboom) {
+                setRotationPower(0);
+            } else {
+                arm.setAbsPower(0);
+            }
+        }
 
 
         previous_magnet_on = magnet_activated();
@@ -737,19 +794,7 @@ public class Intake extends Subsystem {
          *  to_hardstop = false;
          * } */
 
-        if(to_hardstop){
-            to_hardstop = !hardStopActivated();
-            if(!to_hardstop){
-                moveArm(arm.getCurrentPosition());
-                arm.setManualPower(0);
-                hard_stop_ticks = arm.getCurrentPosition();
-            } else if(!arm.isBusy() && to_hardstop){
-                arm.setManualPower(0.75);
-            }
-        }
-        if(hold_at_hardstop){
-            arm.setManualPower(0.3);
-        }
+
         if(level_on) {
 
             moveArm(calculateArmPosition(slides.getCurrentPosition()) + level_offset);
@@ -793,6 +838,21 @@ public class Intake extends Subsystem {
 //        telemetry.addData("armTargetPositions", armTargetPositions.toString());
         arm.update();
         slides.update();
+    }
+    @Override
+    public void update() {
+        update(false);
+//        past_velo = poseVelocity2d;
+//        poseVelocity2d = mecanumDrive.updatePoseEstimate();
+//        double accel = 0;
+//        if (past_velo != null){
+//            double dt = timer.milliseconds() - accel_time;
+//            accel = (poseVelocity2d.linearVel.sqrNorm() - poseVelocity2d.linearVel.sqrNorm())/dt;
+//            telemetry.addData("Drive Acceleration", accel);
+//        }
+//        accel_time = timer.milliseconds();
+
+
     }
     public void clearStoppedWithCurrent(){
         slide_current_stop = false;
@@ -881,11 +941,11 @@ public class Intake extends Subsystem {
         return new moveSlidesAction(position, end_position);
     }
     public class moveArmFast implements  Action{
-        boolean direction = true;
+        boolean direction = false;
         int target = 0;
         double power = 0;
 
-        boolean first=  true;
+        boolean first = true;
 
         public moveArmFast(int target, double power){
             this.target = target;
@@ -897,8 +957,11 @@ public class Intake extends Subsystem {
                 first = false;
                 direction = arm.getCurrentPosition() < target;
                 arm.setManualPower(power);
+                telemetryPacket.put("Arm Moving Fast to", target);
 
             }
+            telemetryPacket.put("Not first hawk", target);
+
             boolean ongoing = direction ? arm.getCurrentPosition() < target : arm.getCurrentPosition() > target;
             if(!ongoing){
                 arm.setManualPower(0);
@@ -943,15 +1006,12 @@ public class Intake extends Subsystem {
 
             if(first){
                 moveArm(target_pos, true);
-                telemetryPacket.put("Arm Target Position In First Statement", arm.targetPos);
-                telemetryPacket.put("Input Target Position In First Statement", target_pos);
+
 
                 first = false;
                 direction_up = arm.getCurrentPosition() < endpos;
             }
-            telemetryPacket.put("Arm Target Position", arm.targetPos);
-            telemetryPacket.put("Inputted Target Position", target_pos);
-            telemetryPacket.put("Arm Position", arm.getCurrentPosition());
+
 
             if(partial_motion){
                 if(!arm.isBusy()){
@@ -972,7 +1032,7 @@ public class Intake extends Subsystem {
 
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            update();
+            update(true);
             return true;
         }
     }

@@ -64,8 +64,8 @@ public class Auto5Sample extends NGAutoOpMode {
 
                     fourthSampleAngleDegrees = 123.5;
                     INCHES_FORWARD = -2.8;
-                    basket = new Pose2d(-56, -56, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-56, -56, Math.toRadians(45));
+                    basket = new Pose2d(-54, -54, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
                     sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
                     /**
@@ -85,10 +85,10 @@ public class Auto5Sample extends NGAutoOpMode {
                     side = "Blue Field 2";
 
                     fourthSampleAngleDegrees = 123.5;
-                    INCHES_FORWARD = -1.7;
-                    basket = new Pose2d(-58, -58, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
-                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+                    INCHES_FORWARD = -0.5;
+                    basket = new Pose2d(-55, -55, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
 
 
                     break;
@@ -100,10 +100,11 @@ public class Auto5Sample extends NGAutoOpMode {
                     side = "Red Field 1";
 
                     fourthSampleAngleDegrees = 123.5;
-                    INCHES_FORWARD = -1;
-                    basket = new Pose2d(-59, -59, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-60, -60, Math.toRadians(45));
+                    INCHES_FORWARD = -0.5;
+                    basket = new Pose2d(-55, -55, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
                     sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+
 
                     break;
                 }
@@ -113,10 +114,11 @@ public class Auto5Sample extends NGAutoOpMode {
                     telemetry.update();
 
                     fourthSampleAngleDegrees = 123.5;
-                    INCHES_FORWARD = -1.8;
-                    basket = new Pose2d(-58, -58, Math.toRadians(45));
-                    fourthBasket = new Pose2d(-59, -58, Math.toRadians(45));
-                    sample4Pickup = new Pose2d(-57, -46.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+                    INCHES_FORWARD = -0.5;
+                    basket = new Pose2d(-55, -55, Math.toRadians(45));
+                    fourthBasket = new Pose2d(-55, -55, Math.toRadians(45));
+                    sample4Pickup = new Pose2d(-57, -47.5 + INCHES_FORWARD, Math.toRadians(fourthSampleAngleDegrees));
+
 
                     side = "Red Field 2";
 
@@ -185,7 +187,7 @@ public class Auto5Sample extends NGAutoOpMode {
         TrajectoryActionBuilder scoreThirdSamplePath = drive.actionBuilder(sample3Pickup)
                 .setReversed(true)
                 .setTangent(Math.PI + Math.atan2(sample3Pickup.position.y - basket.position.y, sample3Pickup.position.x - basket.position.x))
-                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(50), new ProfileAccelConstraint(-25,50));
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(40), new ProfileAccelConstraint(-25,50));
 
         TrajectoryActionBuilder fourthSamplePath = scoreThirdSamplePath.endTrajectory().fresh()
                 .setReversed(false)
@@ -237,7 +239,9 @@ public class Auto5Sample extends NGAutoOpMode {
                                         firstSample,
                                         intake.raiseArm(false)
                                 ),
+                                new InstantAction(() -> intake.arm.setManualPower(0.4)),
                                 intake.scoreSlidePickupSlow(),
+                                new InstantAction(() -> intake.arm.setManualPower(0)),
                                 new InstantAction(() -> intake.moveClaw(RobotConstants.claw_flat)),
                                 goToSampleWithSlides(secondSample),
                                 slideCollectSampleAndScore(scoreSecondSample, RobotConstants.claw_flat, true),
