@@ -249,9 +249,9 @@ public class MeepMeepTesting {
         sampleBot.runAction(sampleBot.getDrive().actionBuilder(new Pose2d(-32.5, -64 , Math.toRadians(0)))
                 .setReversed(true)
 //                .afterTime(0.5, new InstantAction(() -> intake.moveWrist(RobotConstants.floor_pickup_position)))
-                .setTangent(Math.toRadians(135))
-                .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
-                .splineToSplineHeading(basket, Math.toRadians(135), new TranslationalVelConstraint(24), new ProfileAccelConstraint(-10,40))
+                .setTangent(Math.toRadians(90))
+//                .splineToConstantHeading(new Vector2d(-39, -60), Math.toRadians(135))
+                .splineToLinearHeading(basket, Math.toRadians(225), new TranslationalVelConstraint(24), new ProfileAccelConstraint(-10,40))
                 .setReversed(false)
                 .setTangent(Math.toRadians(45))
 

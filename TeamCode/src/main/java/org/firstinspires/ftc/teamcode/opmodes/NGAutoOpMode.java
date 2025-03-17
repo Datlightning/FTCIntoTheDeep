@@ -137,13 +137,16 @@ public abstract class NGAutoOpMode extends LinearOpMode {
                     action = (new SequentialAction(
                             new ParallelAction(
                                     new SequentialAction(
-                                            intake.armAction(425),
+                                            intake.armAction(475),
                                             new InstantAction(() -> {intake.turnAndRotateClaw(180, diffy_angle);})
+
                                     ),
                                     intake.slideAction(slide_position , slide_position/2),
                                     toSample
                             ),
+                            new ParallelAction(
                             intake.slideAction(slide_position ),
+                            new SleepAction(0.3)),
                             intake.armAction(350),
                             new ParallelAction(
                                     new SequentialAction(armDown2, new InstantAction(sleep::failover)),
@@ -251,7 +254,7 @@ public abstract class NGAutoOpMode extends LinearOpMode {
 
                         )
                 ),
-                new InstantAction(() -> intake.closeClaw(-0.04)),
+                new InstantAction(() -> intake.closeClaw(-0.05)),
                 score,
                 new InstantAction(() -> intake.moveClaw(ending_claw_pos))
         );

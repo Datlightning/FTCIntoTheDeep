@@ -26,6 +26,8 @@ public class Camera extends Subsystem {
     private boolean on = true;
     private boolean inside_pick = true;
 
+    private boolean debug = false;
+
     public Camera(HardwareMap hardwareMap, Telemetry telemetry){
         bigBrainAlgorithm = new TheBigBrainAlgorithm();
         this.telemetry = telemetry;
@@ -37,6 +39,10 @@ public class Camera extends Subsystem {
     public void useInsidePick(boolean on){
         inside_pick = on;
         bigBrainAlgorithm.useInsidePick(inside_pick);
+    }
+    public void debug(boolean on){
+        debug = on;
+        bigBrainAlgorithm.debug = on;
     }
 
     public void startCamera(){

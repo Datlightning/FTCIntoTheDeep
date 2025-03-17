@@ -401,13 +401,14 @@ public class Intake extends Subsystem {
         return new SequentialAction(
                 new InstantAction(() -> slides.setExitWithTime(false)),
                 new InstantAction(() -> arm.setExitWithTime(arm_exit_with_time)),
-                new InstantAction(() -> arm.setMaxVelocity(6000)),
-                armAction(ARM_LIMIT - 25,ARM_LIMIT - 1000),
+                new InstantAction(() -> {arm.setMaxVelocity(6000); arm.setMax(ARM_LIMIT + 200);}),
+
+                armAction(ARM_LIMIT + 50,ARM_LIMIT - 1000),
                 new InstantAction(() -> {
                     turnAndRotateClaw(145,0);
                     closeClaw(-0.035);
                 }),
-                new InstantAction(() -> arm.setExitWithTime(true)),
+                new InstantAction(() -> arm.setExitWithTime(false)),
 
                 new SequentialAction(
                         slideAction(1500, 1350),
@@ -460,7 +461,7 @@ public class Intake extends Subsystem {
 
         return new SequentialAction(
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
-                new SleepAction(0.1),
+                new SleepAction(0.3),
                 new InstantAction(() -> moveWrist(90)),
 //                new InstantAction(() -> arm.setManualPower(0)),
 
@@ -480,11 +481,11 @@ public class Intake extends Subsystem {
     public Action scoreSlidePickupSlow(){
 
         return new SequentialAction(
-//                new InstantAction(() -> arm.setManualPower(0.3)),
-                new SleepAction(0.1),
+                new InstantAction(() -> arm.setManualPower(0.3)),
+                new SleepAction(0.2),
+                new InstantAction(() -> arm.setManualPower(0)),
                 new InstantAction(() -> moveClaw(RobotConstants.claw_floor_pickup)),
                 new SleepAction(0.3),
-//                new InstantAction(() -> arm.setManualPower(0)),
                 new InstantAction(() -> moveWrist(90)),
 
 //                new SleepAction(0.2),
